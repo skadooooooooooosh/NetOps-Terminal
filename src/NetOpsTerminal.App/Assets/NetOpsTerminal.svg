@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128">
+  <defs>
+    <linearGradient id="tile" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#223247"/>
+      <stop offset="1" stop-color="#0B1523"/>
+    </linearGradient>
+    <linearGradient id="ribbon" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#38D6F1"/>
+      <stop offset="0.52" stop-color="#27A8F2"/>
+      <stop offset="1" stop-color="#1769CE"/>
+    </linearGradient>
+    <linearGradient id="stem" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#30C8F1"/>
+      <stop offset="1" stop-color="#1879DC"/>
+    </linearGradient>
+  </defs>
+  <rect x="8" y="8" width="112" height="112" rx="27" fill="url(#tile)"/>
+  <path d="M43 43 H88" fill="none" stroke="#218FDB" stroke-width="4" stroke-linecap="round"/>
+  <path d="M29 38 V80" fill="none" stroke="url(#stem)" stroke-width="8" stroke-linecap="round"/>
+  <path d="M36 38 L89 82" fill="none" stroke="url(#ribbon)"
+        stroke-width="19" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M89 49 V80" fill="none" stroke="#26B8EF" stroke-width="4" stroke-linecap="round"/>
+  <circle cx="89" cy="43" r="8.5" fill="#15283C" stroke="#2BC8F1" stroke-width="5.5"/>
+  <circle cx="29" cy="80" r="7.5" fill="#102238" stroke="#33CFF2" stroke-width="5.5"/>
+  <circle cx="89" cy="80" r="9.5" fill="#102238" stroke="#218DE7" stroke-width="6.5"/>
+  <path d="M44 80 L55 87 L44 94 M60 95 H71" fill="none"
+        stroke="#F6FAFF" stroke-width="5.5" stroke-linecap="square" stroke-linejoin="miter"/>
+</svg>

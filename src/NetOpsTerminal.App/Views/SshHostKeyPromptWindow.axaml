@@ -1,0 +1,92 @@
+<Window
+    x:Class="NetOpsTerminal.App.Views.SshHostKeyPromptWindow"
+    xmlns="https://github.com/avaloniaui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:vm="using:NetOpsTerminal.App.ViewModels"
+    x:DataType="vm:SshHostKeyPromptViewModel"
+    Title="SSH Host Key Verification"
+    Width="520"
+    Height="460"
+    MinWidth="480"
+    CanResize="False"
+    ShowInTaskbar="False"
+    WindowStartupLocation="CenterOwner">
+  <Grid RowDefinitions="Auto,*,Auto">
+    <Border
+        Grid.Row="0"
+        Padding="14,10"
+        Background="{DynamicResource AppSurfaceBrush}"
+        BorderBrush="{DynamicResource AppBorderBrush}"
+        BorderThickness="0,0,0,1">
+      <StackPanel Spacing="5">
+        <TextBlock
+            FontSize="17"
+            FontWeight="Bold"
+            Foreground="{DynamicResource AppDangerBrush}"
+            IsVisible="{Binding IsChanged}"
+            Text="⚠  SECURITY WARNING" />
+        <TextBlock FontSize="17" FontWeight="SemiBold" Text="{Binding Heading}" />
+        <TextBlock Classes="muted" FontSize="11" Text="SSH host-key verification · SHA256" />
+      </StackPanel>
+    </Border>
+
+    <ScrollViewer Grid.Row="1">
+      <StackPanel Margin="14" Spacing="10">
+        <TextBlock Text="{Binding Explanation}" TextWrapping="Wrap" />
+
+        <Border
+            Padding="10"
+            Background="{DynamicResource AppSidebarBrush}"
+            BorderBrush="{DynamicResource AppBorderBrush}"
+            BorderThickness="1"
+            CornerRadius="4">
+          <Grid ColumnDefinitions="125,*" RowDefinitions="Auto,Auto,Auto,Auto,Auto">
+            <TextBlock Classes="muted" Text="Host" />
+            <TextBlock Grid.Column="1" FontFamily="Consolas" Text="{Binding Host}" TextWrapping="Wrap" />
+            <TextBlock Grid.Row="1" Classes="muted" Text="Port" />
+            <TextBlock Grid.Row="1" Grid.Column="1" FontFamily="Consolas" Text="{Binding Port}" />
+            <TextBlock Grid.Row="2" Classes="muted" Text="Algorithm" />
+            <TextBlock Grid.Row="2" Grid.Column="1" FontFamily="Consolas" Text="{Binding Algorithm}" />
+            <TextBlock Grid.Row="3" Classes="muted" Text="Presented key" />
+            <TextBlock Grid.Row="3" Grid.Column="1" FontFamily="Consolas" Text="{Binding FingerprintSha256}" TextWrapping="Wrap" />
+            <TextBlock Grid.Row="4" Classes="muted" IsVisible="{Binding IsChanged}" Text="Previously trusted" />
+            <TextBlock Grid.Row="4" Grid.Column="1" FontFamily="Consolas" Foreground="{DynamicResource AppDangerBrush}" IsVisible="{Binding IsChanged}" Text="{Binding TrustedFingerprintSha256}" TextWrapping="Wrap" />
+          </Grid>
+        </Border>
+
+        <Border
+            Padding="10"
+            Background="{DynamicResource AppSecondarySurfaceBrush}"
+            BorderBrush="{DynamicResource AppDangerBrush}"
+            BorderThickness="1"
+            CornerRadius="4"
+            IsVisible="{Binding IsChanged}">
+          <TextBlock
+              Foreground="{DynamicResource AppDangerBrush}"
+              Text="Possible causes include legitimate device replacement, reinstallation, an IP address being reused, or a man-in-the-middle attack. Verify independently before changing the saved key."
+              TextWrapping="Wrap" />
+        </Border>
+
+        <TextBlock
+            Classes="muted"
+            FontSize="11"
+            IsVisible="{Binding IsUnknown}"
+            Text="Trust Once applies only to this tab. Trust and Save writes the public host key to this application's known_hosts file. Your password is never saved."
+            TextWrapping="Wrap" />
+      </StackPanel>
+    </ScrollViewer>
+
+    <Border
+        Grid.Row="2"
+        Padding="10"
+        Background="{DynamicResource AppSurfaceBrush}"
+        BorderBrush="{DynamicResource AppBorderBrush}"
+        BorderThickness="0,1,0,0">
+      <StackPanel HorizontalAlignment="Right" Orientation="Horizontal" Spacing="8">
+        <Button Classes="toolbar" Click="Cancel_OnClick" Content="Cancel" />
+        <Button Classes="toolbar" Click="TrustOnce_OnClick" Content="Trust Once" IsVisible="{Binding IsUnknown}" />
+        <Button Classes="accent" Click="TrustAndSave_OnClick" Content="Trust and Save" IsVisible="{Binding IsUnknown}" />
+      </StackPanel>
+    </Border>
+  </Grid>
+</Window>

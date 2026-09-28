@@ -1,0 +1,677 @@
+<Window
+    x:Class="NetOpsTerminal.App.Views.MainWindow"
+    xmlns="https://github.com/avaloniaui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:terminalAdapter="using:NetOpsTerminal.Terminal.RoyalTerminal"
+    xmlns:vm="using:NetOpsTerminal.App.ViewModels"
+    xmlns:views="using:NetOpsTerminal.App.Views"
+    x:DataType="vm:MainWindowViewModel"
+    Title="NetOps Terminal"
+    Icon="/Assets/NetOpsTerminal.ico"
+    WindowDecorations="BorderOnly"
+    ExtendClientAreaToDecorationsHint="True"
+    Width="1440"
+    Height="860"
+    MinWidth="1080"
+    MinHeight="640"
+    FontSize="12"
+    WindowStartupLocation="CenterScreen"
+    Closing="MainWindow_OnClosing">
+  <Grid RowDefinitions="35,*">
+    <Border
+        Grid.Row="0"
+        Padding="12,0"
+        Background="{DynamicResource AppSurfaceBrush}"
+        BorderBrush="{DynamicResource AppBorderBrush}"
+        BorderThickness="0,0,0,1"
+        WindowDecorationProperties.ElementRole="TitleBar">
+      <Grid>
+        <Grid.ColumnDefinitions>
+          <ColumnDefinition Width="220" />
+          <ColumnDefinition Width="*" />
+          <ColumnDefinition Width="Auto" />
+        </Grid.ColumnDefinitions>
+        <Grid Grid.Column="0" VerticalAlignment="Center" ColumnDefinitions="32,*">
+          <Image Width="26" Height="26" VerticalAlignment="Center"
+                 Source="/Assets/NetOpsTerminal.ico" />
+          <TextBlock Grid.Column="1" Margin="10,0,0,0" VerticalAlignment="Center"
+                     FontSize="13" FontWeight="SemiBold" LetterSpacing="0.2"
+                     Text="NetOps Terminal" />
+        </Grid>
+
+        <StackPanel Grid.Column="2" HorizontalAlignment="Right" VerticalAlignment="Center"
+                    Orientation="Horizontal" Spacing="2">
+          <Button x:Name="KeyboardShortcutsButton" Classes="compact-icon"
+                  WindowDecorationProperties.ElementRole="User"
+                  ToolTip.Tip="Keyboard shortcuts (Ctrl+/)">
+            <Grid Width="16" Height="16">
+              <Ellipse Stroke="{DynamicResource AppMutedTextBrush}" StrokeThickness="1.25" />
+              <TextBlock HorizontalAlignment="Center" VerticalAlignment="Center"
+                         Margin="0,-1,0,0" FontSize="10" FontWeight="SemiBold" Text="?" />
+            </Grid>
+            <Button.Flyout>
+              <Flyout Placement="Bottom" FlyoutPresenterClasses="shortcut-flyout">
+                <Border Width="420" Padding="16"
+                        Background="{DynamicResource AppElevatedSurfaceBrush}"
+                        BorderBrush="{DynamicResource AppSecondaryButtonBorderBrush}"
+                        BorderThickness="1" CornerRadius="6">
+                  <StackPanel Spacing="4">
+                    <TextBlock FontSize="15" FontWeight="SemiBold" Text="Help &amp; Shortcuts" />
+                    <TextBlock Margin="0,-2,0,5" Classes="muted" FontSize="10"
+                               Text="Keyboard shortcuts to help you work faster." />
+                    <Border Height="1" Background="{DynamicResource AppBorderBrush}" />
+
+                    <TextBlock Classes="shortcut-section" Text="GENERAL" />
+                    <Grid Height="26" ColumnDefinitions="*,Auto">
+                      <TextBlock Classes="shortcut-action" Text="Quick Connect" />
+                      <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="3">
+                        <Border Classes="shortcut-key"><TextBlock Classes="shortcut-key" Text="Ctrl" /></Border>
+                        <Border Classes="shortcut-key"><TextBlock Classes="shortcut-key" Text="N" /></Border>
+                      </StackPanel>
+                    </Grid>
+
+                    <TextBlock Classes="shortcut-section" Text="SESSIONS" />
+                    <Grid Height="26" ColumnDefinitions="*,Auto">
+                      <TextBlock Classes="shortcut-action" Text="Reconnect Active Session" />
+                      <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="3">
+                        <Border Classes="shortcut-key"><TextBlock Classes="shortcut-key" Text="Alt" /></Border>
+                        <Border Classes="shortcut-key"><TextBlock Classes="shortcut-key" Text="R" /></Border>
+                      </StackPanel>
+                    </Grid>
+                    <Grid Height="26" ColumnDefinitions="*,Auto">
+                      <TextBlock Classes="shortcut-action" Text="Start / stop logging" />
+                      <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="3">
+                        <Border Classes="shortcut-key"><TextBlock Classes="shortcut-key" Text="Alt" /></Border>
+                        <Border Classes="shortcut-key"><TextBlock Classes="shortcut-key" Text="G" /></Border>
+                      </StackPanel>
+                    </Grid>
+                    <Grid Height="26" ColumnDefinitions="*,Auto">
+                      <TextBlock Classes="shortcut-action" Text="Lock / unlock input" />
+                      <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="3">
+                        <Border Classes="shortcut-key"><TextBlock Classes="shortcut-key" Text="Alt" /></Border>
+                        <Border Classes="shortcut-key"><TextBlock Classes="shortcut-key" Text="L" /></Border>
+                      </StackPanel>
+                    </Grid>
+                    <Grid Height="26" ColumnDefinitions="*,Auto">
+                      <TextBlock Classes="shortcut-action" Foreground="{DynamicResource AppDangerBrush}"
+                                 Text="Disconnect" />
+                      <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="3">
+                        <Border Classes="shortcut-key"><TextBlock Classes="shortcut-key" Foreground="{DynamicResource AppDangerBrush}" Text="Alt" /></Border>
+                        <Border Classes="shortcut-key"><TextBlock Classes="shortcut-key" Foreground="{DynamicResource AppDangerBrush}" Text="X" /></Border>
+                      </StackPanel>
+                    </Grid>
+
+                    <TextBlock Classes="shortcut-section" Text="PANES" />
+                    <Grid Height="26" ColumnDefinitions="*,Auto">
+                      <TextBlock Classes="shortcut-action" Text="Split right" />
+                      <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="3">
+                        <Border Classes="shortcut-key"><TextBlock Classes="shortcut-key" Text="Alt" /></Border>
+                        <Border Classes="shortcut-key"><TextBlock Classes="shortcut-key" Text="Right" /></Border>
+                      </StackPanel>
+                    </Grid>
+                    <Grid Height="26" ColumnDefinitions="*,Auto">
+                      <TextBlock Classes="shortcut-action" Text="Split down" />
+                      <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="3">
+                        <Border Classes="shortcut-key"><TextBlock Classes="shortcut-key" Text="Alt" /></Border>
+                        <Border Classes="shortcut-key"><TextBlock Classes="shortcut-key" Text="Down" /></Border>
+                      </StackPanel>
+                    </Grid>
+                    <Grid Height="26" ColumnDefinitions="*,Auto">
+                      <TextBlock Classes="shortcut-action" Text="Close Active Pane" />
+                      <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="3">
+                        <Border Classes="shortcut-key"><TextBlock Classes="shortcut-key" Text="Ctrl" /></Border>
+                        <Border Classes="shortcut-key"><TextBlock Classes="shortcut-key" Text="W" /></Border>
+                      </StackPanel>
+                    </Grid>
+
+                    <Grid Height="26" ColumnDefinitions="*,Auto">
+                      <TextBlock Classes="shortcut-action" Text="Next pane" />
+                      <Border Grid.Column="1" Classes="shortcut-key">
+                        <TextBlock Classes="shortcut-key" Text="F6" />
+                      </Border>
+                    </Grid>
+                    <Grid Height="26" ColumnDefinitions="*,Auto">
+                      <TextBlock Classes="shortcut-action" Text="Previous pane" />
+                      <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="3">
+                        <Border Classes="shortcut-key"><TextBlock Classes="shortcut-key" Text="Shift" /></Border>
+                        <Border Classes="shortcut-key"><TextBlock Classes="shortcut-key" Text="F6" /></Border>
+                      </StackPanel>
+                    </Grid>
+
+                    <TextBlock Classes="shortcut-section" Text="LOCAL SHELLS" />
+                    <Grid Height="26" ColumnDefinitions="*,Auto">
+                      <TextBlock Classes="shortcut-action" Text="Open PowerShell" />
+                      <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="3">
+                        <Border Classes="shortcut-key"><TextBlock Classes="shortcut-key" Text="Alt" /></Border>
+                        <Border Classes="shortcut-key"><TextBlock Classes="shortcut-key" Text="P" /></Border>
+                      </StackPanel>
+                    </Grid>
+                    <Grid Height="26" ColumnDefinitions="*,Auto">
+                      <TextBlock Classes="shortcut-action" Text="Open Command Prompt" />
+                      <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="3">
+                        <Border Classes="shortcut-key"><TextBlock Classes="shortcut-key" Text="Alt" /></Border>
+                        <Border Classes="shortcut-key"><TextBlock Classes="shortcut-key" Text="C" /></Border>
+                      </StackPanel>
+                    </Grid>
+
+                    <TextBlock Classes="shortcut-section" Text="OTHER" />
+                    <Grid Height="26" ColumnDefinitions="*,Auto">
+                      <TextBlock Classes="shortcut-action" Text="Find output" />
+                      <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="3">
+                        <Border Classes="shortcut-key"><TextBlock Classes="shortcut-key" Text="Ctrl" /></Border>
+                        <Border Classes="shortcut-key"><TextBlock Classes="shortcut-key" Text="F" /></Border>
+                      </StackPanel>
+                    </Grid>
+                    <Grid Height="26" ColumnDefinitions="*,Auto">
+                      <TextBlock Classes="shortcut-action" Text="Open Help" />
+                      <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="3">
+                        <Border Classes="shortcut-key"><TextBlock Classes="shortcut-key" Text="Ctrl" /></Border>
+                        <Border Classes="shortcut-key"><TextBlock Classes="shortcut-key" Text="/" /></Border>
+                      </StackPanel>
+                    </Grid>
+                    <Grid Height="26" ColumnDefinitions="*,Auto">
+                      <TextBlock Classes="shortcut-action" Text="Close Help" />
+                      <Border Grid.Column="1" Classes="shortcut-key">
+                        <TextBlock Classes="shortcut-key" Text="Esc" />
+                      </Border>
+                    </Grid>
+                  </StackPanel>
+                </Border>
+              </Flyout>
+            </Button.Flyout>
+          </Button>
+          <Ellipse Width="7" Height="7" Margin="6,0,10,0" VerticalAlignment="Center"
+                   Fill="{DynamicResource AppConnectedBrush}" ToolTip.Tip="Application ready" />
+          <Border Width="1" Height="22" Margin="0,0,7,0" VerticalAlignment="Center"
+                  Background="{DynamicResource AppBorderBrush}" />
+          <Button Classes="window-caption" Width="24" Height="24" WindowDecorationProperties.ElementRole="User"
+                  Click="MinimizeWindow_OnClick"
+                  ToolTip.Tip="Minimize" AutomationProperties.Name="Minimize window">
+            <Border Width="8" Height="1.25" CornerRadius="1"
+                    Background="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" />
+          </Button>
+          <Button Classes="window-caption" Width="24" Height="24" WindowDecorationProperties.ElementRole="User"
+                  Click="ToggleMaximizeWindow_OnClick"
+                  ToolTip.Tip="Maximize or restore" AutomationProperties.Name="Maximize or restore window">
+            <Path Width="8" Height="8" Stretch="Uniform"
+                  Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"
+                  StrokeThickness="1.25" Data="M3,3 H13 V13 H3 Z" />
+          </Button>
+          <Button Classes="window-caption close-caption" Width="24" Height="24" WindowDecorationProperties.ElementRole="User"
+                  Click="CloseWindow_OnClick"
+                  ToolTip.Tip="Close" AutomationProperties.Name="Close window">
+            <Path Width="8" Height="8" Stretch="Uniform"
+                  Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"
+                  StrokeThickness="1.25" Data="M3,3 L13,13 M13,3 L3,13" />
+          </Button>
+        </StackPanel>
+      </Grid>
+    </Border>
+
+    <Grid Grid.Row="1" ColumnDefinitions="52,Auto,*">
+      <Border Grid.Column="0"
+              Background="{DynamicResource AppSidebarBrush}"
+              BorderBrush="{DynamicResource AppBorderBrush}"
+              BorderThickness="0,0,1,0">
+        <Grid RowDefinitions="Auto,*,Auto">
+          <StackPanel Grid.Row="0" Margin="8,8,8,0" Spacing="6">
+            <Button Classes="rail-icon" Classes.selected="{Binding IsSidebarExpanded}"
+                    Command="{Binding ToggleSidebarCommand}" ToolTip.Tip="Device Explorer">
+              <Viewbox Width="19" Height="19" Stretch="Uniform">
+                <Canvas Width="24" Height="24">
+                  <Path Classes="rail-glyph" Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"
+                        Data="{StaticResource IconRailExplorer}" />
+                </Canvas>
+              </Viewbox>
+            </Button>
+            <Button Classes="rail-icon" Click="QuickConnect_OnClick" ToolTip.Tip="Quick Connect (Ctrl+N)">
+              <Viewbox Width="19" Height="19" Stretch="Uniform">
+                <Canvas Width="24" Height="24">
+                  <Path Classes="rail-glyph" Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"
+                        Data="{StaticResource IconRailConnect}" />
+                </Canvas>
+              </Viewbox>
+            </Button>
+            <Button Classes="rail-icon" Click="AddDevice_OnClick" ToolTip.Tip="Add saved device">
+              <Viewbox Width="19" Height="19" Stretch="Uniform">
+                <Canvas Width="24" Height="24">
+                  <Path Classes="rail-glyph" Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"
+                        Data="{StaticResource IconRailAdd}" />
+                </Canvas>
+              </Viewbox>
+            </Button>
+            <Button Classes="rail-icon" Click="RefreshDevices_OnClick" ToolTip.Tip="Refresh">
+              <Viewbox Width="19" Height="19" Stretch="Uniform">
+                <Canvas Width="24" Height="24">
+                  <Path Classes="rail-glyph" Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"
+                        Data="{StaticResource IconRailRefresh}" />
+                </Canvas>
+              </Viewbox>
+            </Button>
+            <Button Classes="rail-icon" Click="OpenFavorites_OnClick" ToolTip.Tip="Favorites">
+              <Viewbox Width="19" Height="19" Stretch="Uniform">
+                <Canvas Width="24" Height="24">
+                  <Path Classes="rail-glyph" Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"
+                        Data="{StaticResource IconRailFavorites}" />
+                </Canvas>
+              </Viewbox>
+            </Button>
+            <Button Classes="rail-icon" Click="OpenRecent_OnClick" ToolTip.Tip="Recent Sessions">
+              <Viewbox Width="19" Height="19" Stretch="Uniform">
+                <Canvas Width="24" Height="24">
+                  <Path Classes="rail-glyph" Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"
+                        Data="{StaticResource IconRailRecent}" />
+                </Canvas>
+              </Viewbox>
+            </Button>
+          </StackPanel>
+
+          <StackPanel Grid.Row="1" Margin="8,14,8,0" Spacing="6">
+            <Button Classes="rail-icon" Click="Credentials_OnClick" ToolTip.Tip="Credentials">
+              <Viewbox Width="19" Height="19" Stretch="Uniform">
+                <Canvas Width="24" Height="24">
+                  <Path Classes="rail-glyph" Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"
+                        Data="{StaticResource IconRailCredentials}" />
+                </Canvas>
+              </Viewbox>
+            </Button>
+            <Button Classes="rail-icon" Click="ImportDevices_OnClick" ToolTip.Tip="Import devices">
+              <Viewbox Width="19" Height="19" Stretch="Uniform">
+                <Canvas Width="24" Height="24">
+                  <Path Classes="rail-glyph" Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"
+                        Data="{StaticResource IconRailImport}" />
+                </Canvas>
+              </Viewbox>
+            </Button>
+            <Button Classes="rail-icon" Click="ExportDevices_OnClick" ToolTip.Tip="Export devices">
+              <Viewbox Width="19" Height="19" Stretch="Uniform">
+                <Canvas Width="24" Height="24">
+                  <Path Classes="rail-glyph" Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"
+                        Data="{StaticResource IconRailExport}" />
+                </Canvas>
+              </Viewbox>
+            </Button>
+          </StackPanel>
+
+          <StackPanel Grid.Row="2" Margin="8,0,8,8" Spacing="8">
+            <Border Width="34" Height="1" HorizontalAlignment="Center"
+                    Background="{DynamicResource AppMutedTextBrush}" Opacity="0.35" />
+            <Button Classes="rail-icon" Classes.selected="{Binding IsSettingsVisible}"
+                    Command="{Binding ShowSettingsCommand}" ToolTip.Tip="Settings">
+              <Viewbox Width="19" Height="19" Stretch="Uniform">
+                <Canvas Width="24" Height="24">
+                  <Path Classes="rail-glyph" Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"
+                        Data="{StaticResource IconRailSettings}" />
+                </Canvas>
+              </Viewbox>
+            </Button>
+          </StackPanel>
+        </Grid>
+      </Border>
+
+      <Grid Grid.Column="1" HorizontalAlignment="Left"
+            ColumnDefinitions="Auto,5" IsVisible="{Binding IsSidebarExpanded}">
+      <Border
+          Grid.Column="0"
+          Width="{Binding SidebarWidth}"
+          Background="{DynamicResource AppSidebarBrush}"
+          BorderBrush="{DynamicResource AppBorderBrush}"
+          BorderThickness="0,0,1,0">
+        <Grid RowDefinitions="48,Auto,*,Auto">
+          <Grid Grid.Row="0" ColumnDefinitions="*,Auto" Margin="8,1">
+            <TextBlock
+                Margin="5,0"
+                VerticalAlignment="Center"
+                FontSize="12"
+                FontWeight="SemiBold"
+                IsVisible="{Binding IsSidebarExpanded}"
+                Text="DEVICE EXPLORER" />
+            <Button Grid.Column="1" Classes="compact-icon"
+                    Classes.selected="{Binding IsDeviceExplorerPinned}"
+                    Command="{Binding ToggleDeviceExplorerPinCommand}"
+                    ToolTip.Tip="Pin Device Explorer">
+              <Path Width="14" Height="14" Stretch="Uniform"
+                    Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"
+                    StrokeThickness="1.35"
+                    Data="M7,3 H17 L15,6 V11 L18,14 H6 L9,11 V6 Z M12,14 V21" />
+            </Button>
+
+          </Grid>
+
+          <StackPanel
+              Grid.Row="1"
+              Margin="6,4,6,2"
+              IsVisible="{Binding IsSidebarExpanded}"
+              Spacing="3">
+            <TextBox
+                x:Name="DeviceSearchTextBox"
+                MinHeight="30"
+                PlaceholderText="Search name, host, site..."
+                TextChanged="DeviceSearch_OnTextChanged" />
+          </StackPanel>
+
+          <Grid Grid.Row="2" Margin="6,0" RowDefinitions="Auto,Auto,*"
+                IsVisible="{Binding IsSidebarExpanded}">
+            <Grid ColumnDefinitions="*,*,*">
+              <Grid>
+                <Button Classes="filter-tab"
+                        Command="{Binding DeviceExplorer.ShowAllCommand}">
+                  <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Spacing="4">
+                    <TextBlock Text="All" />
+                    <TextBlock Classes="filter-count" Text="{Binding DeviceExplorer.AllCount}" />
+                  </StackPanel>
+                </Button>
+                <Border Classes="filter-tab-underline"
+                        Classes.selected="{Binding DeviceExplorer.IsAllSelected}"
+                        IsHitTestVisible="False" />
+              </Grid>
+              <Grid Grid.Column="1">
+                <Button Classes="filter-tab"
+                        Command="{Binding DeviceExplorer.ShowFavoritesCommand}">
+                  <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Spacing="4">
+                    <TextBlock Text="Favorites" />
+                    <TextBlock Classes="filter-count" Text="{Binding DeviceExplorer.FavoriteCount}" />
+                  </StackPanel>
+                </Button>
+                <Border Classes="filter-tab-underline"
+                        Classes.selected="{Binding DeviceExplorer.IsFavoritesSelected}"
+                        IsHitTestVisible="False" />
+              </Grid>
+              <Grid Grid.Column="2">
+                <Button Classes="filter-tab"
+                        Command="{Binding DeviceExplorer.ShowRecentCommand}">
+                  <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Spacing="4">
+                    <TextBlock Text="Recent" />
+                    <TextBlock Classes="filter-count" Text="{Binding DeviceExplorer.RecentCount}" />
+                  </StackPanel>
+                </Button>
+                <Border Classes="filter-tab-underline"
+                        Classes.selected="{Binding DeviceExplorer.IsRecentSelected}"
+                        IsHitTestVisible="False" />
+              </Grid>
+            </Grid>
+            <Grid Grid.Row="1" Margin="2,3,2,2">
+              <TextBlock Classes="section" Margin="2,8,2,4" FontSize="10"
+                         Text="{Binding DeviceExplorer.FilterLabel}" />
+            </Grid>
+            <Grid Grid.Row="2">
+              <TreeView
+                  x:Name="DeviceTree"
+                  ItemsSource="{Binding DeviceExplorer.Nodes}"
+                  SelectedItem="{Binding DeviceExplorer.SelectedNode}"
+                  DoubleTapped="DeviceTree_OnDoubleTapped"
+                  KeyDown="DeviceTree_OnKeyDown">
+                <TreeView.ContextMenu>
+                  <ContextMenu>
+                    <MenuItem Header="Connect" Click="ConnectSavedDevice_OnClick" />
+                    <MenuItem Header="Edit device" Click="EditDevice_OnClick" />
+                    <MenuItem Header="Delete device" Click="DeleteDevice_OnClick" />
+                  </ContextMenu>
+                </TreeView.ContextMenu>
+                <TreeView.ItemTemplate>
+                  <TreeDataTemplate x:DataType="vm:DeviceExplorerNodeViewModel"
+                                    ItemsSource="{Binding Children}">
+                    <Grid Margin="2,2" ColumnDefinitions="Auto,*,Auto">
+                      <Grid Width="16" Height="16" VerticalAlignment="Center">
+                        <PathIcon IsVisible="{Binding IsGroup}"
+                                  Data="{StaticResource IconFolder}" />
+                        <Path IsVisible="{Binding IsSwitch}" Data="{StaticResource IconDeviceSwitch}"
+                              Stroke="{DynamicResource AppAccentBrush}" StrokeThickness="1.6"
+                              StrokeLineCap="Round" StrokeJoin="Round" Stretch="Uniform" />
+                        <Path IsVisible="{Binding IsRouter}" Data="{StaticResource IconDeviceRouter}"
+                              Stroke="{DynamicResource AppAccentBrush}" StrokeThickness="1.6"
+                              StrokeLineCap="Round" StrokeJoin="Round" Stretch="Uniform" />
+                        <Path IsVisible="{Binding IsFirewall}" Data="{StaticResource IconDeviceFirewall}"
+                              Stroke="{DynamicResource AppAccentBrush}" StrokeThickness="1.6"
+                              StrokeLineCap="Round" StrokeJoin="Round" Stretch="Uniform" />
+                        <Path IsVisible="{Binding IsServer}" Data="{StaticResource IconDeviceServer}"
+                              Stroke="{DynamicResource AppAccentBrush}" StrokeThickness="1.6"
+                              StrokeLineCap="Round" StrokeJoin="Round" Stretch="Uniform" />
+                        <Path IsVisible="{Binding IsAccessPoint}" Data="{StaticResource IconDeviceAccessPoint}"
+                              Stroke="{DynamicResource AppAccentBrush}" StrokeThickness="1.6"
+                              StrokeLineCap="Round" StrokeJoin="Round" Stretch="Uniform" />
+                        <Path IsVisible="{Binding IsStorage}" Data="{StaticResource IconDeviceStorage}"
+                              Stroke="{DynamicResource AppAccentBrush}" StrokeThickness="1.6"
+                              StrokeLineCap="Round" StrokeJoin="Round" Stretch="Uniform" />
+                        <Path IsVisible="{Binding IsGenericDevice}" Data="{StaticResource IconDeviceOther}"
+                              Stroke="{DynamicResource AppAccentBrush}" StrokeThickness="1.6"
+                              StrokeLineCap="Round" StrokeJoin="Round" Stretch="Uniform" />
+                      </Grid>
+                      <StackPanel Grid.Column="1" Margin="7,0,5,0">
+                        <TextBlock FontSize="11" FontWeight="SemiBold" Text="{Binding Label}" />
+                        <TextBlock Classes="muted" FontSize="9" Text="{Binding Details}" />
+                      </StackPanel>
+                      <StackPanel Grid.Column="2" VerticalAlignment="Center">
+                        <Border Classes="badge production" IsVisible="{Binding IsProduction}">
+                          <TextBlock FontSize="8" Foreground="{DynamicResource AppProductionBrush}" Text="PROD" />
+                        </Border>
+                        <Border Classes="badge test"
+                                IsVisible="{Binding IsTest}">
+                          <TextBlock FontSize="8" Foreground="{DynamicResource AppTestBrush}" Text="TEST" />
+                        </Border>
+                        <Border Classes="badge lab"
+                                IsVisible="{Binding IsLab}">
+                          <TextBlock FontSize="8" Foreground="{DynamicResource AppLabBrush}" Text="LAB" />
+                        </Border>
+                        <Border Classes="badge development"
+                                IsVisible="{Binding IsDevelopment}">
+                          <TextBlock FontSize="8" Foreground="{DynamicResource AppLabBrush}" Text="DEV" />
+                        </Border>
+                      </StackPanel>
+                    </Grid>
+                  </TreeDataTemplate>
+                </TreeView.ItemTemplate>
+              </TreeView>
+              <ProgressBar Width="150" HorizontalAlignment="Center" VerticalAlignment="Center"
+                           IsIndeterminate="True" IsVisible="{Binding DeviceExplorer.IsLoading}" />
+              <TextBlock Margin="12" HorizontalAlignment="Center" VerticalAlignment="Center"
+                         Classes="muted" FontSize="10" TextAlignment="Center" TextWrapping="Wrap"
+                         IsVisible="{Binding DeviceExplorer.HasNoNodes}"
+                         Text="{Binding DeviceExplorer.EmptyMessage}" />
+            </Grid>
+          </Grid>
+
+          <Border Grid.Row="3" Padding="8,7" Background="{DynamicResource AppSurfaceBrush}"
+                  BorderBrush="{DynamicResource AppBorderBrush}" BorderThickness="0,1,0,0"
+                  IsVisible="{Binding IsSidebarExpanded}">
+            <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="4">
+              <Button Classes="toolbar" MinHeight="30" Click="ConnectSavedDevice_OnClick"
+                      HorizontalContentAlignment="Center" VerticalContentAlignment="Center"
+                      IsEnabled="{Binding DeviceExplorer.HasSelectedDevice}">
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Center"
+                            VerticalAlignment="Center" Spacing="6">
+                  <PathIcon Width="14" Height="14"
+                            Data="{StaticResource IconConnect}" />
+                  <TextBlock Text="Connect" />
+                </StackPanel>
+              </Button>
+              <Button Grid.Column="1" Classes="compact-icon" Click="EditDevice_OnClick"
+                      IsEnabled="{Binding DeviceExplorer.HasSelectedDevice}" ToolTip.Tip="Edit selected device">
+                <PathIcon Width="12" Height="12"
+                          Data="{StaticResource IconEdit}" />
+              </Button>
+              <Button Grid.Column="2" Classes="compact-icon danger-icon" Click="DeleteDevice_OnClick"
+                      IsEnabled="{Binding DeviceExplorer.HasSelectedDevice}" ToolTip.Tip="Delete selected device">
+                <PathIcon Width="12" Height="12"
+                          Data="{StaticResource IconDelete}" />
+              </Button>
+            </Grid>
+          </Border>
+        </Grid>
+      </Border>
+
+      <Border
+          x:Name="SidebarResizeHandle"
+          Grid.Column="1"
+          Background="Transparent"
+          Cursor="SizeWestEast"
+          PointerMoved="SidebarResize_OnPointerMoved"
+          PointerPressed="SidebarResize_OnPointerPressed"
+          PointerReleased="SidebarResize_OnPointerReleased"
+          ToolTip.Tip="Drag to resize the device sidebar" />
+      </Grid>
+
+      <Grid Grid.Column="2" PointerPressed="Workspace_OnPointerPressed">
+        <Grid IsVisible="{Binding IsWorkspaceVisible}" RowDefinitions="*,24">
+          <Border
+              Grid.Row="0"
+              Margin="0"
+              Background="{DynamicResource AppTerminalBrush}"
+              CornerRadius="0"
+              IsVisible="{Binding HasNoTerminalSessions}">
+            <StackPanel Margin="40" VerticalAlignment="Center" Spacing="12">
+              <TextBlock
+                  HorizontalAlignment="Center"
+                  FontFamily="Cascadia Mono, Consolas"
+                  FontSize="28"
+                  Foreground="{DynamicResource AppTerminalTextBrush}"
+                  Text="&gt;_" />
+              <TextBlock
+                  HorizontalAlignment="Center"
+                  FontSize="18"
+                  FontWeight="SemiBold"
+                  Foreground="{DynamicResource AppTerminalTextBrush}"
+                  Text="Open a terminal session" />
+              <TextBlock
+                  MaxWidth="560"
+                  HorizontalAlignment="Center"
+                  Foreground="{DynamicResource AppTerminalMutedBrush}"
+                  Text="Start a local shell or use Quick Connect for SSH, Telnet, Serial, or Raw TCP."
+                  TextAlignment="Center"
+                  TextWrapping="Wrap" />
+              <StackPanel HorizontalAlignment="Center" Margin="0,10,0,0" Orientation="Horizontal" Spacing="10">
+                <Button
+                    Classes="accent"
+                    Click="QuickConnect_OnClick"
+                    Content="Quick Connect"
+                    IsEnabled="{Binding CanStartConnection}" />
+                <Button
+                    Classes="toolbar"
+                    Command="{Binding NewPowerShellCommand}"
+                    Content="Open PowerShell" />
+                <Button
+                    Classes="toolbar"
+                    Command="{Binding NewCommandPromptCommand}"
+                    Content="Open Command Prompt" />
+              </StackPanel>
+              <TextBlock
+                  HorizontalAlignment="Center"
+                  Classes="muted"
+                  FontSize="11"
+                  Text="Managed terminal · 10,000-line scrollback · Clipboard safety enabled" />
+
+              <StackPanel HorizontalAlignment="Center" IsVisible="{Binding IsConnectionBusy}" Spacing="7">
+                <ProgressBar Width="320" IsIndeterminate="True" />
+                <Button
+                    HorizontalAlignment="Center"
+                    Classes="toolbar"
+                    Command="{Binding CancelConnectionCommand}"
+                    Content="Cancel connection" />
+              </StackPanel>
+
+              <Border
+                  MaxWidth="680"
+                  Padding="12"
+                  Background="{DynamicResource AppSecondarySurfaceBrush}"
+                  BorderBrush="{DynamicResource AppDangerBrush}"
+                  BorderThickness="1"
+                  CornerRadius="4"
+                  IsVisible="{Binding HasConnectionError}">
+                <Grid ColumnDefinitions="*,Auto,Auto">
+                  <TextBlock Foreground="{DynamicResource AppDangerBrush}" Text="{Binding ConnectionErrorMessage}" TextWrapping="Wrap" />
+                  <Button Grid.Column="1" Margin="12,0,0,0" Classes="toolbar" Click="ConnectionDetails_OnClick" Content="Details" />
+                  <Button Grid.Column="2" Margin="6,0,0,0" Classes="toolbar" Command="{Binding DismissConnectionErrorCommand}" Content="Dismiss" />
+                </Grid>
+              </Border>
+            </StackPanel>
+          </Border>
+
+          <TabControl
+              x:Name="TerminalTabsControl"
+              Grid.Row="0"
+              Margin="0"
+              Classes="minimal-tabs"
+              Background="{DynamicResource AppTerminalBrush}"
+              ItemsSource="{Binding WorkspaceTabs}"
+              IsVisible="{Binding HasTerminalSessions}"
+              SelectedItem="{Binding SelectedWorkspace}">
+            <TabControl.ItemsPanel>
+              <ItemsPanelTemplate>
+                <StackPanel Orientation="Horizontal" />
+              </ItemsPanelTemplate>
+            </TabControl.ItemsPanel>
+            <TabControl.ItemTemplate>
+              <DataTemplate x:DataType="vm:WorkspaceTabViewModel">
+                <Grid ColumnDefinitions="Auto,Auto,Auto" Margin="1,0">
+                  <TextBlock
+                      VerticalAlignment="Center"
+                      FontSize="9"
+                      Foreground="{DynamicResource AppConnectedBrush}"
+                      Text="{Binding ActivePane.Terminal.StatusGlyph}" />
+                  <TextBlock
+                      Grid.Column="1"
+                      Margin="6,0,7,0"
+                      VerticalAlignment="Center"
+                      FontSize="11"
+                      FontWeight="Medium"
+                      MaxWidth="170"
+                      Text="{Binding Title}"
+                      TextTrimming="CharacterEllipsis" />
+                  <Button
+                      Grid.Column="2"
+                      Width="18"
+                      Height="18"
+                      Padding="0"
+                      Background="Transparent"
+                      BorderThickness="0"
+                      Click="WorkspaceTabClose_OnClick"
+                      Content="×"
+                      ToolTip.Tip="Close active pane" />
+                </Grid>
+              </DataTemplate>
+            </TabControl.ItemTemplate>
+            <TabControl.ContentTemplate>
+              <DataTemplate x:DataType="vm:WorkspaceTabViewModel">
+                <views:WorkspacePaneView DataContext="{Binding Root}" />
+              </DataTemplate>
+            </TabControl.ContentTemplate>
+          </TabControl>
+
+          <Border
+              Grid.Row="1"
+              Padding="8,0"
+              Background="{DynamicResource AppSurfaceBrush}"
+              BorderBrush="{DynamicResource AppBorderBrush}"
+              BorderThickness="0,1,0,0">
+            <Grid ColumnDefinitions="Auto,*,Auto">
+              <Grid Width="7" Height="7" VerticalAlignment="Center">
+                <Ellipse Fill="{DynamicResource AppConnectedBrush}" IsVisible="{Binding IsFooterConnected}" />
+                <Ellipse Fill="{DynamicResource AppWarningBrush}" IsVisible="{Binding IsFooterWarning}" />
+                <Ellipse Fill="{DynamicResource AppDangerBrush}" IsVisible="{Binding IsFooterError}" />
+                <Ellipse Fill="{DynamicResource AppDisconnectedBrush}" IsVisible="{Binding IsFooterIdle}" />
+              </Grid>
+              <TextBlock Grid.Column="1" Margin="6,0" VerticalAlignment="Center"
+                         Classes="muted" FontSize="10" Text="{Binding StatusMessage}" />
+              <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center"
+                          Spacing="7">
+                <TextBlock Classes="muted" FontSize="10"
+                           IsVisible="{Binding HasSelectedTerminal}"
+                           Text="{Binding FooterConnectionText}" />
+                <TextBlock Classes="muted" FontSize="10"
+                           IsVisible="{Binding HasSelectedTerminal}" Text="·" />
+                <TextBlock Classes="muted" FontSize="10"
+                           IsVisible="{Binding HasSelectedTerminal}"
+                           Text="{Binding FooterLoggingText}" />
+                <TextBlock Classes="muted" FontSize="10" Text="·" />
+                <TextBlock Classes="muted" FontSize="10"
+                           Text="{Binding FooterSessionCountText}" />
+              </StackPanel>
+            </Grid>
+          </Border>
+        </Grid>
+
+        <views:SettingsView x:Name="SettingsPanel" IsVisible="{Binding IsSettingsVisible}" />
+      </Grid>
+    </Grid>
+  </Grid>
+</Window>

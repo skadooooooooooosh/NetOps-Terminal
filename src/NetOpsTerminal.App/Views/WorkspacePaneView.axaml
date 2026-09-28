@@ -1,0 +1,130 @@
+<UserControl
+    x:Class="NetOpsTerminal.App.Views.WorkspacePaneView"
+    xmlns="https://github.com/avaloniaui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:vm="using:NetOpsTerminal.App.ViewModels"
+    xmlns:views="using:NetOpsTerminal.App.Views"
+    xmlns:terminalAdapter="using:NetOpsTerminal.Terminal.RoyalTerminal"
+    x:DataType="vm:WorkspacePaneNodeViewModel">
+  <UserControl.Styles>
+    <Style Selector="Border.workspace-pane">
+      <Setter Property="BorderBrush" Value="{DynamicResource AppBorderBrush}" />
+      <Setter Property="BorderThickness" Value="1" />
+    </Style>
+    <Style Selector="Border.workspace-pane.active">
+      <Setter Property="BorderBrush" Value="{DynamicResource AppAccentBrush}" />
+      <Setter Property="BorderThickness" Value="1" />
+    </Style>
+  </UserControl.Styles>
+
+  <UserControl.DataTemplates>
+    <DataTemplate DataType="vm:SplitPaneViewModel" x:DataType="vm:SplitPaneViewModel">
+      <Grid>
+        <Grid IsVisible="{Binding IsSideBySide}">
+          <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="{Binding FirstLength}" MinWidth="220" />
+            <ColumnDefinition Width="3" />
+            <ColumnDefinition Width="{Binding SecondLength}" MinWidth="220" />
+          </Grid.ColumnDefinitions>
+          <views:WorkspacePaneView Grid.Column="0" DataContext="{Binding First}" />
+          <GridSplitter Grid.Column="1" Background="{DynamicResource AppBorderBrush}"
+                        PointerReleased="Splitter_OnPointerReleased"
+                        ResizeBehavior="PreviousAndNext" ResizeDirection="Columns" Tag="Right" />
+          <views:WorkspacePaneView Grid.Column="2" DataContext="{Binding Second}" />
+        </Grid>
+        <Grid IsVisible="{Binding IsStacked}">
+          <Grid.RowDefinitions>
+            <RowDefinition Height="{Binding FirstLength}" MinHeight="150" />
+            <RowDefinition Height="3" />
+            <RowDefinition Height="{Binding SecondLength}" MinHeight="150" />
+          </Grid.RowDefinitions>
+          <views:WorkspacePaneView Grid.Row="0" DataContext="{Binding First}" />
+          <GridSplitter Grid.Row="1" Background="{DynamicResource AppBorderBrush}"
+                        PointerReleased="Splitter_OnPointerReleased"
+                        ResizeBehavior="PreviousAndNext" ResizeDirection="Rows" Tag="Down" />
+          <views:WorkspacePaneView Grid.Row="2" DataContext="{Binding Second}" />
+        </Grid>
+      </Grid>
+    </DataTemplate>
+
+    <DataTemplate DataType="vm:TerminalPaneViewModel" x:DataType="vm:TerminalPaneViewModel">
+      <Border Classes="workspace-pane" Classes.active="{Binding IsActive}"
+              Background="{DynamicResource AppTerminalBrush}" PointerPressed="Pane_OnPointerPressed">
+        <Grid RowDefinitions="27,Auto,*,Auto">
+          <Border Padding="10,0" Background="{DynamicResource AppSecondarySurfaceBrush}"
+                  BorderBrush="{DynamicResource AppBorderBrush}" BorderThickness="0,0,0,1">
+            <Grid ColumnDefinitions="Auto,Auto,Auto,*,Auto,Auto,Auto">
+              <TextBlock VerticalAlignment="Center" FontSize="10"
+                         Foreground="{DynamicResource AppConnectedBrush}"
+                         Text="{Binding Terminal.StatusGlyph}" />
+              <TextBlock Grid.Column="1" Margin="5,0,0,0" VerticalAlignment="Center"
+                         FontFamily="Cascadia Mono, Consolas" FontSize="10"
+                         Foreground="{DynamicResource AppMutedTextBrush}"
+                         Text="{Binding Terminal.StatusText}" />
+              <TextBlock Grid.Column="2" Margin="8,0,0,0" VerticalAlignment="Center"
+                         FontFamily="Cascadia Mono, Consolas" FontSize="10"
+                         Foreground="{DynamicResource AppTerminalTextBrush}"
+                         Text="{Binding Terminal.ShellLabel}" />
+              <TextBlock Grid.Column="4" Margin="8,0" VerticalAlignment="Center"
+                         FontSize="9" Foreground="{DynamicResource AppConnectedBrush}"
+                         IsVisible="{Binding Terminal.IsLogging}" Text="● LOGGING" />
+              <TextBlock Grid.Column="5" Margin="8,0" VerticalAlignment="Center"
+                         FontSize="9" FontWeight="Bold" Foreground="{DynamicResource AppWarningBrush}"
+                         IsVisible="{Binding Terminal.IsInputLocked}" Text="INPUT LOCKED" />
+              <TextBlock Grid.Column="6" Margin="8,0" VerticalAlignment="Center"
+                         FontSize="9" FontWeight="Bold" Foreground="{DynamicResource AppProductionBrush}"
+                         IsVisible="{Binding IsProduction}" Text="PROD" />
+            </Grid>
+          </Border>
+
+          <Border Grid.Row="1" Padding="8,5" Background="{DynamicResource AppSecondarySurfaceBrush}"
+                  BorderBrush="{DynamicResource AppBorderBrush}" BorderThickness="0,0,0,1"
+                  IsVisible="{Binding Terminal.IsFindVisible}">
+            <Grid ColumnDefinitions="*,Auto,Auto,Auto,Auto" ColumnSpacing="5">
+              <TextBox x:Name="FindTextBox" Tag="TerminalFind" MinWidth="180"
+                       Text="{Binding Terminal.FindText, Mode=TwoWay}"
+                       KeyDown="FindText_OnKeyDown" PlaceholderText="Find in terminal output..." />
+              <TextBlock Grid.Column="1" MinWidth="60" VerticalAlignment="Center"
+                         Classes="muted" TextAlignment="Center" Text="{Binding Terminal.FindStatusText}" />
+              <Button Grid.Column="2" Classes="compact-icon" Click="FindPrevious_OnClick" Content="↑" ToolTip.Tip="Previous match (Shift+Enter)" />
+              <Button Grid.Column="3" Classes="compact-icon" Click="FindNext_OnClick" Content="↓" ToolTip.Tip="Next match (Enter)" />
+              <Button Grid.Column="4" Classes="compact-icon" Click="CloseFind_OnClick" Content="×" ToolTip.Tip="Close find (Esc)" />
+            </Grid>
+          </Border>
+
+          <terminalAdapter:RoyalTerminalHost Grid.Row="2" HorizontalAlignment="Stretch"
+              VerticalAlignment="Stretch" IsVisible="{Binding HasTerminal}"
+              Session="{Binding Terminal.Session}" />
+
+          <StackPanel Grid.Row="2" MaxWidth="540" Margin="34" HorizontalAlignment="Center"
+              VerticalAlignment="Center" IsVisible="{Binding HasNoTerminal}" Spacing="12">
+            <TextBlock HorizontalAlignment="Center" FontFamily="Cascadia Mono, Consolas" FontSize="25"
+                       Foreground="{DynamicResource AppTerminalTextBrush}" Text="&gt;_" />
+            <TextBlock HorizontalAlignment="Center" FontSize="17" FontWeight="SemiBold" Text="{Binding Title}" />
+            <TextBlock Foreground="{DynamicResource AppTerminalMutedBrush}" Text="{Binding PlaceholderMessage}"
+                       TextAlignment="Center" TextWrapping="Wrap" />
+            <Button HorizontalAlignment="Center" Classes="accent" Click="RestorePane_OnClick"
+                    Content="Reconnect" IsVisible="{Binding CanReconnect}" />
+          </StackPanel>
+
+          <StackPanel Grid.Row="3">
+            <Border Height="26" Padding="10,0" Background="{DynamicResource AppProductionSurfaceBrush}"
+                    BorderBrush="{DynamicResource AppProductionBrush}" BorderThickness="0,1,0,0"
+                    IsVisible="{Binding IsProduction}">
+              <TextBlock VerticalAlignment="Center" FontSize="10" Foreground="{DynamicResource AppProductionBrush}"
+                         Text="⚠  PRODUCTION SESSION — VERIFY COMMANDS BEFORE SENDING" />
+            </Border>
+            <Border Height="26" Padding="10,0" Background="{DynamicResource AppWarningSurfaceBrush}"
+                    BorderBrush="{DynamicResource AppWarningBrush}" BorderThickness="0,1,0,0"
+                    IsVisible="{Binding Terminal.IsInputLocked}">
+              <TextBlock VerticalAlignment="Center" FontSize="10" Foreground="{DynamicResource AppWarningBrush}"
+                         Text="INPUT LOCKED — Alt+L to unlock" />
+            </Border>
+          </StackPanel>
+        </Grid>
+      </Border>
+    </DataTemplate>
+  </UserControl.DataTemplates>
+
+  <ContentControl Content="{Binding}" />
+</UserControl>

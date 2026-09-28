@@ -1,0 +1,55 @@
+# Build and publish output
+**/bin/
+**/obj/
+**/publish/
+artifacts/
+*.msi
+*.zip
+
+# Project-local bootstrap tooling
+.bootstrap/
+.dotnet/
+
+# Local previews and inspection files
+.tmp-recording-review/
+help-shortcuts-preview.html
+docs/uiux/preview/
+docs/uiux/minimal-terminal-preview/
+
+# User and IDE state
+.vs/
+.vscode/
+.idea/
+*.user
+*.suo
+
+# Runtime state and logs
+*.log
+*.tmp
+*.db
+*.db-shm
+*.db-wal
+*.db-journal
+*.sqlite
+*.sqlite3
+.env
+.env.*
+*.pem
+*.key
+*.pfx
+*.p12
+
+# OS files
+Thumbs.db
+.DS_Store
+
+# Local project history and previews; kept on this workstation
+docs/testing/
+docs/uiux/
+docs/user-guide/
+docs/previews/
+docs/local-notes/
+PROJECT_CONTEXT.md
+CURRENT_STATE.md
+DECISIONS.md
+QA_PHASE_GATE.md

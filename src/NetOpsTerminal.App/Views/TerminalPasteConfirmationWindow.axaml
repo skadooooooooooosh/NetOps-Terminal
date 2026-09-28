@@ -1,0 +1,108 @@
+<Window
+    x:Class="NetOpsTerminal.App.Views.TerminalPasteConfirmationWindow"
+    xmlns="https://github.com/avaloniaui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    Title="Confirm Terminal Paste"
+    Width="460"
+    Height="340"
+    MinWidth="440"
+    MinHeight="310"
+    CanResize="True"
+    CanMinimize="False"
+    CanMaximize="False"
+    Icon="/Assets/NetOpsTerminal.ico"
+    WindowDecorations="BorderOnly"
+    ExtendClientAreaToDecorationsHint="True"
+    TransparencyLevelHint="Transparent"
+    TransparencyBackgroundFallback="{DynamicResource AppWindowBrush}"
+    CornerRadius="12"
+    Background="Transparent"
+    ShowInTaskbar="False"
+    WindowStartupLocation="CenterOwner">
+  <Border Classes="dialog-shell">
+    <Border Classes="dialog-surface">
+    <Grid RowDefinitions="35,Auto,*,Auto">
+    <Border
+        Grid.Row="0"
+        Padding="10,0"
+        Background="{DynamicResource AppSurfaceBrush}"
+        BorderBrush="{DynamicResource AppBorderBrush}"
+        BorderThickness="0,0,0,1"
+        WindowDecorationProperties.ElementRole="TitleBar">
+      <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="8">
+        <Image Grid.Column="0" Width="16" Height="16" VerticalAlignment="Center"
+               Source="/Assets/NetOpsTerminal.ico" />
+        <TextBlock Grid.Column="1" VerticalAlignment="Center" FontSize="12"
+                   FontWeight="SemiBold" Text="Confirm Terminal Paste" />
+        <Button Grid.Column="2" Classes="window-caption close-caption"
+                Width="24" Height="24" VerticalAlignment="Center"
+                WindowDecorationProperties.ElementRole="User"
+                Click="Cancel_OnClick" ToolTip.Tip="Close"
+                AutomationProperties.Name="Close Confirm Terminal Paste">
+          <Path Width="8" Height="8" Stretch="Uniform"
+                Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"
+                StrokeThickness="1.25" Data="M3,3 L13,13 M13,3 L3,13" />
+        </Button>
+      </Grid>
+    </Border>
+
+    <Border
+        Grid.Row="1"
+        Padding="14,8"
+        Background="{DynamicResource AppSurfaceBrush}"
+        BorderBrush="{DynamicResource AppBorderBrush}"
+        BorderThickness="0,0,0,1">
+      <StackPanel Spacing="3">
+        <TextBlock x:Name="HeadingText" FontSize="15" FontWeight="SemiBold" />
+        <TextBlock Classes="muted" FontSize="10" Text="Review terminal input before sending" />
+      </StackPanel>
+    </Border>
+
+    <Grid Grid.Row="2" Margin="14" RowDefinitions="Auto,Auto,*" RowSpacing="9">
+      <Border
+          Padding="9"
+          Background="{DynamicResource AppSecondarySurfaceBrush}"
+          BorderBrush="{DynamicResource AppWarningBrush}"
+          BorderThickness="1"
+          CornerRadius="4">
+        <TextBlock
+            Foreground="{DynamicResource AppWarningBrush}"
+            Text="The pasted text will be sent directly to the active terminal. Lines ending with Enter may execute immediately."
+            TextWrapping="Wrap" />
+      </Border>
+
+      <TextBlock
+          x:Name="RiskText"
+          Grid.Row="1"
+          Classes="muted"
+          FontSize="11"
+          TextWrapping="Wrap" />
+
+      <TextBox
+          x:Name="PreviewTextBox"
+          Grid.Row="2"
+          Padding="9"
+          AcceptsReturn="True"
+          FontFamily="Cascadia Mono, Consolas"
+          FontSize="13"
+          IsReadOnly="True"
+          ScrollViewer.HorizontalScrollBarVisibility="Auto"
+          ScrollViewer.VerticalScrollBarVisibility="Auto"
+          TextWrapping="NoWrap" />
+    </Grid>
+
+    <Border
+        Grid.Row="3"
+        Padding="10"
+        Background="{DynamicResource AppSurfaceBrush}"
+        BorderBrush="{DynamicResource AppBorderBrush}"
+        BorderThickness="0,1,0,0">
+      <StackPanel HorizontalAlignment="Right" Orientation="Horizontal" Spacing="8">
+        <Button Classes="toolbar" Click="Cancel_OnClick" Content="Cancel" IsCancel="True" />
+        <Button x:Name="PasteButton" Classes="accent" Click="Paste_OnClick" Content="Paste" />
+      </StackPanel>
+    </Border>
+    </Grid>
+    </Border>
+  </Border>
+</Window>

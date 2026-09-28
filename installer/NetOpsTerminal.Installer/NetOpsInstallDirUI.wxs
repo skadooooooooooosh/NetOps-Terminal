@@ -1,0 +1,75 @@
+﻿<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs">
+  <!-- Keep the WiX v5 path check while adding shortcut choices to the folder page. -->
+  <Fragment>
+    <UI Id="NetOpsInstallDirUI_X64">
+      <Publish Dialog="LicenseAgreementDlg" Control="Print" Event="DoAction" Value="WixUIPrintEula_X64" />
+      <Publish Dialog="BrowseDlg" Control="OK" Event="DoAction" Value="WixUIValidatePath_X64" Order="3" Condition="NOT WIXUI_DONTVALIDATEPATH" />
+      <Publish Dialog="NetOpsInstallDirDlg" Control="Next" Event="DoAction" Value="WixUIValidatePath_X64" Order="2" Condition="NOT WIXUI_DONTVALIDATEPATH" />
+    </UI>
+    <UIRef Id="NetOpsInstallDirUI" />
+  </Fragment>
+
+  <Fragment>
+    <UI Id="file NetOpsInstallDirUI">
+      <TextStyle Id="WixUI_Font_Normal" FaceName="Tahoma" Size="8" />
+      <TextStyle Id="WixUI_Font_Bigger" FaceName="Tahoma" Size="12" />
+      <TextStyle Id="WixUI_Font_Title" FaceName="Tahoma" Size="9" Bold="yes" />
+      <Property Id="DefaultUIFont" Value="WixUI_Font_Normal" />
+      <DialogRef Id="BrowseDlg" />
+      <DialogRef Id="DiskCostDlg" />
+      <DialogRef Id="ErrorDlg" />
+      <DialogRef Id="FatalError" />
+      <DialogRef Id="FilesInUse" />
+      <DialogRef Id="MsiRMFilesInUse" />
+      <DialogRef Id="PrepareDlg" />
+      <DialogRef Id="ProgressDlg" />
+      <DialogRef Id="ResumeDlg" />
+      <DialogRef Id="UserExit" />
+
+      <Dialog Id="NetOpsInstallDirDlg" Width="370" Height="270" Title="[ProductName] Setup">
+        <Control Id="Next" Type="PushButton" X="236" Y="243" Width="56" Height="17" Default="yes" Text="&amp;Next" />
+        <Control Id="Back" Type="PushButton" X="180" Y="243" Width="56" Height="17" Text="&amp;Back" />
+        <Control Id="Cancel" Type="PushButton" X="304" Y="243" Width="56" Height="17" Cancel="yes" Text="Cancel">
+          <Publish Event="SpawnDialog" Value="CancelDlg" />
+        </Control>
+        <Control Id="Title" Type="Text" X="15" Y="6" Width="250" Height="15" Transparent="yes" NoPrefix="yes" Text="{\WixUI_Font_Title}Install NetOps Terminal" />
+        <Control Id="Description" Type="Text" X="25" Y="23" Width="320" Height="15" Transparent="yes" NoPrefix="yes" Text="Choose an installation folder and shortcuts." />
+        <Control Id="BannerBitmap" Type="Bitmap" X="0" Y="0" Width="370" Height="44" TabSkip="no" Text="WixUI_Bmp_Banner" />
+        <Control Id="BannerLine" Type="Line" X="0" Y="44" Width="370" Height="0" />
+        <Control Id="FolderLabel" Type="Text" X="20" Y="60" Width="320" Height="15" NoPrefix="yes" Text="Install NetOps Terminal to:" />
+        <Control Id="Folder" Type="PathEdit" X="20" Y="82" Width="320" Height="18" Property="WIXUI_INSTALLDIR" Indirect="yes" />
+        <Control Id="ChangeFolder" Type="PushButton" X="284" Y="105" Width="56" Height="17" Text="&amp;Browse..." />
+        <Control Id="OptionsLabel" Type="Text" X="20" Y="139" Width="320" Height="15" NoPrefix="yes" Text="Shortcuts" />
+        <Control Id="DesktopShortcut" Type="CheckBox" X="20" Y="157" Width="320" Height="17" Property="NETOPS_DESKTOP_SHORTCUT" CheckBoxValue="1" Text="Create a desktop shortcut" />
+        <Control Id="StartMenuShortcut" Type="CheckBox" X="20" Y="181" Width="320" Height="17" Property="NETOPS_STARTMENU_SHORTCUT" CheckBoxValue="1" Text="Add NetOps Terminal to the Start menu" />
+        <Control Id="BottomLine" Type="Line" X="0" Y="234" Width="370" Height="0" />
+      </Dialog>
+
+      <Publish Dialog="BrowseDlg" Control="OK" Event="SpawnDialog" Value="InvalidDirDlg" Order="4" Condition="NOT WIXUI_DONTVALIDATEPATH AND WIXUI_INSTALLDIR_VALID&lt;&gt;&quot;1&quot;" />
+      <Publish Dialog="ExitDialog" Control="Finish" Event="EndDialog" Value="Return" Order="999" />
+      <Publish Dialog="WelcomeDlg" Control="Next" Event="NewDialog" Value="LicenseAgreementDlg" Condition="NOT Installed" />
+      <Publish Dialog="WelcomeDlg" Control="Next" Event="NewDialog" Value="VerifyReadyDlg" Condition="Installed AND PATCH" />
+      <Publish Dialog="LicenseAgreementDlg" Control="Back" Event="NewDialog" Value="WelcomeDlg" />
+      <Publish Dialog="LicenseAgreementDlg" Control="Next" Event="NewDialog" Value="NetOpsInstallDirDlg" Condition="LicenseAccepted = &quot;1&quot;" />
+      <Publish Dialog="NetOpsInstallDirDlg" Control="Back" Event="NewDialog" Value="LicenseAgreementDlg" />
+      <Publish Dialog="NetOpsInstallDirDlg" Control="Next" Event="SetTargetPath" Value="[WIXUI_INSTALLDIR]" Order="1" />
+      <Publish Dialog="NetOpsInstallDirDlg" Control="Next" Event="SpawnDialog" Value="InvalidDirDlg" Order="3" Condition="NOT WIXUI_DONTVALIDATEPATH AND WIXUI_INSTALLDIR_VALID&lt;&gt;&quot;1&quot;" />
+      <Publish Dialog="NetOpsInstallDirDlg" Control="Next" Event="AddLocal" Value="DesktopShortcutFeature" Order="4" Condition="(WIXUI_DONTVALIDATEPATH OR WIXUI_INSTALLDIR_VALID=&quot;1&quot;) AND NETOPS_DESKTOP_SHORTCUT=&quot;1&quot;" />
+      <Publish Dialog="NetOpsInstallDirDlg" Control="Next" Event="Remove" Value="DesktopShortcutFeature" Order="5" Condition="(WIXUI_DONTVALIDATEPATH OR WIXUI_INSTALLDIR_VALID=&quot;1&quot;) AND NOT NETOPS_DESKTOP_SHORTCUT" />
+      <Publish Dialog="NetOpsInstallDirDlg" Control="Next" Event="AddLocal" Value="StartMenuShortcutFeature" Order="6" Condition="(WIXUI_DONTVALIDATEPATH OR WIXUI_INSTALLDIR_VALID=&quot;1&quot;) AND NETOPS_STARTMENU_SHORTCUT=&quot;1&quot;" />
+      <Publish Dialog="NetOpsInstallDirDlg" Control="Next" Event="Remove" Value="StartMenuShortcutFeature" Order="7" Condition="(WIXUI_DONTVALIDATEPATH OR WIXUI_INSTALLDIR_VALID=&quot;1&quot;) AND NOT NETOPS_STARTMENU_SHORTCUT" />
+      <Publish Dialog="NetOpsInstallDirDlg" Control="Next" Event="NewDialog" Value="VerifyReadyDlg" Order="8" Condition="WIXUI_DONTVALIDATEPATH OR WIXUI_INSTALLDIR_VALID=&quot;1&quot;" />
+      <Publish Dialog="NetOpsInstallDirDlg" Control="ChangeFolder" Property="_BrowseProperty" Value="[WIXUI_INSTALLDIR]" Order="1" />
+      <Publish Dialog="NetOpsInstallDirDlg" Control="ChangeFolder" Event="SpawnDialog" Value="BrowseDlg" Order="2" />
+      <Publish Dialog="VerifyReadyDlg" Control="Back" Event="NewDialog" Value="NetOpsInstallDirDlg" Order="1" Condition="NOT Installed" />
+      <Publish Dialog="VerifyReadyDlg" Control="Back" Event="NewDialog" Value="MaintenanceTypeDlg" Order="2" Condition="Installed AND NOT PATCH" />
+      <Publish Dialog="VerifyReadyDlg" Control="Back" Event="NewDialog" Value="WelcomeDlg" Order="2" Condition="Installed AND PATCH" />
+      <Publish Dialog="MaintenanceWelcomeDlg" Control="Next" Event="NewDialog" Value="MaintenanceTypeDlg" />
+      <Publish Dialog="MaintenanceTypeDlg" Control="RepairButton" Event="NewDialog" Value="VerifyReadyDlg" />
+      <Publish Dialog="MaintenanceTypeDlg" Control="RemoveButton" Event="NewDialog" Value="VerifyReadyDlg" />
+      <Publish Dialog="MaintenanceTypeDlg" Control="Back" Event="NewDialog" Value="MaintenanceWelcomeDlg" />
+      <Property Id="ARPNOMODIFY" Value="1" />
+    </UI>
+    <UIRef Id="WixUI_Common" />
+  </Fragment>
+</Wix>

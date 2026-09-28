@@ -1,0 +1,7 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <ItemGroup>
+    <ProjectReference Include="..\NetOpsTerminal.Core\NetOpsTerminal.Core.csproj" />
+  </ItemGroup>
+
+</Project>

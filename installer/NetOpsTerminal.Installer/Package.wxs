@@ -1,0 +1,75 @@
+﻿<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs"
+     xmlns:ui="http://wixtoolset.org/schemas/v4/wxs/ui">
+  <Package
+      Name="NetOps Terminal"
+      Manufacturer="skadooooooooooosh"
+      Version="$(var.InstallerVersion)"
+      Language="1033"
+      ProductCode="855FD10B-B134-4877-8237-FE684F529A40"
+      UpgradeCode="3536CB34-CDD4-435C-B72E-8E7E1EEB259E"
+      Scope="perMachine">
+    <MajorUpgrade DowngradeErrorMessage="A newer version of NetOps Terminal is already installed." />
+    <MediaTemplate EmbedCab="yes" />
+    <ui:WixUI Id="NetOpsInstallDirUI" InstallDirectory="INSTALLFOLDER" />
+    <WixVariable Id="WixUILicenseRtf" Value="License.rtf" />
+    <WixVariable Id="WixUIDialogBmp" Value="Assets\Welcome.png" />
+    <WixVariable Id="WixUIBannerBmp" Value="Assets\Banner.png" />
+    <Property Id="ARPPRODUCTICON" Value="NetOpsIcon" />
+    <Property Id="NETOPS_DESKTOP_SHORTCUT" Value="1" Secure="yes" />
+    <Property Id="NETOPS_STARTMENU_SHORTCUT" Value="1" Secure="yes" />
+
+    <StandardDirectory Id="ProgramFiles64Folder">
+      <Directory Id="INSTALLFOLDER" Name="NetOps Terminal" />
+    </StandardDirectory>
+
+    <StandardDirectory Id="ProgramMenuFolder">
+      <Directory Id="NetOpsProgramMenuFolder" Name="NetOps Terminal" />
+    </StandardDirectory>
+
+    <Component Id="NetOpsStartMenuShortcut" Directory="NetOpsProgramMenuFolder" Guid="89DD5B78-07FC-404D-9066-3841232784F3">
+      <Shortcut Id="NetOpsStartMenuShortcutLink"
+                Name="NetOps Terminal"
+                Description="Network terminal workspace"
+                Target="[INSTALLFOLDER]NetOpsTerminal.exe"
+                WorkingDirectory="INSTALLFOLDER"
+                Icon="NetOpsIcon" />
+      <RemoveFolder Id="RemoveNetOpsProgramMenuFolder" On="uninstall" />
+      <RegistryValue Root="HKCU" Key="Software\skadooooooooooosh\NetOpsTerminal\Installer"
+                     Name="StartMenuShortcut" Type="integer" Value="1" KeyPath="yes" />
+    </Component>
+
+    <StandardDirectory Id="DesktopFolder" />
+
+    <Component Id="NetOpsDesktopShortcut" Directory="DesktopFolder" Guid="C232BA46-7063-40ED-ACB2-36AB11CDA82C">
+      <Shortcut Id="NetOpsDesktopShortcutLink" Name="NetOps Terminal"
+                Description="Network terminal workspace" Target="[INSTALLFOLDER]NetOpsTerminal.exe"
+                WorkingDirectory="INSTALLFOLDER" Icon="NetOpsIcon" />
+      <RegistryValue Root="HKCU" Key="Software\skadooooooooooosh\NetOpsTerminal\Installer"
+                     Name="DesktopShortcut" Type="integer" Value="1" KeyPath="yes" />
+    </Component>
+
+    <Component Id="NativeSqliteLibrary" Directory="INSTALLFOLDER" Guid="*">
+      <File Id="NativeSqliteFile" Source="$(var.PublishRoot)\e_sqlite3.dll"
+            Name="e_sqlite3.dll" DefaultLanguage="0" KeyPath="yes" />
+    </Component>
+
+    <Icon Id="NetOpsIcon" SourceFile="..\..\src\NetOpsTerminal.App\Assets\NetOpsTerminal.ico" />
+    <Feature Id="MainFeature" Title="NetOps Terminal" Level="1">
+      <Files Directory="INSTALLFOLDER" Include="$(var.PublishRoot)\**">
+        <Exclude Files="$(var.PublishRoot)\e_sqlite3.dll" />
+      </Files>
+      <ComponentRef Id="NativeSqliteLibrary" />
+      <Feature Id="DesktopShortcutFeature" Title="Desktop shortcut" Level="1" Display="hidden">
+        <ComponentRef Id="NetOpsDesktopShortcut" />
+      </Feature>
+      <Feature Id="StartMenuShortcutFeature" Title="Start menu shortcut" Level="1" Display="hidden">
+        <ComponentRef Id="NetOpsStartMenuShortcut" />
+      </Feature>
+    </Feature>
+  </Package>
+</Wix>
+
+
+
+
+

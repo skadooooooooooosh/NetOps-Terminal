@@ -1,0 +1,125 @@
+﻿<UserControl
+    x:Class="NetOpsTerminal.App.Views.SettingsView"
+    xmlns="https://github.com/avaloniaui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:vm="using:NetOpsTerminal.App.ViewModels"
+    x:DataType="vm:MainWindowViewModel">
+  <Grid Background="{DynamicResource AppWindowBrush}" RowDefinitions="54,*">
+    <Border Grid.Row="0" Padding="22,0"
+            Background="{DynamicResource AppSurfaceBrush}"
+            BorderBrush="{DynamicResource AppBorderBrush}"
+            BorderThickness="0,0,0,1">
+      <Grid ColumnDefinitions="Auto,Auto,Auto,*,Auto">
+        <Button Command="{Binding ShowWorkspaceCommand}"
+                VerticalAlignment="Center"
+                Background="Transparent" BorderThickness="0"
+                Foreground="{DynamicResource AppShortcutBrush}"
+                Padding="0" MinHeight="0">
+          <StackPanel Orientation="Horizontal" Spacing="7">
+            <TextBlock FontSize="18" Foreground="{DynamicResource AppShortcutBrush}"
+                       Text="&#x2190;" />
+            <TextBlock VerticalAlignment="Center" FontSize="12"
+                       Foreground="{DynamicResource AppShortcutBrush}"
+                       Text="Back to workspace" />
+          </StackPanel>
+        </Button>
+        <Border Grid.Column="1" Width="1" Height="24" Margin="18,0"
+                VerticalAlignment="Center" Background="{DynamicResource AppBorderBrush}" />
+        <TextBlock Grid.Column="2" VerticalAlignment="Center"
+                   FontSize="15" FontWeight="SemiBold" Text="Settings" />
+        <TextBlock Grid.Column="4" VerticalAlignment="Center"
+                   Classes="muted" FontSize="10" Text="Changes saved locally" />
+      </Grid>
+    </Border>
+
+    <ScrollViewer Grid.Row="1" Margin="24,20">
+      <StackPanel Width="840" HorizontalAlignment="Center" Spacing="14">
+        <StackPanel Spacing="4" Margin="0,0,0,6">
+          <TextBlock FontSize="21" FontWeight="SemiBold" Text="Application settings" />
+          <TextBlock Classes="muted" FontSize="12"
+                     Text="Adjust the terminal and manage your device data." />
+        </StackPanel>
+
+        <Border Classes="card" Padding="18" CornerRadius="7">
+          <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto,Auto">
+            <StackPanel Spacing="5">
+              <TextBlock FontSize="14" FontWeight="SemiBold" Text="Terminal appearance" />
+              <TextBlock Classes="muted" FontSize="12"
+                         Text="Font size for the active terminal and new sessions." />
+            </StackPanel>
+            <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8"
+                        VerticalAlignment="Center">
+              <Button Width="36" Height="36" Classes="toolbar"
+                      Click="DecreaseFont_OnClick" Content="-"
+                      ToolTip.Tip="Decrease terminal font size" />
+              <TextBlock Width="52" VerticalAlignment="Center"
+                         TextAlignment="Center" FontSize="14" FontWeight="SemiBold"
+                         Text="{Binding TerminalFontSize, StringFormat='{}{0} pt'}" />
+              <Button Width="36" Height="36" Classes="toolbar"
+                      Click="IncreaseFont_OnClick" Content="+"
+                      ToolTip.Tip="Increase terminal font size" />
+            </StackPanel>
+            <Button Grid.Row="1" Margin="0,9,0,0" Padding="0,4"
+                    HorizontalAlignment="Left" MinHeight="0"
+                    Background="Transparent" BorderThickness="0"
+                    Foreground="{DynamicResource AppShortcutBrush}"
+                    Click="ResetFont_OnClick" Content="Reset to default" />
+            <TextBlock Grid.Row="2" Margin="0,10,0,0"
+                       Classes="muted" FontSize="11"
+                       Text="Shortcuts: Ctrl++ / Ctrl+- to zoom, Ctrl+0 to reset." />
+          </Grid>
+        </Border>
+
+        <Border Classes="card" Padding="18" CornerRadius="7">
+          <StackPanel Spacing="5">
+            <TextBlock FontSize="14" FontWeight="SemiBold" Text="Device data" />
+            <TextBlock Classes="muted" FontSize="12"
+                       Text="Move saved devices and groups between workspaces." />
+            <StackPanel Orientation="Horizontal" Spacing="10" Margin="0,10,0,0">
+              <Button Classes="toolbar" Click="ExcelTemplate_OnClick"
+                      Content="Download Excel template" />
+              <Button Classes="toolbar" Click="ImportDevices_OnClick"
+                      Content="Import devices" />
+              <Button Classes="accent" Click="ExportDevices_OnClick"
+                      Content="Export devices" />
+            </StackPanel>
+            <TextBlock Margin="0,7,0,0" Classes="muted" FontSize="11"
+                       TextWrapping="Wrap"
+                       Text="Exports exclude passwords, private keys, credential secrets, and trusted host keys." />
+          </StackPanel>
+        </Border>
+
+        <Border Classes="card" Padding="18" CornerRadius="7">
+          <Grid ColumnDefinitions="*,Auto" ColumnSpacing="16">
+            <StackPanel Spacing="5">
+              <TextBlock FontSize="14" FontWeight="SemiBold" Text="Session logs" />
+              <TextBlock Classes="muted" FontSize="12" TextWrapping="Wrap"
+                         Text="Find output logs saved from sessions where logging was enabled." />
+            </StackPanel>
+            <Button Grid.Column="1" VerticalAlignment="Center"
+                    Classes="toolbar" Click="OpenLogsFolder_OnClick"
+                    Content="Open logs folder" />
+          </Grid>
+        </Border>
+
+        <Border Classes="card" Padding="18" CornerRadius="7">
+          <StackPanel Spacing="8">
+            <TextBlock FontSize="14" FontWeight="SemiBold" Text="Security and privacy" />
+            <Grid ColumnDefinitions="*,*" ColumnSpacing="20">
+              <StackPanel Spacing="4">
+                <TextBlock FontWeight="SemiBold" Text="Credentials" />
+                <TextBlock Classes="muted" FontSize="11" TextWrapping="Wrap"
+                           Text="Reusable passwords stay in Windows Credential Manager. Quick Connect passwords stay in memory only." />
+              </StackPanel>
+              <StackPanel Grid.Column="1" Spacing="4">
+                <TextBlock FontWeight="SemiBold" Text="SSH trust" />
+                <TextBlock Classes="muted" FontSize="11" TextWrapping="Wrap"
+                           Text="Trusted host keys are stored locally and changed keys require review before connection." />
+              </StackPanel>
+            </Grid>
+          </StackPanel>
+        </Border>
+      </StackPanel>
+    </ScrollViewer>
+  </Grid>
+</UserControl>

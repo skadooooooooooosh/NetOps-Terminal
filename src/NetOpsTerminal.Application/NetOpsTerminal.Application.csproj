@@ -1,0 +1,15 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <ItemGroup>
+    <ProjectReference Include="..\NetOpsTerminal.Core\NetOpsTerminal.Core.csproj" />
+    <ProjectReference Include="..\NetOpsTerminal.Security\NetOpsTerminal.Security.csproj" />
+    <ProjectReference Include="..\NetOpsTerminal.Terminal\NetOpsTerminal.Terminal.csproj" />
+    <ProjectReference Include="..\NetOpsTerminal.Transports\NetOpsTerminal.Transports.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="DocumentFormat.OpenXml" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" />
+  </ItemGroup>
+
+</Project>

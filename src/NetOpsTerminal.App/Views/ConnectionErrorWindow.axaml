@@ -1,0 +1,29 @@
+<Window
+    x:Class="NetOpsTerminal.App.Views.ConnectionErrorWindow"
+    xmlns="https://github.com/avaloniaui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    Title="SSH Connection Error"
+    Width="480"
+    Height="260"
+    CanResize="False"
+    ShowInTaskbar="False"
+    WindowStartupLocation="CenterOwner">
+  <Grid RowDefinitions="Auto,*,Auto">
+    <Border Padding="14,10" Background="{DynamicResource AppSurfaceBrush}" BorderBrush="{DynamicResource AppBorderBrush}" BorderThickness="0,0,0,1">
+      <TextBlock FontSize="17" FontWeight="SemiBold" Text="SSH connection failed" />
+    </Border>
+    <StackPanel Grid.Row="1" Margin="14" Spacing="10">
+      <TextBlock x:Name="UserMessageText" TextWrapping="Wrap" />
+      <Border Padding="9" Background="{DynamicResource AppSidebarBrush}" BorderBrush="{DynamicResource AppBorderBrush}" BorderThickness="1" CornerRadius="4">
+        <StackPanel Spacing="5">
+          <TextBlock Classes="muted" FontSize="10" FontWeight="SemiBold" Text="TECHNICAL DETAILS (SANITIZED)" />
+          <TextBlock x:Name="TechnicalDetailsText" FontFamily="Cascadia Mono, Consolas" FontSize="11" TextWrapping="Wrap" />
+        </StackPanel>
+      </Border>
+      <TextBlock Classes="muted" FontSize="10" Text="No password or terminal content is included in these details." />
+    </StackPanel>
+    <Border Grid.Row="2" Padding="10" Background="{DynamicResource AppSurfaceBrush}" BorderBrush="{DynamicResource AppBorderBrush}" BorderThickness="0,1,0,0">
+      <Button HorizontalAlignment="Right" Classes="toolbar" Click="Close_OnClick" Content="Close" IsDefault="True" />
+    </Border>
+  </Grid>
+</Window>

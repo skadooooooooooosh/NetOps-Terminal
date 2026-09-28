@@ -1,0 +1,73 @@
+﻿<Window
+    x:Class="NetOpsTerminal.App.Views.DeviceExportWindow"
+    xmlns="https://github.com/avaloniaui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    Title="Export devices"
+    Width="390" Height="370"
+    CanResize="False"
+    CanMinimize="False"
+    CanMaximize="False"
+    Icon="/Assets/NetOpsTerminal.ico"
+    WindowDecorations="None"
+    ExtendClientAreaToDecorationsHint="True"
+    TransparencyLevelHint="Transparent"
+    TransparencyBackgroundFallback="{DynamicResource AppWindowBrush}"
+    CornerRadius="12"
+    ShowInTaskbar="False"
+    WindowStartupLocation="CenterOwner"
+    Background="Transparent">
+  <Border Classes="dialog-shell">
+    <Border Classes="dialog-surface">
+    <Grid RowDefinitions="35,*">
+    <Border Grid.Row="0" Padding="10,0"
+            Background="{DynamicResource AppSurfaceBrush}"
+            BorderBrush="{DynamicResource AppBorderBrush}"
+            BorderThickness="0,0,0,1"
+            WindowDecorationProperties.ElementRole="TitleBar">
+      <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="8">
+        <Image Grid.Column="0" Width="16" Height="16" VerticalAlignment="Center"
+               Source="/Assets/NetOpsTerminal.ico" />
+        <TextBlock Grid.Column="1" VerticalAlignment="Center" FontSize="12"
+                   FontWeight="SemiBold" Text="Export devices" />
+        <Button Grid.Column="2" Classes="window-caption close-caption"
+                Width="24" Height="24" VerticalAlignment="Center"
+                WindowDecorationProperties.ElementRole="User"
+                Click="Cancel_OnClick" ToolTip.Tip="Close"
+                AutomationProperties.Name="Close Export devices">
+          <Path Width="8" Height="8" Stretch="Uniform"
+                Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"
+                StrokeThickness="1.25" Data="M3,3 L13,13 M13,3 L3,13" />
+        </Button>
+      </Grid>
+    </Border>
+
+    <Grid Grid.Row="1" RowDefinitions="Auto,*,Auto" Margin="14">
+      <TextBlock Classes="muted" FontSize="10"
+                 Text="Create a portable NetOps Terminal device file." />
+
+    <StackPanel Grid.Row="1" Margin="0,8,0,0" Spacing="7">
+      <TextBlock FontWeight="SemiBold" Text="File format" />
+      <ComboBox x:Name="FormatComboBox" MinHeight="32" SelectedIndex="0">
+        <ComboBoxItem Content="JSON device file (.json)" />
+        <ComboBoxItem Content="Excel workbook (.xlsx)" />
+      </ComboBox>
+      <TextBlock FontWeight="SemiBold" Text="Export scope" />
+      <ComboBox x:Name="ScopeComboBox" MinHeight="32" />
+      <CheckBox x:Name="FavoritesCheckBox" IsChecked="True" Content="Include Favorites metadata" />
+      <CheckBox x:Name="RecentCheckBox" IsChecked="True" Content="Include Recent metadata" />
+      <Border Classes="card" Padding="8">
+        <TextBlock Classes="muted" FontSize="9" TextWrapping="Wrap"
+                   Text="Passwords, private keys, credential secrets, and trusted host keys are never exported." />
+      </Border>
+    </StackPanel>
+
+    <StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Right" Spacing="8">
+      <Button Classes="toolbar" Click="Cancel_OnClick" Content="Cancel" />
+      <Button Classes="primary" Click="Export_OnClick" Content="Export devices" />
+    </StackPanel>
+    </Grid>
+    </Grid>
+    </Border>
+  </Border>
+</Window>
+

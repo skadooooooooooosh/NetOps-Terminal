@@ -1,0 +1,15 @@
+<Window
+    x:Class="NetOpsTerminal.App.Views.DeviceTransferResultWindow"
+    xmlns="https://github.com/avaloniaui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    Title="Device data" Width="420" Height="210" CanResize="False"
+    WindowStartupLocation="CenterOwner" Background="{DynamicResource AppWindowBrush}">
+  <Grid RowDefinitions="*,Auto" Margin="20">
+    <StackPanel Spacing="8" VerticalAlignment="Center">
+      <TextBlock x:Name="HeadingText" FontSize="17" FontWeight="SemiBold" />
+      <TextBlock x:Name="MessageText" Classes="muted" FontSize="10" TextWrapping="Wrap" />
+    </StackPanel>
+    <Button Grid.Row="1" HorizontalAlignment="Right" Classes="primary"
+            Click="Close_OnClick" Content="Done" />
+  </Grid>
+</Window>

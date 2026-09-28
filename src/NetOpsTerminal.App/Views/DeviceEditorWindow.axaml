@@ -1,0 +1,230 @@
+﻿<Window
+    x:Class="NetOpsTerminal.App.Views.DeviceEditorWindow"
+    xmlns="https://github.com/avaloniaui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    Title="Saved Device"
+    Width="570"
+    Height="530"
+    CanResize="False"
+    CanMinimize="False"
+    CanMaximize="False"
+    Icon="/Assets/NetOpsTerminal.ico"
+    WindowDecorations="None"
+    ExtendClientAreaToDecorationsHint="True"
+    Background="Transparent"
+    TransparencyLevelHint="Transparent"
+    TransparencyBackgroundFallback="{DynamicResource AppWindowBrush}"
+    CornerRadius="12"
+    ShowInTaskbar="False"
+    WindowStartupLocation="CenterOwner">
+  <Border Classes="dialog-shell">
+    <Border Classes="dialog-surface">
+    <Grid RowDefinitions="52,*,Auto">
+    <Border Grid.Row="0" Classes="dialog-titlebar" Height="52" Padding="16,0"
+            WindowDecorationProperties.ElementRole="TitleBar">
+      <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="8">
+        <Image Classes="dialog-title-icon" Width="24" Height="24"
+               Source="/Assets/NetOpsTerminal.ico" />
+        <TextBlock x:Name="HeadingText" Grid.Column="1" Classes="dialog-title"
+                   FontSize="15" Text="Add device" />
+        <Button Grid.Column="2" Classes="window-caption close-caption"
+                Width="24" Height="24" VerticalAlignment="Center"
+                WindowDecorationProperties.ElementRole="User"
+                Click="Cancel_OnClick" ToolTip.Tip="Close"
+                AutomationProperties.Name="Close Saved Device">
+          <Path Width="8" Height="8" Stretch="Uniform"
+                Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"
+                StrokeThickness="1.25" Data="M3,3 L13,13 M13,3 L3,13" />
+        </Button>
+      </Grid>
+    </Border>
+    <Border Grid.Row="1" Height="46" VerticalAlignment="Top"
+            Background="{DynamicResource AppSecondarySurfaceBrush}"
+            BorderBrush="{DynamicResource AppBorderBrush}" BorderThickness="0,0,0,1"
+            IsHitTestVisible="False" />
+    <TabControl Grid.Row="1" Margin="20,0,20,0" Background="Transparent">
+      <TabItem><TabItem.Header><TextBlock FontSize="12" Text="General" /></TabItem.Header>
+        <StackPanel>
+          <StackPanel Margin="4,6" Spacing="6">
+            <TextBlock Text="Device name" />
+            <TextBox x:Name="NameTextBox" MaxLength="160" />
+            <TextBlock Text="Description" />
+            <TextBox x:Name="DescriptionTextBox" MaxLength="500" AcceptsReturn="True" Height="48" TextWrapping="Wrap" />
+            <Grid ColumnDefinitions="*,*" ColumnSpacing="12">
+              <StackPanel Spacing="6">
+                <TextBlock Text="Device type" />
+                <ComboBox x:Name="DeviceTypeComboBox" />
+              </StackPanel>
+              <StackPanel Grid.Column="1" Spacing="6">
+                <TextBlock Text="Environment" />
+                <ComboBox x:Name="EnvironmentComboBox" />
+              </StackPanel>
+            </Grid>
+            <CheckBox x:Name="FavoriteCheckBox" Content="Show in Favorites" />
+            <TextBlock Text="Notes" />
+            <TextBox x:Name="NotesTextBox" MaxLength="4000" AcceptsReturn="True" Height="64" TextWrapping="Wrap" />
+          </StackPanel>
+        </StackPanel>
+      </TabItem>
+
+      <TabItem><TabItem.Header><TextBlock FontSize="12" Text="Connection" /></TabItem.Header>
+        <StackPanel>
+          <StackPanel Margin="4,8" Spacing="8">
+            <TextBlock Text="Protocol" />
+            <ComboBox x:Name="ProtocolComboBox" SelectedIndex="0" SelectionChanged="Protocol_OnSelectionChanged">
+              <ComboBoxItem Content="SSH" />
+              <ComboBoxItem Content="Telnet" />
+              <ComboBoxItem Content="Serial" />
+              <ComboBoxItem Content="Raw TCP" />
+            </ComboBox>
+            <Grid x:Name="NetworkEndpointPanel" ColumnDefinitions="*,150" ColumnSpacing="12">
+              <StackPanel Spacing="5">
+                <TextBlock x:Name="HostLabel" Text="Hostname / IP" />
+                <TextBox x:Name="HostTextBox" MaxLength="253" />
+              </StackPanel>
+              <StackPanel Grid.Column="1" Spacing="5">
+                <TextBlock x:Name="PortLabel" Text="Port" />
+                <TextBox x:Name="PortTextBox" Text="22" />
+              </StackPanel>
+            </Grid>
+
+            <TextBlock x:Name="SshHint" Classes="muted" FontSize="11" TextWrapping="Wrap"
+                       Text="Host-key validation uses the same secure known_hosts policy as Quick Connect." />
+
+            <StackPanel x:Name="TelnetOptionsPanel" IsVisible="False" Spacing="8">
+              <TextBlock Foreground="{DynamicResource AppWarningBrush}" TextWrapping="Wrap"
+                         Text="Telnet sends credentials, commands, and output without encryption. Use only on an authorized trusted network." />
+              <CheckBox x:Name="TelnetAcknowledgementCheckBox"
+                        Content="I understand this Telnet session is plaintext" />
+              <Grid ColumnDefinitions="*,*" ColumnSpacing="12">
+                <StackPanel Spacing="5">
+                  <TextBlock Text="Terminal type" />
+                  <TextBox x:Name="TerminalTypeTextBox" MaxLength="64" Text="xterm-256color" />
+                </StackPanel>
+                <StackPanel Grid.Column="1" Spacing="5">
+                  <TextBlock Text="Encoding" />
+                  <ComboBox x:Name="TelnetEncodingComboBox" />
+                </StackPanel>
+              </Grid>
+              <StackPanel Spacing="5">
+                <TextBlock Text="Connect timeout (seconds)" />
+                <TextBox x:Name="TelnetTimeoutTextBox" Text="15" />
+              </StackPanel>
+            </StackPanel>
+
+            <StackPanel x:Name="SerialOptionsPanel" IsVisible="False" Spacing="8">
+              <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
+                <StackPanel Spacing="5">
+                  <TextBlock Text="COM port" />
+                  <ComboBox x:Name="SerialPortComboBox" IsEditable="True"
+                            HorizontalAlignment="Stretch" />
+                </StackPanel>
+                <Button Grid.Column="1" VerticalAlignment="Bottom" Classes="toolbar"
+                        Click="RefreshSerialPorts_OnClick" Content="Refresh" />
+              </Grid>
+              <TextBlock x:Name="SerialPortStatusText" Classes="muted" FontSize="11"
+                         TextWrapping="Wrap"
+                         Text="Select a detected port, or type a COM name for later use." />
+              <Grid ColumnDefinitions="*,*" ColumnSpacing="12">
+                <StackPanel Spacing="5">
+                  <TextBlock Text="Baud rate" />
+                  <ComboBox x:Name="SerialBaudRateComboBox" IsEditable="True"
+                            HorizontalAlignment="Stretch" />
+                </StackPanel>
+                <StackPanel Grid.Column="1" Spacing="5">
+                  <TextBlock Text="Data bits" />
+                  <ComboBox x:Name="SerialDataBitsComboBox" HorizontalAlignment="Stretch" />
+                </StackPanel>
+              </Grid>
+              <TextBlock FontWeight="SemiBold" Text="Advanced options" />
+              <Grid ColumnDefinitions="*,*" RowDefinitions="Auto,Auto"
+                    ColumnSpacing="12" RowSpacing="8">
+                <StackPanel Spacing="5">
+                  <TextBlock Text="Parity" />
+                  <ComboBox x:Name="SerialParityComboBox" HorizontalAlignment="Stretch" />
+                </StackPanel>
+                <StackPanel Grid.Column="1" Spacing="5">
+                  <TextBlock Text="Stop bits" />
+                  <ComboBox x:Name="SerialStopBitsComboBox" HorizontalAlignment="Stretch" />
+                </StackPanel>
+                <StackPanel Grid.Row="1" Spacing="5">
+                  <TextBlock Text="Flow control" />
+                  <ComboBox x:Name="SerialFlowControlComboBox" HorizontalAlignment="Stretch" />
+                </StackPanel>
+                <StackPanel Grid.Row="1" Grid.Column="1" Spacing="5">
+                  <TextBlock Text="Encoding" />
+                  <ComboBox x:Name="SerialEncodingComboBox" HorizontalAlignment="Stretch" />
+                </StackPanel>
+              </Grid>
+            </StackPanel>
+
+            <StackPanel x:Name="RawOptionsPanel" IsVisible="False" Spacing="8">
+              <TextBlock Foreground="{DynamicResource AppWarningBrush}" TextWrapping="Wrap"
+                         Text="Raw TCP has no encryption or peer authentication. Use only with an authorized trusted endpoint." />
+              <Grid ColumnDefinitions="*,*" ColumnSpacing="12">
+                <StackPanel Spacing="5">
+                  <TextBlock Text="Encoding" />
+                  <ComboBox x:Name="RawEncodingComboBox" />
+                </StackPanel>
+                <StackPanel Grid.Column="1" Spacing="5">
+                  <TextBlock Text="Line ending" />
+                  <ComboBox x:Name="RawLineEndingComboBox" />
+                </StackPanel>
+              </Grid>
+              <StackPanel Spacing="5">
+                <TextBlock Text="Connect timeout (seconds)" />
+                <TextBox x:Name="RawTimeoutTextBox" Text="15" />
+              </StackPanel>
+            </StackPanel>
+          </StackPanel>
+        </StackPanel>
+      </TabItem>
+
+      <TabItem x:Name="CredentialsTab"><TabItem.Header><TextBlock FontSize="12" Text="Credentials" /></TabItem.Header>
+        <StackPanel Margin="4,8" Spacing="8">
+          <TextBlock Text="Credential profile" />
+          <ComboBox x:Name="CredentialComboBox" />
+          <TextBlock Text="Username override (optional)" />
+          <TextBox x:Name="UsernameOverrideTextBox" MaxLength="255" />
+          <TextBlock Classes="muted" FontSize="11" TextWrapping="Wrap"
+                     Text="Leave this blank to use the profile username. Passwords stay in Windows Credential Manager." />
+        </StackPanel>
+      </TabItem>
+
+      <TabItem><TabItem.Header><TextBlock FontSize="12" Text="Organization" /></TabItem.Header>
+        <StackPanel Margin="4,8" Spacing="8">
+          <TextBlock Text="Site" />
+          <TextBox x:Name="SiteTextBox" MaxLength="120" PlaceholderText="Example: Singapore DC" />
+          <TextBlock Text="Device group" />
+          <TextBox x:Name="GroupTextBox" MaxLength="120" PlaceholderText="Example: Core Switches" />
+          <TextBlock Classes="muted" FontSize="11" TextWrapping="Wrap"
+                     Text="New sites and groups appear in Device Explorer when you save." />
+        </StackPanel>
+      </TabItem>
+    </TabControl>
+
+    <Border
+        Grid.Row="2"
+        Padding="10"
+        Background="{DynamicResource AppSurfaceBrush}"
+        BorderBrush="{DynamicResource AppBorderBrush}"
+        BorderThickness="0,1,0,0">
+      <Grid ColumnDefinitions="*,Auto">
+        <TextBlock
+            x:Name="ValidationErrorText"
+            VerticalAlignment="Center"
+            Foreground="{DynamicResource AppDangerBrush}"
+            FontSize="11"
+            IsVisible="False"
+            TextWrapping="Wrap" />
+        <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8">
+          <Button Classes="toolbar" Click="Cancel_OnClick" Content="Cancel" />
+          <Button Classes="accent" Click="Save_OnClick" Content="Save device" IsDefault="True" />
+        </StackPanel>
+      </Grid>
+    </Border>
+    </Grid>
+    </Border>
+  </Border>
+</Window>
+

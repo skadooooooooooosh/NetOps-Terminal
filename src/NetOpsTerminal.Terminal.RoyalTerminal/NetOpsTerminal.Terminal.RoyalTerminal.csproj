@@ -1,0 +1,19 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <ItemGroup>
+    <ProjectReference Include="..\NetOpsTerminal.Security\NetOpsTerminal.Security.csproj" />
+    <ProjectReference Include="..\NetOpsTerminal.Terminal\NetOpsTerminal.Terminal.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" />
+    <PackageReference Include="RoyalApps.RoyalTerminal.Avalonia" />
+    <PackageReference Include="RoyalApps.RoyalTerminal.Terminal.Transport.Ssh.SshNet" />
+    <PackageReference Include="RoyalApps.RoyalTerminal.Terminal.Transport.Telnet" />
+    <PackageReference Include="RoyalApps.RoyalTerminal.Terminal.Transport.Serial" />
+    <PackageReference Include="RoyalApps.RoyalTerminal.Terminal.Transport.Raw" />
+    <PackageReference Include="SSH.NET" />
+    <PackageReference Include="System.IO.Ports" />
+  </ItemGroup>
+
+</Project>

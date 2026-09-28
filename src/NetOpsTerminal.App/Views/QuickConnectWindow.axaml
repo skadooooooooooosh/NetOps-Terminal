@@ -1,0 +1,296 @@
+<Window
+    x:Class="NetOpsTerminal.App.Views.QuickConnectWindow"
+    xmlns="https://github.com/avaloniaui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    Title="Quick Connect"
+    Width="550"
+    Height="520"
+    CanResize="False"
+    CanMinimize="False"
+    CanMaximize="False"
+    Icon="/Assets/NetOpsTerminal.ico"
+    WindowDecorations="None"
+    ExtendClientAreaToDecorationsHint="True"
+    TransparencyLevelHint="Transparent"
+    TransparencyBackgroundFallback="{DynamicResource AppWindowBrush}"
+    CornerRadius="12"
+    Background="Transparent"
+    ShowInTaskbar="False"
+    WindowStartupLocation="CenterOwner">
+  <Border Classes="dialog-shell">
+    <Border Classes="dialog-surface">
+    <Grid RowDefinitions="35,Auto,Auto,*,Auto">
+    <Border Grid.Row="0" Classes="dialog-titlebar"
+            WindowDecorationProperties.ElementRole="TitleBar">
+      <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="8">
+        <Image Classes="dialog-title-icon" Source="/Assets/NetOpsTerminal.ico" />
+        <TextBlock Grid.Column="1" Classes="dialog-title" Text="Quick Connect" />
+        <Button Grid.Column="2" Classes="window-caption close-caption"
+                Width="24" Height="24" VerticalAlignment="Center"
+                WindowDecorationProperties.ElementRole="User"
+                Click="Close_OnClick" ToolTip.Tip="Close"
+                AutomationProperties.Name="Close Quick Connect">
+          <Path Width="8" Height="8" Stretch="Uniform"
+                Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"
+                StrokeThickness="1.25" Data="M3,3 L13,13 M13,3 L3,13" />
+        </Button>
+      </Grid>
+    </Border>
+    <TextBlock Grid.Row="1" Margin="14,8,14,0"
+               x:Name="ProtocolSummaryText" Classes="dialog-subtitle"
+               Text="Secure shell with verified host identity" />
+
+    <Border
+        Grid.Row="2"
+        Margin="14,10,14,6"
+        Padding="10"
+        Background="{DynamicResource AppSurfaceBrush}"
+        BorderBrush="{DynamicResource AppBorderBrush}"
+        BorderThickness="1"
+        CornerRadius="5">
+      <Grid ColumnDefinitions="92,*" ColumnSpacing="10">
+        <StackPanel VerticalAlignment="Center" Spacing="2">
+          <TextBlock FontWeight="SemiBold" Text="Protocol" />
+        </StackPanel>
+        <ComboBox
+            x:Name="ProtocolComboBox"
+            Grid.Column="1"
+            HorizontalAlignment="Stretch"
+            SelectedIndex="0">
+          <ComboBoxItem Content="SSH" />
+          <ComboBoxItem Content="Telnet" />
+          <ComboBoxItem Content="Serial" />
+          <ComboBoxItem Content="Raw TCP" />
+        </ComboBox>
+      </Grid>
+    </Border>
+
+    <Grid Grid.Row="3" Margin="16,6,16,8">
+      <Grid>
+        <StackPanel x:Name="SshPanel" Spacing="7">
+          <TextBlock Text="Hostname / IP" />
+          <TextBox x:Name="SshHostTextBox" MaxLength="253" PlaceholderText="server.example.com" />
+          <Grid ColumnDefinitions="150,*" ColumnSpacing="12">
+            <StackPanel Spacing="6">
+              <TextBlock Text="Port" />
+              <TextBox x:Name="SshPortTextBox" Text="22" />
+            </StackPanel>
+            <StackPanel Grid.Column="1" Spacing="6">
+              <TextBlock Text="Username" />
+              <TextBox x:Name="SshUsernameTextBox" MaxLength="255" PlaceholderText="operator" />
+            </StackPanel>
+          </Grid>
+          <TextBlock Text="Password" />
+          <TextBox x:Name="SshPasswordTextBox" PasswordChar="*" />
+          <StackPanel Spacing="8">
+            <StackPanel Spacing="8">
+              <TextBlock Text="Connect timeout" />
+              <ComboBox x:Name="SshTimeoutComboBox" SelectedIndex="1">
+                <ComboBoxItem Content="10 seconds" Tag="10" />
+                <ComboBoxItem Content="15 seconds" Tag="15" />
+                <ComboBoxItem Content="30 seconds" Tag="30" />
+                <ComboBoxItem Content="60 seconds" Tag="60" />
+              </ComboBox>
+              <TextBlock
+                  Classes="muted"
+                  FontSize="11"
+                  Text="The password remains only in this terminal tab. The server SHA256 host-key fingerprint must be trusted before authentication."
+                  TextWrapping="Wrap" />
+            </StackPanel>
+          </StackPanel>
+        </StackPanel>
+
+        <StackPanel x:Name="TelnetPanel" IsVisible="False" Spacing="7">
+          <Border
+              Padding="8"
+              Background="{DynamicResource AppSecondarySurfaceBrush}"
+              BorderBrush="{DynamicResource AppWarningBrush}"
+              BorderThickness="1"
+              CornerRadius="4">
+            <StackPanel Spacing="4">
+              <TextBlock Foreground="{DynamicResource AppWarningBrush}" FontWeight="SemiBold" Text="Security warning" />
+              <TextBlock
+                  Foreground="{DynamicResource AppTextBrush}"
+                  Text="Telnet does not encrypt credentials, commands, or terminal output. Use it only on an authorized trusted network."
+                  TextWrapping="Wrap" />
+              <CheckBox
+                  x:Name="TelnetAcknowledgementCheckBox"
+                  Content="I understand this Telnet session is plaintext"
+                  Foreground="{DynamicResource AppTextBrush}" />
+            </StackPanel>
+          </Border>
+          <Grid ColumnDefinitions="*,150" ColumnSpacing="12">
+            <StackPanel Spacing="5">
+              <TextBlock Text="Hostname / IP" />
+              <TextBox x:Name="TelnetHostTextBox" MaxLength="253"
+                       PlaceholderText="legacy-device.example.com" />
+            </StackPanel>
+            <StackPanel Grid.Column="1" Spacing="5">
+              <TextBlock Text="Port" />
+              <TextBox x:Name="TelnetPortTextBox" Text="23" />
+            </StackPanel>
+          </Grid>
+          <StackPanel Spacing="8">
+            <StackPanel Spacing="8">
+              <Grid ColumnDefinitions="*,*,*" ColumnSpacing="12">
+                <StackPanel Spacing="6">
+                  <TextBlock Text="Terminal type" />
+                  <TextBox x:Name="TelnetTerminalTypeTextBox" MaxLength="64" Text="xterm-256color" />
+                </StackPanel>
+                <StackPanel Grid.Column="1" Spacing="6">
+                  <TextBlock Text="Encoding" />
+                  <ComboBox x:Name="TelnetEncodingComboBox" />
+                </StackPanel>
+                <StackPanel Grid.Column="2" Spacing="6">
+                  <TextBlock Text="Connect timeout" />
+                  <ComboBox x:Name="TelnetTimeoutComboBox" SelectedIndex="1">
+                    <ComboBoxItem Content="10 seconds" Tag="10" />
+                    <ComboBoxItem Content="15 seconds" Tag="15" />
+                    <ComboBoxItem Content="30 seconds" Tag="30" />
+                    <ComboBoxItem Content="60 seconds" Tag="60" />
+                  </ComboBox>
+                </StackPanel>
+              </Grid>
+              <TextBlock
+                  Classes="muted"
+                  FontSize="11"
+                  Text="Telnet option negotiation is handled by the isolated terminal transport. Login prompts remain interactive."
+                  TextWrapping="Wrap" />
+            </StackPanel>
+          </StackPanel>
+        </StackPanel>
+
+        <StackPanel x:Name="SerialPanel" IsVisible="False" Spacing="5">
+          <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
+            <StackPanel Spacing="6">
+              <TextBlock Text="Detected COM port" />
+              <ComboBox x:Name="SerialPortComboBox" HorizontalAlignment="Stretch" />
+            </StackPanel>
+            <Button
+                Grid.Column="1"
+                VerticalAlignment="Bottom"
+                Classes="toolbar"
+                Click="RefreshSerialPorts_OnClick"
+                Content="Refresh" />
+          </Grid>
+          <TextBlock
+              x:Name="SerialPortStatusText"
+              Classes="muted"
+              FontSize="11"
+              TextWrapping="Wrap" />
+          <Grid ColumnDefinitions="*,*" ColumnSpacing="12">
+            <StackPanel Spacing="6">
+              <TextBlock Text="Baud rate" />
+              <ComboBox x:Name="SerialBaudRateComboBox" HorizontalAlignment="Stretch" />
+            </StackPanel>
+            <StackPanel Grid.Column="1" Spacing="6">
+              <TextBlock Text="Data bits" />
+              <ComboBox x:Name="SerialDataBitsComboBox" HorizontalAlignment="Stretch" />
+            </StackPanel>
+          </Grid>
+          <StackPanel Spacing="8">
+            <Grid ColumnDefinitions="*,*" RowDefinitions="Auto,Auto"
+                  ColumnSpacing="12" RowSpacing="6">
+              <StackPanel Spacing="6">
+                <TextBlock Text="Parity" />
+                <ComboBox x:Name="SerialParityComboBox" HorizontalAlignment="Stretch" />
+              </StackPanel>
+              <StackPanel Grid.Column="1" Spacing="6">
+                <TextBlock Text="Stop bits" />
+                <ComboBox x:Name="SerialStopBitsComboBox" HorizontalAlignment="Stretch" />
+              </StackPanel>
+              <StackPanel Grid.Row="1" Spacing="6">
+                <TextBlock Text="Flow control" />
+                <ComboBox x:Name="SerialFlowControlComboBox" HorizontalAlignment="Stretch" />
+              </StackPanel>
+              <StackPanel Grid.Row="1" Grid.Column="1" Spacing="6">
+                <TextBlock Text="Encoding" />
+                <ComboBox x:Name="SerialEncodingComboBox" HorizontalAlignment="Stretch" />
+              </StackPanel>
+            </Grid>
+          </StackPanel>
+        </StackPanel>
+
+        <StackPanel x:Name="RawTcpPanel" IsVisible="False" Spacing="7">
+          <Border
+              Padding="8"
+              Background="{DynamicResource AppSecondarySurfaceBrush}"
+              BorderBrush="{DynamicResource AppWarningBrush}"
+              BorderThickness="1"
+              CornerRadius="4">
+            <StackPanel Spacing="4">
+              <TextBlock Foreground="{DynamicResource AppWarningBrush}" FontWeight="SemiBold" Text="Unencrypted transport" />
+              <TextBlock
+                  Foreground="{DynamicResource AppTextBrush}"
+                  Text="Raw TCP provides no encryption, authentication, or peer verification. Use it only with an authorized trusted endpoint."
+                  TextWrapping="Wrap" />
+            </StackPanel>
+          </Border>
+          <Grid ColumnDefinitions="*,150" ColumnSpacing="12">
+            <StackPanel Spacing="5">
+              <TextBlock Text="Hostname / IP" />
+              <TextBox x:Name="RawHostTextBox" MaxLength="253"
+                       PlaceholderText="endpoint.example.com" />
+            </StackPanel>
+            <StackPanel Grid.Column="1" Spacing="5">
+              <TextBlock Text="Port" />
+              <TextBox x:Name="RawPortTextBox" PlaceholderText="Example: 2001" />
+            </StackPanel>
+          </Grid>
+          <StackPanel Spacing="8">
+            <StackPanel Spacing="8">
+              <Grid ColumnDefinitions="*,*,*" ColumnSpacing="12">
+                <StackPanel Spacing="6">
+                  <TextBlock Text="Encoding" />
+                  <ComboBox x:Name="RawEncodingComboBox" />
+                </StackPanel>
+                <StackPanel Grid.Column="1" Spacing="6">
+                  <TextBlock Text="Line ending" />
+                  <ComboBox x:Name="RawLineEndingComboBox" />
+                </StackPanel>
+                <StackPanel Grid.Column="2" Spacing="6">
+                  <TextBlock Text="Connect timeout" />
+                  <ComboBox x:Name="RawTimeoutComboBox" SelectedIndex="1">
+                    <ComboBoxItem Content="10 seconds" Tag="10" />
+                    <ComboBoxItem Content="15 seconds" Tag="15" />
+                    <ComboBoxItem Content="30 seconds" Tag="30" />
+                    <ComboBoxItem Content="60 seconds" Tag="60" />
+                  </ComboBox>
+                </StackPanel>
+              </Grid>
+              <TextBlock
+                  Classes="muted"
+                  FontSize="11"
+                  Text="The selected line ending is applied to typed and pasted newlines."
+                  TextWrapping="Wrap" />
+            </StackPanel>
+          </StackPanel>
+        </StackPanel>
+      </Grid>
+    </Grid>
+
+    <Border
+        Grid.Row="4"
+        Padding="10"
+        Background="{DynamicResource AppSurfaceBrush}"
+        BorderBrush="{DynamicResource AppBorderBrush}"
+        BorderThickness="0,1,0,0">
+      <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
+        <StackPanel VerticalAlignment="Center" Spacing="3">
+          <TextBlock
+              x:Name="ValidationErrorText"
+              Foreground="{DynamicResource AppDangerBrush}"
+              FontSize="11"
+              IsVisible="False"
+              TextWrapping="Wrap" />
+        </StackPanel>
+        <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8">
+          <Button Classes="toolbar" Click="Close_OnClick" Content="Cancel" />
+          <Button Classes="accent" Click="Connect_OnClick" Content="Connect" IsDefault="True" />
+        </StackPanel>
+      </Grid>
+    </Border>
+    </Grid>
+    </Border>
+  </Border>
+</Window>
