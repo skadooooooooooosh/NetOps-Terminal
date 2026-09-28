@@ -19,7 +19,7 @@ Quick Connect, saved devices and groups, Favorites and Recent, credential profil
 
 ## Install
 
-Use the Windows x64 MSI and its SHA256 sidecar from the Version 1 release assets. Check the MSI hash before running it. The installer includes the .NET runtime, defaults to Program Files, and asks for administrator approval. It can create Desktop and Start menu shortcuts. The MSI is unsigned, so Windows may show a publisher warning.
+Open the [v1.0.0 GitHub Release](https://github.com/skadooooooooooosh/NetOps-Terminal/releases/tag/v1.0.0) and expand **Assets**. Download [NetOpsTerminal-1.0.0-win-x64.msi](https://github.com/skadooooooooooosh/NetOps-Terminal/releases/download/v1.0.0/NetOpsTerminal-1.0.0-win-x64.msi) and its SHA256 sidecar, then check the MSI hash before running it. GitHub sign-in and repository access are required while the repository is private. The installer includes the .NET runtime, defaults to Program Files, and asks for administrator approval. It can create Desktop and Start menu shortcuts. The MSI is unsigned, so Windows may show a publisher warning.
 
 The portable Windows x64 ZIP is also available for users who do not need an installer. See [Version 1 release guidance](docs/RELEASE_V1.md) for install and uninstall details.
 
