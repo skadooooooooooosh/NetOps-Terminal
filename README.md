@@ -1,36 +1,69 @@
-# NetOps Terminal
+<p align="center">
+  <img src="src/NetOpsTerminal.App/Assets/NetOpsTerminal.png" alt="NetOps Terminal icon" width="112">
+</p>
 
-**Version 1.1.0** — a Windows desktop terminal workspace for managing local shells and network device sessions.
+<h1 align="center">NetOps Terminal</h1>
 
-## Connections
+<p align="center">
+  A Windows terminal workspace for the devices you manage every day.
+  <br>
+  Keep your inventory, connections, and local shells within reach.
+</p>
 
-- SSH with SHA256 host-key verification and explicit trust decisions
-- Telnet
-- Serial / COM
-- Raw TCP
-- Windows PowerShell
-- Windows Command Prompt
+<p align="center">
+  <strong>Windows 10/11 x64</strong> &nbsp;·&nbsp; <strong>Version 1.1.0</strong> &nbsp;·&nbsp; <strong>.NET 10</strong>
+</p>
 
-Telnet and Raw TCP send data without encryption. Use them only on networks you trust.
+<p align="center">
+  <a href="https://github.com/skadooooooooooosh/NetOps-Terminal/releases/tag/v1.1.0"><strong>Download v1.1.0</strong></a>
+  &nbsp;·&nbsp;
+  <a href="CHANGELOG.md">What's new</a>
+  &nbsp;·&nbsp;
+  <a href="SECURITY.md">Security</a>
+</p>
 
-## What it includes
+---
 
-Quick Connect, saved devices and groups, Favorites and Recent, credential profiles protected by Windows Credential Manager, terminal tabs and split panes, reconnect and disconnect, terminal search, optional output logging, Input Lock, keyboard shortcuts, and a dark Device Explorer workspace. Device import and export support JSON and Excel; CSV import is also supported. Passwords and trusted host keys are excluded from device exports.
+## At a glance
 
-## What's new in 1.1.0
+| Connect | Organize | Work |
+| --- | --- | --- |
+| SSH, Telnet, Serial / COM, Raw TCP, PowerShell, and Command Prompt | Saved devices, site folders, Favorites, Recent, and credential profiles | Tabs, split panes, terminal search, Input Lock, reconnect, and optional output logging |
 
-Saved devices can open a CLI session, an external web interface, or both. The editor shows protocol settings only for CLI modes and lets dual-access devices choose their default action. Device Explorer supports site folders, manual ordering, moving several selected devices, and bulk deletion. Terminal tabs can be rearranged, and each connection attempt has its own visible tab. Excel import templates list the accepted access and browser choices. See [CHANGELOG.md](CHANGELOG.md) for the full update.
+Saved devices can open a **CLI session**, an **external web interface**, or **both**. For devices with both, choose what a double-click opens; the other action stays available from the device menu.
 
-Upgrading saved-device metadata to SQLite schema 6 is forward-only. Back up your application data before upgrading if you may need to return to v1.0.0; that release cannot read the upgraded database.
-## Install
+### Built for a real device list
 
-Open the [v1.1.0 GitHub Release](https://github.com/skadooooooooooosh/NetOps-Terminal/releases/tag/v1.1.0) and expand **Assets**. Download [NetOpsTerminal-1.1.0-win-x64.msi](https://github.com/skadooooooooooosh/NetOps-Terminal/releases/download/v1.1.0/NetOpsTerminal-1.1.0-win-x64.msi) and its SHA256 sidecar, then check the MSI hash before running it. GitHub sign-in and repository access are required while the repository is private. Close NetOps Terminal before upgrading. The installer includes the .NET runtime, defaults to Program Files, and asks for administrator approval. It can create Desktop and Start menu shortcuts. The MSI is unsigned, so Windows may show a publisher warning.
+- Move devices between sites and folders, select several devices at once, and set your own order in Device Explorer.
+- Keep multiple connection attempts visible in separate tabs and drag tabs into the order you want.
+- Import devices from Excel, JSON, or CSV; export device metadata to Excel or JSON. Exports leave out passwords and trusted host keys.
+- Use Quick Connect for a one-off session or save a device for later.
 
-The portable Windows x64 ZIP is also available for users who do not need an installer. See [Version 1 release guidance](docs/RELEASE_V1.md) for install and uninstall details.
+## Get the app
+
+1. Open the [v1.1.0 release](https://github.com/skadooooooooooosh/NetOps-Terminal/releases/tag/v1.1.0) and expand **Assets**.
+2. Download the [Windows x64 MSI](https://github.com/skadooooooooooosh/NetOps-Terminal/releases/download/v1.1.0/NetOpsTerminal-1.1.0-win-x64.msi) and its [SHA-256 checksum](https://github.com/skadooooooooooosh/NetOps-Terminal/releases/download/v1.1.0/NetOpsTerminal-1.1.0-win-x64.msi.sha256).
+3. Check the hash, close NetOps Terminal if it is running, then run the installer.
+
+The installer includes the .NET runtime. It defaults to `C:\Program Files\NetOps Terminal`, asks for administrator approval, and offers Desktop and Start menu shortcuts. The [portable ZIP](https://github.com/skadooooooooooosh/NetOps-Terminal/releases/download/v1.1.0/NetOpsTerminal-1.1.0-win-x64.zip) is available on the same release page. The packages are unsigned, so Windows may show a publisher warning. GitHub sign-in and repository access are required while this repository is private.
+
+> **Upgrading from 1.0.0?** Back up `%LOCALAPPDATA%\NetOpsTerminal` for each Windows account before installing 1.1.0. The saved-device database migration is forward-only; 1.0.0 cannot read the upgraded database. Saved passwords are held separately in Windows Credential Manager. See the [1.1.0 release guide](docs/RELEASE_V1_1.md) for upgrade details.
+
+## Connections and safety
+
+| Connection | What to expect |
+| --- | --- |
+| **SSH** | SHA-256 host-key verification. Unknown keys need your approval; changed keys need explicit review before replacement. |
+| **Telnet / Raw TCP** | Plaintext connections. Use only on authorized, trusted networks. |
+| **Serial / COM** | Direct access to a local serial port. |
+| **PowerShell / Command Prompt** | Local Windows shells, available from the sidebar. |
+| **Web interface** | Opens the saved HTTP or HTTPS address in an external browser. An optional access check tests port reachability only. |
+
+Reusable SSH passwords are protected by Windows Credential Manager. Device and workspace metadata stays in a local SQLite database; trusted SSH keys are kept in the app's `known_hosts` file. Session output is saved only if you turn on logging. See [Security](SECURITY.md) for the storage locations and other details.
 
 ## Build from source
 
-Requirements: Windows 10/11 x64 and the .NET 10 SDK pinned in `global.json`.
+Use Windows 10/11 x64 and the .NET 10 SDK pinned in [`global.json`](global.json).
 
 ```powershell
 dotnet restore
@@ -40,16 +73,19 @@ dotnet test
 dotnet run --project src/NetOpsTerminal.App/NetOpsTerminal.App.csproj
 ```
 
-To produce the approved self-contained MSI and ZIP:
+To build the self-contained MSI and ZIP:
 
 ```powershell
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\tools\Publish-Msi.ps1
 ```
 
-Release output is written to the ignored `artifacts\release` directory.
+The release files are written to the ignored `artifacts\release` directory.
 
-## Security and local data
+## Project notes
 
-Saved credential secrets use Windows Credential Manager. Device and workspace metadata is stored in SQLite under `%LOCALAPPDATA%\NetOpsTerminal`; trusted SSH host keys are stored separately in an application-owned `known_hosts` file. Unknown SSH keys require an explicit choice, and changed or revoked keys are blocked. Session output is written to local files only when logging is enabled. See [SECURITY.md](SECURITY.md) for details.
+- [Changelog](CHANGELOG.md) — changes by version
+- [Release guide](docs/RELEASE_V1_1.md) — installation, upgrade, and package details
+- [Security](SECURITY.md) — credentials, host keys, local data, and vulnerability reporting
+- [Third-party notices](THIRD_PARTY_NOTICES.md) — bundled dependency notices
 
-SSH private-key and SSH-agent authentication are not included in Version 1.
+SSH private-key and SSH-agent authentication are not part of version 1.1.0.
