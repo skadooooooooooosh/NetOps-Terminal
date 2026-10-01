@@ -10,9 +10,16 @@ public sealed partial class ConnectionErrorWindow : ThemedWindow
         InitializeComponent();
     }
 
-    public ConnectionErrorWindow(string userMessage, string technicalDetails)
+    public ConnectionErrorWindow(string userMessage, string technicalDetails, string? heading = null)
         : this()
     {
+        if (heading is not null)
+        {
+            Title = heading;
+            TitleText.Text = heading;
+            HeadingText.Text = heading;
+        }
+
         UserMessageText.Text = userMessage;
         TechnicalDetailsText.Text = technicalDetails;
     }

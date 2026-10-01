@@ -1,21 +1,38 @@
 using System.Collections.ObjectModel;
+using CommunityToolkit.Mvvm.ComponentModel;
 using NetOpsTerminal.Core.Devices;
 
 namespace NetOpsTerminal.App.ViewModels;
 
-public sealed class DeviceExplorerNodeViewModel
+public enum DeviceExplorerNodeKind { Device, Site, Folder }
+
+public sealed class DeviceExplorerNodeViewModel : ObservableObject
 {
+    private bool _isDropBefore;
+    private bool _isDropAfter;
+    private bool _isDropInto;
+    private bool _isExpanded;
+
     public DeviceExplorerNodeViewModel(
         string label,
         string details,
         string glyph,
         DeviceProfile? device = null,
-        IEnumerable<DeviceExplorerNodeViewModel>? children = null)
+        IEnumerable<DeviceExplorerNodeViewModel>? children = null,
+        Guid? siteId = null,
+        Guid? folderId = null,
+        Guid? parentFolderId = null,
+        bool isSite = false)
     {
         Label = label;
         Details = details;
         Glyph = glyph;
         Device = device;
+        SiteId = device?.SiteId ?? siteId;
+        FolderId = device?.GroupId ?? folderId;
+        ParentFolderId = parentFolderId;
+        Kind = device is not null ? DeviceExplorerNodeKind.Device
+            : isSite ? DeviceExplorerNodeKind.Site : DeviceExplorerNodeKind.Folder;
         Children = children is null
             ? []
             : new ObservableCollection<DeviceExplorerNodeViewModel>(children);
@@ -29,9 +46,47 @@ public sealed class DeviceExplorerNodeViewModel
 
     public DeviceProfile? Device { get; }
 
+    public DeviceExplorerNodeKind Kind { get; }
+
+    public Guid? SiteId { get; }
+
+    public Guid? FolderId { get; }
+
+    public Guid? ParentFolderId { get; }
+
+    public Guid? OrderId => Device?.Id ?? (Kind == DeviceExplorerNodeKind.Site ? SiteId : FolderId);
+
     public ObservableCollection<DeviceExplorerNodeViewModel> Children { get; }
 
+    public bool IsExpanded
+    {
+        get => _isExpanded;
+        set => SetProperty(ref _isExpanded, value);
+    }
+
+    public bool IsDropBefore
+    {
+        get => _isDropBefore;
+        set => SetProperty(ref _isDropBefore, value);
+    }
+
+    public bool IsDropAfter
+    {
+        get => _isDropAfter;
+        set => SetProperty(ref _isDropAfter, value);
+    }
+
+    public bool IsDropInto
+    {
+        get => _isDropInto;
+        set => SetProperty(ref _isDropInto, value);
+    }
+
     public bool IsDevice => Device is not null;
+
+    public bool IsWebOnly => Device?.AccessMode == DeviceAccessMode.WebOnly;
+
+    public bool IsTerminalAndWeb => Device?.AccessMode == DeviceAccessMode.TerminalAndWeb;
 
     public bool IsGroup => Device is null;
 

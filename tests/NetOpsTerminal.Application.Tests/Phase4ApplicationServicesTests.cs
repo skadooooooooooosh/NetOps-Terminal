@@ -151,6 +151,30 @@ public sealed class Phase4ApplicationServicesTests
     }
 
     [Fact]
+    public async Task WebOnlyDeviceCannotOpenTerminalSession()
+    {
+        DateTimeOffset now = DateTimeOffset.UtcNow;
+        var device = new DeviceProfile(Guid.NewGuid(), "GUI switch", string.Empty,
+            new SavedDeviceConnectionSettings(ConnectionType.Ssh, "gui.test", 22),
+            DeviceType.Switch, string.Empty, string.Empty, null, null,
+            DeviceEnvironment.Unknown, null, null, false, string.Empty,
+            now, now, null, DeviceAccessMode.WebOnly,
+            new DeviceWebAccessSettings("https://gui.test/",
+                WebBrowserPreference.WindowsDefault, DeviceOpenAction.Web));
+        await using var sessions = new RecordingSessionManager();
+        var service = new SavedDeviceSessionService(
+            new RecordingDatabaseInitializer(), new InMemoryDeviceRepository(device),
+            new InMemoryCredentialRepository(), new InMemoryRecentDeviceRepository(),
+            new InMemoryCredentialStore(), sessions,
+            NullLogger<SavedDeviceSessionService>.Instance);
+
+        SavedDeviceConnectionException error = await Assert.ThrowsAsync<SavedDeviceConnectionException>(
+            () => service.OpenAsync(device.Id, CancellationToken.None));
+
+        Assert.Contains("web browser", error.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Null(sessions.LastRequest);
+    }
+    [Fact]
     public async Task RecentMetadataFailureDoesNotHideConnectedSession()
     {
         DateTimeOffset now = DateTimeOffset.UtcNow;
@@ -206,6 +230,7 @@ public sealed class Phase4ApplicationServicesTests
             devices,
             sites,
             groups,
+            new InMemoryExplorerOrderRepository(),
             credentials,
             recents,
             NullLogger<DeviceCatalogService>.Instance);
@@ -257,6 +282,7 @@ public sealed class Phase4ApplicationServicesTests
             devices,
             new InMemorySiteRepository(),
             new InMemoryDeviceGroupRepository(),
+            new InMemoryExplorerOrderRepository(),
             new InMemoryCredentialRepository(),
             new InMemoryRecentDeviceRepository(),
             NullLogger<DeviceCatalogService>.Instance);
@@ -277,6 +303,39 @@ public sealed class Phase4ApplicationServicesTests
     }
 
     [Fact]
+    public async Task CatalogSavesGuiOnlyWithoutCredentialAndIgnoresHiddenCliFields()
+    {
+        var devices = new InMemoryDeviceRepository();
+        using var service = new DeviceCatalogService(
+            new RecordingDatabaseInitializer(),
+            devices,
+            new InMemorySiteRepository(),
+            new InMemoryDeviceGroupRepository(),
+            new InMemoryExplorerOrderRepository(),
+            new InMemoryCredentialRepository(),
+            new InMemoryRecentDeviceRepository(),
+            NullLogger<DeviceCatalogService>.Instance);
+        var web = new DeviceWebAccessSettings("https://gui.test/manage",
+            WebBrowserPreference.WindowsDefault, DeviceOpenAction.Web);
+        var request = new DeviceEditRequest(null, "GUI switch", string.Empty,
+            string.Empty, 23, DeviceType.Switch, string.Empty, string.Empty,
+            string.Empty, string.Empty, DeviceEnvironment.Unknown,
+            null, null, false, string.Empty)
+        {
+            ConnectionType = ConnectionType.Ssh,
+            AccessMode = DeviceAccessMode.WebOnly,
+            WebAccess = web,
+        };
+
+        await service.SaveAsync(request, CancellationToken.None);
+
+        DeviceProfile saved = Assert.Single(await devices.GetAllAsync(CancellationToken.None));
+        Assert.Equal(DeviceAccessMode.WebOnly, saved.AccessMode);
+        Assert.Equal("gui.test", saved.Connection.Host);
+        Assert.Equal(22, saved.Connection.Port);
+        Assert.Null(saved.CredentialProfileId);
+    }
+    [Fact]
     public async Task CatalogRejectsUnacknowledgedTelnet()
     {
         using var service = new DeviceCatalogService(
@@ -284,6 +343,7 @@ public sealed class Phase4ApplicationServicesTests
             new InMemoryDeviceRepository(),
             new InMemorySiteRepository(),
             new InMemoryDeviceGroupRepository(),
+            new InMemoryExplorerOrderRepository(),
             new InMemoryCredentialRepository(),
             new InMemoryRecentDeviceRepository(),
             NullLogger<DeviceCatalogService>.Instance);
@@ -450,6 +510,9 @@ public sealed class Phase4ApplicationServicesTests
             _sites.Add(site);
             return Task.FromResult(site);
         }
+        public Task DeleteEmptyAsync(Guid id, CancellationToken cancellationToken)
+            => throw new NotSupportedException();
+
     }
 
     private sealed class InMemoryDeviceGroupRepository : IDeviceGroupRepository
@@ -459,6 +522,19 @@ public sealed class Phase4ApplicationServicesTests
         public Task<IReadOnlyList<DeviceGroup>> GetAllAsync(CancellationToken cancellationToken)
         {
             return Task.FromResult<IReadOnlyList<DeviceGroup>>(_groups.ToArray());
+        }
+
+        public Task<DeviceGroup> GetOrCreateChildAsync(
+            string name, Guid? siteId, Guid parentGroupId, CancellationToken cancellationToken)
+        {
+            DeviceGroup? existing = _groups.FirstOrDefault(group =>
+                group.SiteId == siteId && group.ParentGroupId == parentGroupId
+                && string.Equals(group.Name, name.Trim(), StringComparison.OrdinalIgnoreCase));
+            if (existing is not null)
+                return Task.FromResult(existing);
+            var group = new DeviceGroup(Guid.NewGuid(), name, siteId, parentGroupId);
+            _groups.Add(group);
+            return Task.FromResult(group);
         }
 
         public Task<DeviceGroup> GetOrCreateAsync(
@@ -478,6 +554,21 @@ public sealed class Phase4ApplicationServicesTests
             _groups.Add(group);
             return Task.FromResult(group);
         }
+        public Task DeleteEmptyAsync(Guid id, CancellationToken cancellationToken)
+            => throw new NotSupportedException();
+
+    }
+
+    private sealed class InMemoryExplorerOrderRepository : IExplorerOrderRepository
+    {
+        public Task<IReadOnlyDictionary<Guid, int>> LoadAsync(CancellationToken cancellationToken)
+            => Task.FromResult<IReadOnlyDictionary<Guid, int>>(new Dictionary<Guid, int>());
+
+        public Task SaveAsync(IReadOnlyList<Guid> siblingIds, CancellationToken cancellationToken)
+            => Task.CompletedTask;
+
+        public Task ClearAsync(IReadOnlyList<Guid> siblingIds, CancellationToken cancellationToken)
+            => Task.CompletedTask;
     }
 
     private sealed class InMemoryRecentDeviceRepository : IRecentDeviceRepository

@@ -1,3 +1,4 @@
+using NetOpsTerminal.Core.Devices;
 using Microsoft.Extensions.Logging.Abstractions;
 using NetOpsTerminal.App.ViewModels;
 using NetOpsTerminal.Application.Abstractions;
@@ -7,6 +8,7 @@ using NetOpsTerminal.Application.Devices;
 using NetOpsTerminal.Application.Credentials;
 using NetOpsTerminal.Application.Workspaces;
 using NetOpsTerminal.App.Views;
+using NetOpsTerminal.App.Services;
 using NetOpsTerminal.Core.Connections;
 using NetOpsTerminal.Core.Sessions;
 using NetOpsTerminal.Terminal.Abstractions;
@@ -78,6 +80,117 @@ public sealed class MainWindowViewModelTests
         Assert.False(viewModel.IsDeviceExplorerPinned);
     }
 
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task SavedDeviceConnectionClosesOnlyUnpinnedExplorer(bool pinned)
+    {
+        DeviceProfile device = CreateSavedTelnetDevice();
+        var viewModel = CreateViewModel(
+            new RecordingSettingsService(new ApplicationSettings()),
+            savedDeviceService: new StubSavedDeviceSessionService(device),
+            catalogService: new EmptyDeviceCatalogService(device));
+        await viewModel.InitializeAsync();
+        await viewModel.ToggleSidebarCommand.ExecuteAsync(null);
+        if (pinned)
+            viewModel.ToggleDeviceExplorerPinCommand.Execute(null);
+        DeviceExplorerNodeViewModel unassigned = Assert.Single(viewModel.DeviceExplorer.Nodes);
+        unassigned.IsExpanded = true;
+        viewModel.DeviceExplorer.SelectedNode = Assert.Single(unassigned.Children);
+
+        await viewModel.OpenSelectedSavedDeviceAsync();
+
+        Assert.Equal(pinned, viewModel.IsSidebarExpanded);
+        Assert.True(Assert.Single(viewModel.DeviceExplorer.Nodes).IsExpanded);
+        Assert.Single(viewModel.TerminalTabs);
+    }
+
+    [Fact]
+    public async Task FailedSavedDeviceConnectionLeavesExplorerOpen()
+    {
+        DeviceProfile device = CreateSavedTelnetDevice();
+        var viewModel = CreateViewModel(
+            new RecordingSettingsService(new ApplicationSettings()),
+            savedDeviceService: new StubSavedDeviceSessionService(device, fail: true),
+            catalogService: new EmptyDeviceCatalogService(device));
+        await viewModel.InitializeAsync();
+        await viewModel.ToggleSidebarCommand.ExecuteAsync(null);
+        viewModel.DeviceExplorer.SelectedNode = Assert.Single(
+            Assert.Single(viewModel.DeviceExplorer.Nodes).Children);
+
+        await viewModel.OpenSelectedSavedDeviceAsync();
+
+        Assert.True(viewModel.IsSidebarExpanded);
+        Assert.Empty(viewModel.TerminalTabs);
+        Assert.NotNull(viewModel.ConnectionErrorMessage);
+    }
+
+    [Fact]
+    public async Task WebOnlyDefaultOpensBrowserWithoutCreatingTerminalTab()
+    {
+        DateTimeOffset now = DateTimeOffset.UtcNow;
+        var web = new DeviceWebAccessSettings("https://switch.test/",
+            WebBrowserPreference.WindowsDefault, DeviceOpenAction.Web);
+        var device = new DeviceProfile(Guid.NewGuid(), "Web switch", string.Empty,
+            new SavedDeviceConnectionSettings(ConnectionType.Ssh, "switch.test", 22),
+            DeviceType.Switch, string.Empty, string.Empty, null, null,
+            DeviceEnvironment.Unknown, null, null, false, string.Empty,
+            now, now, null, DeviceAccessMode.WebOnly, web);
+        var browser = new RecordingWebAccessService();
+        var viewModel = CreateViewModel(
+            new RecordingSettingsService(new ApplicationSettings()),
+            catalogService: new EmptyDeviceCatalogService(device),
+            deviceWebAccessService: browser);
+        await viewModel.InitializeAsync();
+        viewModel.DeviceExplorer.SelectedNode = Assert.Single(
+            Assert.Single(viewModel.DeviceExplorer.Nodes).Children);
+
+        await viewModel.OpenSelectedSavedDeviceAsync();
+        await viewModel.OpenSelectedSavedTerminalAsync();
+
+        Assert.Equal(1, browser.OpenCount);
+        Assert.Equal(web, browser.LastSettings);
+        Assert.Empty(viewModel.TerminalTabs);
+    }
+    [Fact]
+    public async Task DualAccessUsesChosenDefaultAndKeepsExplicitTerminalAction()
+    {
+        DateTimeOffset now = DateTimeOffset.UtcNow;
+        var device = new DeviceProfile(Guid.NewGuid(), "Dual switch", string.Empty,
+            new SavedDeviceConnectionSettings(ConnectionType.Telnet, "dual.test", 23,
+                telnetAcknowledged: true),
+            DeviceType.Switch, string.Empty, string.Empty, null, null,
+            DeviceEnvironment.Unknown, null, null, false, string.Empty,
+            now, now, null, DeviceAccessMode.TerminalAndWeb,
+            new DeviceWebAccessSettings("https://dual.test/",
+                WebBrowserPreference.WindowsDefault, DeviceOpenAction.Web));
+        var browser = new RecordingWebAccessService();
+        var viewModel = CreateViewModel(
+            new RecordingSettingsService(new ApplicationSettings()),
+            savedDeviceService: new StubSavedDeviceSessionService(device),
+            catalogService: new EmptyDeviceCatalogService(device),
+            deviceWebAccessService: browser);
+        await viewModel.InitializeAsync();
+        viewModel.DeviceExplorer.SelectedNode = Assert.Single(
+            Assert.Single(viewModel.DeviceExplorer.Nodes).Children);
+
+        await viewModel.OpenSelectedSavedDeviceAsync();
+        Assert.Equal(1, browser.OpenCount);
+        Assert.Empty(viewModel.TerminalTabs);
+
+        await viewModel.OpenSelectedSavedTerminalAsync();
+        Assert.Single(viewModel.TerminalTabs);
+    }
+    private static DeviceProfile CreateSavedTelnetDevice()
+    {
+        DateTimeOffset now = DateTimeOffset.UtcNow;
+        return new DeviceProfile(Guid.NewGuid(), "Test switch", string.Empty,
+            new SavedDeviceConnectionSettings(ConnectionType.Telnet, "switch.test", 23,
+                telnetAcknowledged: true), DeviceType.Switch, string.Empty, string.Empty,
+            null, null, DeviceEnvironment.Unknown, null, null, false,
+            string.Empty, now, now, null);
+    }
+
     [Fact]
     public async Task SuccessfulSessionOpenLeavesExplorerOverlayClosed()
     {
@@ -92,6 +205,30 @@ public sealed class MainWindowViewModelTests
         Assert.Null(service.Saved);
     }
 
+
+    [Theory]
+    [InlineData(LocalShellKind.PowerShell, false)]
+    [InlineData(LocalShellKind.PowerShell, true)]
+    [InlineData(LocalShellKind.CommandPrompt, false)]
+    [InlineData(LocalShellKind.CommandPrompt, true)]
+    public async Task LocalShellClosesOnlyUnpinnedExplorerAfterOpening(
+        LocalShellKind shellKind, bool pinned)
+    {
+        var viewModel = CreateViewModel(new RecordingSettingsService(new ApplicationSettings()));
+        await viewModel.InitializeAsync();
+        await viewModel.ToggleSidebarCommand.ExecuteAsync(null);
+        if (pinned)
+            viewModel.ToggleDeviceExplorerPinCommand.Execute(null);
+
+        if (shellKind == LocalShellKind.PowerShell)
+            await viewModel.NewPowerShellCommand.ExecuteAsync(null);
+        else
+            await viewModel.NewCommandPromptCommand.ExecuteAsync(null);
+
+        Assert.Equal(pinned, viewModel.IsSidebarExpanded);
+        Assert.Equal(pinned, viewModel.IsDeviceExplorerPinned);
+        Assert.Equal(shellKind, Assert.Single(viewModel.TerminalTabs).Session.ShellKind);
+    }
 
     [Fact]
     public async Task NewLocalShellCommandsCreateIndependentTerminalTabs()
@@ -181,6 +318,8 @@ public sealed class MainWindowViewModelTests
 
         TerminalTabViewModel tab = Assert.Single(viewModel.TerminalTabs);
         Assert.Equal(ConnectionType.Ssh, tab.Session.ConnectionType);
+        Assert.False(tab.BackspaceSendsControlH);
+        Assert.False(tab.BackspaceSendsDelete);
         Assert.False(password.IsDisposed);
         Assert.Equal("Connected securely to server.test:22", viewModel.StatusMessage);
 
@@ -188,6 +327,24 @@ public sealed class MainWindowViewModelTests
 
         Assert.True(password.IsDisposed);
         Assert.Empty(viewModel.TerminalTabs);
+    }
+
+    [Fact]
+    public async Task QuickConnectSshBackspaceModeReachesTerminalTab()
+    {
+        var viewModel = CreateViewModel(
+            new RecordingSettingsService(new ApplicationSettings()),
+            new RecordingSessionManager());
+        var password = EphemeralSecret.Create("test-only-password");
+        var request = new TerminalSessionRequest(
+            Guid.NewGuid(), "SSH", new SshConnectionOptions("server.test", 22, "operator", password));
+
+        await viewModel.OpenRemoteAsync(request, backspaceSendsControlH: true);
+
+        TerminalTabViewModel tab = Assert.Single(viewModel.TerminalTabs);
+        Assert.True(tab.BackspaceSendsControlH);
+        Assert.False(tab.BackspaceSendsDelete);
+        await viewModel.CloseSelectedTerminalAsync();
     }
 
     public static TheoryData<TerminalSessionRequest, ConnectionType, string> Phase5Requests => new()
@@ -224,8 +381,29 @@ public sealed class MainWindowViewModelTests
 
         TerminalTabViewModel tab = Assert.Single(viewModel.TerminalTabs);
         Assert.Equal(expectedType, tab.Session.ConnectionType);
+        Assert.False(tab.BackspaceSendsControlH);
+        Assert.False(tab.BackspaceSendsDelete);
         Assert.Equal($"Connected to {safeTarget}", viewModel.StatusMessage);
         Assert.False(viewModel.IsConnectionBusy);
+    }
+
+    [Theory]
+    [MemberData(nameof(Phase5Requests))]
+    public async Task QuickConnectDeleteModeReachesOtherRemoteTerminalTabs(
+        TerminalSessionRequest request, ConnectionType expectedType, string safeTarget)
+    {
+        var viewModel = CreateViewModel(
+            new RecordingSettingsService(new ApplicationSettings()),
+            new RecordingSessionManager());
+
+        await viewModel.OpenRemoteAsync(request, backspaceSendsDelete: true);
+
+        TerminalTabViewModel tab = Assert.Single(viewModel.TerminalTabs);
+        Assert.Equal(expectedType, tab.Session.ConnectionType);
+        Assert.False(tab.BackspaceSendsControlH);
+        Assert.True(tab.BackspaceSendsDelete);
+        Assert.Equal($"Connected to {safeTarget}", viewModel.StatusMessage);
+        await viewModel.CloseSelectedTerminalAsync();
     }
 
     [Fact]
@@ -273,9 +451,142 @@ public sealed class MainWindowViewModelTests
         Assert.True(manager.WasCancelled);
         Assert.False(viewModel.IsConnectionBusy);
         Assert.Equal("Telnet connection cancelled", viewModel.StatusMessage);
+        Assert.True(viewModel.IsFooterError);
+        Assert.Equal("Selected tab disconnected or failed", viewModel.ActiveTabStatusText);
         Assert.Empty(viewModel.TerminalTabs);
     }
 
+
+    [Fact]
+    public async Task PendingPaneHidesTerminalOnlyIndicatorsUntilSessionExists()
+    {
+        var launch = new WorkspaceLaunchReference
+        {
+            Kind = WorkspaceLaunchKind.TransientConnection,
+            DisplayName = "Test switch",
+            ConnectionType = ConnectionType.Telnet,
+            Environment = DeviceEnvironment.Production,
+        };
+        var pane = new TerminalPaneViewModel(Guid.NewGuid());
+        pane.BeginConnection(launch, "Connecting...");
+        Assert.True(pane.StatusIsConnecting);
+        Assert.False(pane.StatusIsConnected);
+        Assert.False(pane.StatusIsDisconnected);
+        Assert.False(pane.ShowLogging);
+        Assert.False(pane.ShowInputLocked);
+        Assert.False(pane.ShowFind);
+        Assert.False(pane.ShowProductionBanner);
+        pane.EndConnection("Connection failed");
+        Assert.True(pane.StatusIsDisconnected);
+        Assert.False(pane.IsRestoredPlaceholder);
+        pane.BeginConnection(launch, "Connecting...");
+
+        var session = new RecordingTerminalSession(new TerminalSessionRequest(
+            Guid.NewGuid(), "Test switch", new TelnetConnectionOptions("switch.test")));
+        await session.ConnectAsync(CancellationToken.None);
+        var terminal = new TerminalTabViewModel(session, _ => Task.CompletedTask);
+        pane.Attach(terminal, launch);
+        Assert.True(pane.StatusIsConnected);
+        Assert.False(pane.StatusIsConnecting);
+        Assert.False(pane.StatusIsDisconnected);
+        terminal.ToggleInputLock();
+        terminal.OpenFind();
+
+        Assert.True(pane.ShowInputLocked);
+        Assert.True(pane.ShowFind);
+        Assert.True(pane.ShowProductionBanner);
+        pane.Detach();
+        Assert.False(pane.ShowInputLocked);
+        Assert.False(pane.ShowFind);
+        Assert.False(pane.ShowProductionBanner);
+        terminal.Dispose();
+
+        var disconnectedSession = new RecordingTerminalSession(new TerminalSessionRequest(
+            Guid.NewGuid(), "Test switch", new TelnetConnectionOptions("switch.test")));
+        await disconnectedSession.ConnectAsync(CancellationToken.None);
+        await disconnectedSession.DisconnectAsync(CancellationToken.None);
+        var disconnectedTerminal = new TerminalTabViewModel(
+            disconnectedSession, _ => Task.CompletedTask);
+        pane.Attach(disconnectedTerminal, launch);
+        Assert.True(pane.StatusIsDisconnected);
+        Assert.False(pane.StatusIsConnected);
+        disconnectedTerminal.Dispose();
+    }
+
+    [Fact]
+    public async Task ConcurrentConnectionsKeepTheirOwnTabsAndDoNotStealFocus()
+    {
+        var manager = new ControlledSessionManager();
+        var viewModel = CreateViewModel(
+            new RecordingSettingsService(new ApplicationSettings()), manager);
+        var first = new TerminalSessionRequest(
+            Guid.NewGuid(), "First switch", new TelnetConnectionOptions("first.test"));
+        var second = new TerminalSessionRequest(
+            Guid.NewGuid(), "Second switch", new TelnetConnectionOptions("second.test"));
+
+        Assert.True(viewModel.IsFooterIdle);
+        Task firstOpen = viewModel.OpenRemoteAsync(first);
+        WorkspaceTabViewModel firstTab = Assert.Single(viewModel.WorkspaceTabs);
+        Assert.True(firstTab.ActivePane.IsConnecting);
+        Assert.True(viewModel.IsFooterWarning);
+        Assert.Empty(viewModel.TerminalTabs);
+
+        Task secondOpen = viewModel.OpenRemoteAsync(second);
+        Assert.Equal(2, viewModel.WorkspaceTabs.Count);
+        WorkspaceTabViewModel secondTab = viewModel.WorkspaceTabs[1];
+        Assert.True(secondTab.ActivePane.IsConnecting);
+        Assert.Same(secondTab, viewModel.SelectedWorkspace);
+
+        await manager.CompleteAsync(first);
+        await firstOpen;
+        Assert.Same(firstTab.ActivePane.Terminal, Assert.Single(viewModel.TerminalTabs));
+        Assert.Same(secondTab, viewModel.SelectedWorkspace);
+        Assert.True(secondTab.ActivePane.IsConnecting);
+        Assert.True(viewModel.IsFooterWarning);
+        Assert.True(viewModel.IsConnectionBusy);
+
+        viewModel.SelectedWorkspace = firstTab;
+        Assert.True(viewModel.IsFooterConnected);
+        viewModel.SelectedWorkspace = secondTab;
+        Assert.True(viewModel.IsFooterWarning);
+
+        await manager.CompleteAsync(second);
+        await secondOpen;
+        Assert.Equal(2, viewModel.TerminalTabs.Count);
+        Assert.Same(secondTab.ActivePane.Terminal, viewModel.SelectedTerminal);
+        Assert.True(viewModel.IsFooterConnected);
+        Assert.Equal("Selected tab connected", viewModel.ActiveTabStatusText);
+        Assert.False(viewModel.IsConnectionBusy);
+    }
+
+    [Fact]
+    public async Task ClosingPendingTabCancelsOnlyItsConnection()
+    {
+        var manager = new ControlledSessionManager();
+        var viewModel = CreateViewModel(
+            new RecordingSettingsService(new ApplicationSettings()), manager);
+        var first = new TerminalSessionRequest(
+            Guid.NewGuid(), "First switch", new TelnetConnectionOptions("first.test"));
+        var second = new TerminalSessionRequest(
+            Guid.NewGuid(), "Second switch", new TelnetConnectionOptions("second.test"));
+
+        Task firstOpen = viewModel.OpenRemoteAsync(first);
+        WorkspaceTabViewModel firstTab = Assert.Single(viewModel.WorkspaceTabs);
+        Task secondOpen = viewModel.OpenRemoteAsync(second);
+        WorkspaceTabViewModel secondTab = viewModel.WorkspaceTabs[1];
+
+        await viewModel.ClosePaneAsync(firstTab.ActivePane);
+        await firstOpen;
+        Assert.Single(viewModel.WorkspaceTabs);
+        Assert.Same(secondTab, viewModel.SelectedWorkspace);
+        Assert.True(secondTab.ActivePane.IsConnecting);
+        Assert.True(viewModel.IsConnectionBusy);
+
+        await manager.CompleteAsync(second);
+        await secondOpen;
+        Assert.Single(viewModel.TerminalTabs);
+        Assert.Same(secondTab.ActivePane.Terminal, viewModel.SelectedTerminal);
+    }
 
     [Fact]
     public async Task SupportsSixIndependentSimultaneousSessions()
@@ -293,6 +604,47 @@ public sealed class MainWindowViewModelTests
         Assert.Equal(6, viewModel.TerminalTabs.Count);
         Assert.Equal(6, viewModel.WorkspaceTabs.Count);
         Assert.Equal(6, manager.Sessions.Select(session => session.Id).Distinct().Count());
+    }
+
+    [Fact]
+    public async Task ReorderedWorkspaceTabsKeepSessionsActiveAndRestoreInSavedOrder()
+    {
+        var manager = new RecordingSessionManager();
+        var workspaceService = new InMemoryWorkspaceService();
+        var viewModel = CreateViewModel(
+            new RecordingSettingsService(new ApplicationSettings()),
+            manager, workspaceService);
+        for (int index = 0; index < 4; index++)
+            await viewModel.NewPowerShellCommand.ExecuteAsync(null);
+
+        WorkspaceTabViewModel[] original = viewModel.WorkspaceTabs.ToArray();
+        Guid[] sessionIds = manager.Sessions.Select(session => session.Id).ToArray();
+        Assert.True(viewModel.CanMoveWorkspaceTab(original[3], original[0], false));
+        Assert.True(await viewModel.MoveWorkspaceTabAsync(original[3], original[0], false));
+        Assert.Equal([original[3], original[0], original[1], original[2]],
+            viewModel.WorkspaceTabs);
+        Assert.False(viewModel.CanMoveWorkspaceTab(original[3], original[0], false));
+        Assert.False(await viewModel.MoveWorkspaceTabAsync(original[3], original[0], false));
+
+        Assert.True(await viewModel.MoveWorkspaceTabAsync(original[3], original[1], true));
+        Assert.Equal([original[0], original[1], original[3], original[2]],
+            viewModel.WorkspaceTabs);
+        Assert.Same(original[3], viewModel.SelectedWorkspace);
+        Assert.Same(original[3].ActivePane.Terminal, viewModel.SelectedTerminal);
+        Assert.Equal(sessionIds, manager.Sessions.Select(session => session.Id));
+        Assert.Equal(4, viewModel.TerminalTabs.Count);
+        Assert.Equal(
+            viewModel.WorkspaceTabs.Select(tab => tab.Id),
+            workspaceService.Document!.Tabs.Select(tab => tab.TabId));
+
+        var restored = CreateViewModel(
+            new RecordingSettingsService(new ApplicationSettings()),
+            new RecordingSessionManager(), workspaceService);
+        await restored.InitializeAsync();
+        Assert.Equal(
+            viewModel.WorkspaceTabs.Select(tab => tab.Id),
+            restored.WorkspaceTabs.Select(tab => tab.Id));
+        Assert.Equal(original[3].Id, restored.SelectedWorkspace!.Id);
     }
 
     [Fact]
@@ -413,17 +765,35 @@ public sealed class MainWindowViewModelTests
     private static MainWindowViewModel CreateViewModel(
         IApplicationSettingsService settingsService,
         ISessionManager? sessionManager = null,
-        IWorkspaceService? workspaceService = null)
+        IWorkspaceService? workspaceService = null,
+        ISavedDeviceSessionService? savedDeviceService = null,
+        IDeviceCatalogService? catalogService = null,
+        IDeviceWebAccessService? deviceWebAccessService = null)
     {
         return new MainWindowViewModel(
             settingsService,
             sessionManager ?? new RecordingSessionManager(),
-            new DeviceExplorerViewModel(new EmptyDeviceCatalogService()),
-            new UnusedSavedDeviceSessionService(),
+            new DeviceExplorerViewModel(catalogService ?? new EmptyDeviceCatalogService()),
+            savedDeviceService ?? new UnusedSavedDeviceSessionService(),
             workspaceService ?? new InMemoryWorkspaceService(),
-            NullLogger<MainWindowViewModel>.Instance);
+            NullLogger<MainWindowViewModel>.Instance,
+            deviceWebAccessService: deviceWebAccessService);
     }
 
+    private sealed class RecordingWebAccessService : IDeviceWebAccessService
+    {
+        public int OpenCount { get; private set; }
+        public DeviceWebAccessSettings? LastSettings { get; private set; }
+
+        public void Open(DeviceWebAccessSettings settings)
+        {
+            OpenCount++;
+            LastSettings = settings;
+        }
+
+        public Task<bool> CheckPortAsync(DeviceWebAccessSettings settings,
+            CancellationToken cancellationToken) => Task.FromResult(true);
+    }
     private sealed class RecordingSettingsService(ApplicationSettings loaded)
         : IApplicationSettingsService
     {
@@ -456,7 +826,7 @@ public sealed class MainWindowViewModelTests
         }
     }
 
-    private sealed class EmptyDeviceCatalogService : IDeviceCatalogService
+    private sealed class EmptyDeviceCatalogService(DeviceProfile? device = null) : IDeviceCatalogService
     {
         public Task InitializeAsync(CancellationToken cancellationToken)
         {
@@ -468,13 +838,39 @@ public sealed class MainWindowViewModelTests
             DeviceCatalogFilter filter,
             CancellationToken cancellationToken)
         {
-            return Task.FromResult(new DeviceCatalogSnapshot([], [], [], [], []));
+            return Task.FromResult(new DeviceCatalogSnapshot(
+                device is null ? [] : [device], [], [], [], []));
         }
 
         public Task SaveAsync(DeviceEditRequest request, CancellationToken cancellationToken)
         {
             return Task.CompletedTask;
         }
+
+        public Task DeleteEmptySiteAsync(Guid id, CancellationToken cancellationToken)
+            => throw new NotSupportedException();
+
+        public Task DeleteEmptyFolderAsync(Guid id, CancellationToken cancellationToken)
+            => throw new NotSupportedException();
+
+        public Task<Site> CreateSiteAsync(string name, CancellationToken cancellationToken)
+            => throw new NotSupportedException();
+
+        public Task<DeviceGroup> CreateFolderAsync(
+            string name, Guid? siteId, Guid? parentGroupId, CancellationToken cancellationToken)
+            => throw new NotSupportedException();
+
+        public Task MoveDeviceAsync(
+            Guid deviceId, Guid? siteId, Guid? groupId, CancellationToken cancellationToken)
+            => throw new NotSupportedException();
+
+        public Task SaveExplorerOrderAsync(
+            IReadOnlyList<Guid> siblingIds, CancellationToken cancellationToken)
+            => throw new NotSupportedException();
+
+        public Task ResetExplorerOrderAsync(
+            IReadOnlyList<Guid> siblingIds, CancellationToken cancellationToken)
+            => throw new NotSupportedException();
 
         public Task RecordRecentAsync(Guid deviceId, DateTimeOffset connectedAtUtc, CancellationToken cancellationToken)
         {
@@ -484,6 +880,22 @@ public sealed class MainWindowViewModelTests
         public Task DeleteAsync(Guid id, CancellationToken cancellationToken)
         {
             return Task.CompletedTask;
+        }
+    }
+
+    private sealed class StubSavedDeviceSessionService(DeviceProfile device, bool fail = false)
+        : ISavedDeviceSessionService
+    {
+        public async Task<SavedDeviceSessionResult> OpenAsync(
+            Guid deviceId, CancellationToken cancellationToken)
+        {
+            Assert.Equal(device.Id, deviceId);
+            if (fail)
+                throw new SavedDeviceConnectionException("Connection failed.");
+            var session = new RecordingTerminalSession(new TerminalSessionRequest(
+                Guid.NewGuid(), device.Name, new TelnetConnectionOptions("switch.test")));
+            await session.ConnectAsync(cancellationToken);
+            return new SavedDeviceSessionResult(device, session);
         }
     }
 
@@ -538,6 +950,49 @@ public sealed class MainWindowViewModelTests
         {
             await CloseAllAsync(CancellationToken.None);
         }
+    }
+
+    private sealed class ControlledSessionManager : ISessionManager
+    {
+        private readonly Dictionary<Guid, TaskCompletionSource<ITerminalSession>> _pending = [];
+        private readonly Dictionary<Guid, ITerminalSession> _sessions = [];
+
+        public IReadOnlyCollection<ITerminalSession> Sessions => _sessions.Values.ToArray();
+
+        public Task<ITerminalSession> OpenAsync(
+            TerminalSessionRequest request, CancellationToken cancellationToken)
+        {
+            var completion = new TaskCompletionSource<ITerminalSession>(
+                TaskCreationOptions.RunContinuationsAsynchronously);
+            _pending.Add(request.SessionId, completion);
+            cancellationToken.Register(() => completion.TrySetCanceled(cancellationToken));
+            return completion.Task;
+        }
+
+        public async Task CompleteAsync(TerminalSessionRequest request)
+        {
+            var session = new RecordingTerminalSession(request);
+            await session.ConnectAsync(CancellationToken.None);
+            _sessions.Add(session.Id, session);
+            _pending[request.SessionId].TrySetResult(session);
+        }
+
+        public async Task CloseAsync(Guid sessionId, CancellationToken cancellationToken)
+        {
+            if (_sessions.Remove(sessionId, out ITerminalSession? session))
+            {
+                await session.DisconnectAsync(cancellationToken);
+                await session.DisposeAsync();
+            }
+        }
+
+        public async Task CloseAllAsync(CancellationToken cancellationToken)
+        {
+            foreach (Guid id in _sessions.Keys.ToArray())
+                await CloseAsync(id, cancellationToken);
+        }
+
+        public ValueTask DisposeAsync() => ValueTask.CompletedTask;
     }
 
     private sealed class CancellableSessionManager : ISessionManager

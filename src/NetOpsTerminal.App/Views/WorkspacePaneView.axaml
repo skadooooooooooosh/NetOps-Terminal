@@ -54,32 +54,49 @@
           <Border Padding="10,0" Background="{DynamicResource AppSecondarySurfaceBrush}"
                   BorderBrush="{DynamicResource AppBorderBrush}" BorderThickness="0,0,0,1">
             <Grid ColumnDefinitions="Auto,Auto,Auto,*,Auto,Auto,Auto">
-              <TextBlock VerticalAlignment="Center" FontSize="10"
-                         Foreground="{DynamicResource AppConnectedBrush}"
-                         Text="{Binding Terminal.StatusGlyph}" />
+              <Ellipse Width="7" Height="7" VerticalAlignment="Center"
+                       Fill="{DynamicResource AppConnectedBrush}"
+                       IsVisible="{Binding StatusIsConnected}" />
+              <Ellipse Width="7" Height="7" VerticalAlignment="Center"
+                       Fill="{DynamicResource AppWarningBrush}"
+                       IsVisible="{Binding StatusIsConnecting}" />
+              <Ellipse Width="7" Height="7" VerticalAlignment="Center"
+                       Fill="{DynamicResource AppDangerBrush}"
+                       IsVisible="{Binding StatusIsDisconnected}" />
+              <Ellipse Width="7" Height="7" VerticalAlignment="Center"
+                       Fill="{DynamicResource AppDisconnectedBrush}"
+                       IsVisible="{Binding StatusIsIdle}" />
               <TextBlock Grid.Column="1" Margin="5,0,0,0" VerticalAlignment="Center"
                          FontFamily="Cascadia Mono, Consolas" FontSize="10"
                          Foreground="{DynamicResource AppMutedTextBrush}"
                          Text="{Binding Terminal.StatusText}" />
+              <TextBlock Grid.Column="1" Margin="5,0,0,0" VerticalAlignment="Center"
+                         FontFamily="Cascadia Mono, Consolas" FontSize="10"
+                         Foreground="{DynamicResource AppWarningBrush}"
+                         IsVisible="{Binding IsConnecting}" Text="Connecting" />
+              <TextBlock Grid.Column="1" Margin="5,0,0,0" VerticalAlignment="Center"
+                         FontFamily="Cascadia Mono, Consolas" FontSize="10"
+                         Foreground="{DynamicResource AppDangerBrush}"
+                         IsVisible="{Binding HasConnectionError}" Text="Connection failed" />
               <TextBlock Grid.Column="2" Margin="8,0,0,0" VerticalAlignment="Center"
                          FontFamily="Cascadia Mono, Consolas" FontSize="10"
                          Foreground="{DynamicResource AppTerminalTextBrush}"
                          Text="{Binding Terminal.ShellLabel}" />
               <TextBlock Grid.Column="4" Margin="8,0" VerticalAlignment="Center"
                          FontSize="9" Foreground="{DynamicResource AppConnectedBrush}"
-                         IsVisible="{Binding Terminal.IsLogging}" Text="● LOGGING" />
+                         IsVisible="{Binding ShowLogging}" Text="● LOGGING" />
               <TextBlock Grid.Column="5" Margin="8,0" VerticalAlignment="Center"
                          FontSize="9" FontWeight="Bold" Foreground="{DynamicResource AppWarningBrush}"
-                         IsVisible="{Binding Terminal.IsInputLocked}" Text="INPUT LOCKED" />
+                         IsVisible="{Binding ShowInputLocked}" Text="INPUT LOCKED" />
               <TextBlock Grid.Column="6" Margin="8,0" VerticalAlignment="Center"
                          FontSize="9" FontWeight="Bold" Foreground="{DynamicResource AppProductionBrush}"
-                         IsVisible="{Binding IsProduction}" Text="PROD" />
+                         IsVisible="{Binding ShowProductionBanner}" Text="PROD" />
             </Grid>
           </Border>
 
           <Border Grid.Row="1" Padding="8,5" Background="{DynamicResource AppSecondarySurfaceBrush}"
                   BorderBrush="{DynamicResource AppBorderBrush}" BorderThickness="0,0,0,1"
-                  IsVisible="{Binding Terminal.IsFindVisible}">
+                  IsVisible="{Binding ShowFind}">
             <Grid ColumnDefinitions="*,Auto,Auto,Auto,Auto" ColumnSpacing="5">
               <TextBox x:Name="FindTextBox" Tag="TerminalFind" MinWidth="180"
                        Text="{Binding Terminal.FindText, Mode=TwoWay}"
@@ -94,7 +111,9 @@
 
           <terminalAdapter:RoyalTerminalHost Grid.Row="2" HorizontalAlignment="Stretch"
               VerticalAlignment="Stretch" IsVisible="{Binding HasTerminal}"
-              Session="{Binding Terminal.Session}" />
+              Session="{Binding Terminal.Session}"
+              BackspaceSendsControlH="{Binding Terminal.BackspaceSendsControlH}"
+              BackspaceSendsDelete="{Binding Terminal.BackspaceSendsDelete}" />
 
           <StackPanel Grid.Row="2" MaxWidth="540" Margin="34" HorizontalAlignment="Center"
               VerticalAlignment="Center" IsVisible="{Binding HasNoTerminal}" Spacing="12">
@@ -102,7 +121,22 @@
                        Foreground="{DynamicResource AppTerminalTextBrush}" Text="&gt;_" />
             <TextBlock HorizontalAlignment="Center" FontSize="17" FontWeight="SemiBold" Text="{Binding Title}" />
             <TextBlock Foreground="{DynamicResource AppTerminalMutedBrush}" Text="{Binding PlaceholderMessage}"
+                       IsVisible="{Binding IsRestoredPlaceholder}"
                        TextAlignment="Center" TextWrapping="Wrap" />
+            <TextBlock Foreground="{DynamicResource AppTerminalMutedBrush}" Text="{Binding PlaceholderMessage}"
+                       IsVisible="{Binding IsEmpty}"
+                       TextAlignment="Center" TextWrapping="Wrap" />
+            <TextBlock Foreground="{DynamicResource AppTerminalMutedBrush}" Text="{Binding ConnectionStatus}"
+                       IsVisible="{Binding IsConnecting}"
+                       TextAlignment="Center" TextWrapping="Wrap" />
+            <ProgressBar Width="280" IsIndeterminate="True" IsVisible="{Binding IsConnecting}" />
+            <TextBlock Foreground="{DynamicResource AppDangerBrush}" Text="{Binding ConnectionError}"
+                       IsVisible="{Binding HasConnectionError}"
+                       TextAlignment="Center" TextWrapping="Wrap" />
+            <Button HorizontalAlignment="Center" Classes="toolbar" Click="CancelConnection_OnClick"
+                    Content="Cancel connection" IsVisible="{Binding IsConnecting}" />
+            <Button HorizontalAlignment="Center" Classes="accent" Click="RetryConnection_OnClick"
+                    Content="Retry" IsVisible="{Binding HasConnectionError}" />
             <Button HorizontalAlignment="Center" Classes="accent" Click="RestorePane_OnClick"
                     Content="Reconnect" IsVisible="{Binding CanReconnect}" />
           </StackPanel>
@@ -110,13 +144,13 @@
           <StackPanel Grid.Row="3">
             <Border Height="26" Padding="10,0" Background="{DynamicResource AppProductionSurfaceBrush}"
                     BorderBrush="{DynamicResource AppProductionBrush}" BorderThickness="0,1,0,0"
-                    IsVisible="{Binding IsProduction}">
+                    IsVisible="{Binding ShowProductionBanner}">
               <TextBlock VerticalAlignment="Center" FontSize="10" Foreground="{DynamicResource AppProductionBrush}"
                          Text="⚠  PRODUCTION SESSION — VERIFY COMMANDS BEFORE SENDING" />
             </Border>
             <Border Height="26" Padding="10,0" Background="{DynamicResource AppWarningSurfaceBrush}"
                     BorderBrush="{DynamicResource AppWarningBrush}" BorderThickness="0,1,0,0"
-                    IsVisible="{Binding Terminal.IsInputLocked}">
+                    IsVisible="{Binding ShowInputLocked}">
               <TextBlock VerticalAlignment="Center" FontSize="10" Foreground="{DynamicResource AppWarningBrush}"
                          Text="INPUT LOCKED — Alt+L to unlock" />
             </Border>

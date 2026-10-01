@@ -1,4 +1,4 @@
-﻿<Window
+<Window
     x:Class="NetOpsTerminal.App.Views.DeviceEditorWindow"
     xmlns="https://github.com/avaloniaui"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
@@ -68,8 +68,41 @@
       </TabItem>
 
       <TabItem><TabItem.Header><TextBlock FontSize="12" Text="Connection" /></TabItem.Header>
+        <ScrollViewer VerticalScrollBarVisibility="Auto">
         <StackPanel>
           <StackPanel Margin="4,8" Spacing="8">
+            <TextBlock FontWeight="SemiBold" Text="Access method" />
+            <RadioButton x:Name="TerminalOnlyRadio" GroupName="DeviceAccess"
+                         Content="CLI only" IsChecked="True" Click="AccessMode_OnChecked" />
+            <RadioButton x:Name="WebOnlyRadio" GroupName="DeviceAccess"
+                         Content="GUI only" Click="AccessMode_OnChecked" />
+            <RadioButton x:Name="TerminalAndWebRadio" GroupName="DeviceAccess"
+                         Content="CLI + GUI" Click="AccessMode_OnChecked" />
+            <StackPanel x:Name="WebAccessPanel" IsVisible="False" Spacing="7">
+              <TextBlock Text="Web address" />
+              <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+                <TextBox x:Name="WebAddressTextBox" PlaceholderText="https://switch.example.com" />
+                <Button Grid.Column="1" Classes="toolbar" Content="Check access"
+                        Click="CheckWebAccess_OnClick" />
+              </Grid>
+              <TextBlock x:Name="WebCheckStatusText" Classes="muted" FontSize="11"
+                         TextWrapping="Wrap"
+                         Text="Enter the device's full HTTP or HTTPS address." />
+              <StackPanel x:Name="DefaultOpenPanel" Spacing="5">
+                <TextBlock Text="Open on double-click" />
+                <ComboBox x:Name="DefaultOpenComboBox" SelectedIndex="0">
+                  <ComboBoxItem Content="CLI terminal" />
+                  <ComboBoxItem Content="Web GUI" />
+                </ComboBox>
+              </StackPanel>
+              <TextBlock Text="Browser" />
+              <ComboBox x:Name="BrowserComboBox" SelectedIndex="0">
+                <ComboBoxItem Content="Windows default browser" />
+                <ComboBoxItem Content="Microsoft Edge" />
+                <ComboBoxItem Content="Google Chrome" />
+              </ComboBox>
+            </StackPanel>
+            <StackPanel x:Name="TerminalAccessPanel" Spacing="8">
             <TextBlock Text="Protocol" />
             <ComboBox x:Name="ProtocolComboBox" SelectedIndex="0" SelectionChanged="Protocol_OnSelectionChanged">
               <ComboBoxItem Content="SSH" />
@@ -84,12 +117,24 @@
               </StackPanel>
               <StackPanel Grid.Column="1" Spacing="5">
                 <TextBlock x:Name="PortLabel" Text="Port" />
-                <TextBox x:Name="PortTextBox" Text="22" />
+                <TextBox x:Name="PortTextBox" Text="22" IsReadOnly="True" />
               </StackPanel>
             </Grid>
 
+            <TextBlock x:Name="PortCorrectionText" Classes="muted" FontSize="11" IsVisible="False" TextWrapping="Wrap" />
             <TextBlock x:Name="SshHint" Classes="muted" FontSize="11" TextWrapping="Wrap"
                        Text="Host-key validation uses the same secure known_hosts policy as Quick Connect." />
+            <StackPanel Spacing="6">
+              <TextBlock FontWeight="SemiBold" Text="Backspace key" />
+              <RadioButton x:Name="BackspaceDefaultRadio" GroupName="SavedDeviceBackspace"
+                           Content="Standard" IsChecked="True" />
+              <RadioButton x:Name="BackspaceControlHRadio" GroupName="SavedDeviceBackspace"
+                           Content="Compatibility: BS (Ctrl+H)" />
+              <RadioButton x:Name="BackspaceDeleteRadio" GroupName="SavedDeviceBackspace"
+                           Content="Compatibility: DEL" />
+              <TextBlock Classes="muted" FontSize="11" TextWrapping="Wrap"
+                         Text="Press Backspace normally. If it does not erase, try BS, then DEL." />
+            </StackPanel>
 
             <StackPanel x:Name="TelnetOptionsPanel" IsVisible="False" Spacing="8">
               <TextBlock Foreground="{DynamicResource AppWarningBrush}" TextWrapping="Wrap"
@@ -176,8 +221,10 @@
                 <TextBox x:Name="RawTimeoutTextBox" Text="15" />
               </StackPanel>
             </StackPanel>
+            </StackPanel>
           </StackPanel>
         </StackPanel>
+        </ScrollViewer>
       </TabItem>
 
       <TabItem x:Name="CredentialsTab"><TabItem.Header><TextBlock FontSize="12" Text="Credentials" /></TabItem.Header>
@@ -195,10 +242,10 @@
         <StackPanel Margin="4,8" Spacing="8">
           <TextBlock Text="Site" />
           <TextBox x:Name="SiteTextBox" MaxLength="120" PlaceholderText="Example: Singapore DC" />
-          <TextBlock Text="Device group" />
-          <TextBox x:Name="GroupTextBox" MaxLength="120" PlaceholderText="Example: Core Switches" />
+          <TextBlock Text="Organization folder" />
+          <TextBox x:Name="GroupTextBox" MaxLength="120" PlaceholderText="Example: Core Network" />
           <TextBlock Classes="muted" FontSize="11" TextWrapping="Wrap"
-                     Text="New sites and groups appear in Device Explorer when you save." />
+                     Text="One folder per site. New folders appear in Device Explorer when you save." />
         </StackPanel>
       </TabItem>
     </TabControl>

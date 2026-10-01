@@ -11,7 +11,8 @@ public sealed partial class DeviceTransferService
 {
     private static readonly string[] SpreadsheetHeaders =
     [
-        "Name", "Host", "Port", "Device Type",
+        "Name", "Host", "Port", "Device Type", "Protocol", "Telnet Acknowledged",
+        "Access Mode", "Web Address", "Browser Preference", "Default Open Action",
     ];
 
     public async Task<string> ConvertToJsonAsync(
@@ -92,9 +93,14 @@ public sealed partial class DeviceTransferService
     {
         try
         {
+            string protocolValue = Field(values, columns, "Protocol");
             ConnectionType protocol = ParseEnum(
-                Field(values, columns, "Protocol"), ConnectionType.Ssh, "protocol");
+                protocolValue, ConnectionType.Ssh, "protocol");
             int port = ParsePort(Field(values, columns, "Port"), protocol);
+            if (string.IsNullOrWhiteSpace(protocolValue) && port != 22)
+                throw new ArgumentException("Set Protocol explicitly for a port other than 22. For Telnet, select Telnet and acknowledge plaintext traffic.");
+            DeviceAccessMode accessMode = ParseEnum(Field(values, columns, "Access Mode"),
+                DeviceAccessMode.TerminalOnly, "access mode");
             DeviceType type = ParseEnum(Field(values, columns, "Device Type"), DeviceType.Other, "device type");
             DeviceEnvironment environment = ParseEnum(Field(values, columns, "Environment"), DeviceEnvironment.Unknown, "environment");
             return new Item(
@@ -107,6 +113,13 @@ public sealed partial class DeviceTransferService
                 Field(values, columns, "Notes"))
             {
                 ConnectionType = protocol,
+                AccessMode = accessMode,
+                WebAddress = Field(values, columns, "Web Address"),
+                BrowserPreference = ParseEnum(Field(values, columns, "Browser Preference"),
+                    WebBrowserPreference.WindowsDefault, "browser preference"),
+                DefaultOpenAction = ParseEnum(Field(values, columns, "Default Open Action"),
+                    accessMode == DeviceAccessMode.WebOnly ? DeviceOpenAction.Web : DeviceOpenAction.Terminal,
+                    "default open action"),
                 TerminalType = Defaulted(Field(values, columns, "Terminal Type"), "xterm-256color"),
                 Encoding = ParseEnum(Field(values, columns, "Encoding"),
                     TerminalTextEncoding.Utf8, "encoding").ToString(),

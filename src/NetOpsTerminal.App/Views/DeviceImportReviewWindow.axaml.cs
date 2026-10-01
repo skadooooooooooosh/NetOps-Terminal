@@ -17,9 +17,7 @@ public sealed partial class DeviceImportReviewWindow : ThemedWindow
     public DeviceImportReviewWindow(DeviceImportPreview preview, IReadOnlyList<CredentialProfile> credentials)
         : this()
     {
-        SummaryText.Text = $"{preview.DeviceCount} devices in {preview.GroupCount} groups - {preview.ConflictCount} conflicts - {preview.CredentialRequiredCount} need credentials";
-        ConflictComboBox.ItemsSource = new[] { "Keep both as copies", "Skip imported duplicate", "Update matching device" };
-        ConflictComboBox.SelectedIndex = 0;
+        SummaryText.Text = $"{preview.DeviceCount} devices · {preview.ConflictCount} already saved · {preview.CredentialRequiredCount} need credentials";
         CredentialComboBox.ItemsSource = credentials;
         DevicesList.ItemsSource = preview.Devices;
     }
@@ -28,12 +26,11 @@ public sealed partial class DeviceImportReviewWindow : ThemedWindow
 
     private void Import_OnClick(object? sender, RoutedEventArgs e)
     {
-        DeviceImportConflictPolicy policy = ConflictComboBox.SelectedIndex switch
-        {
-            1 => DeviceImportConflictPolicy.Skip,
-            2 => DeviceImportConflictPolicy.Update,
-            _ => DeviceImportConflictPolicy.KeepBoth,
-        };
+        DeviceImportConflictPolicy policy = UpdateRadio.IsChecked == true
+            ? DeviceImportConflictPolicy.Update
+            : SkipRadio.IsChecked == true
+                ? DeviceImportConflictPolicy.Skip
+                : DeviceImportConflictPolicy.KeepBoth;
         Guid? credentialId = (CredentialComboBox.SelectedItem as CredentialProfile)?.Id;
         Close(new DeviceImportDialogResult(policy, credentialId));
     }

@@ -7,6 +7,8 @@ public sealed class WorkspaceTabViewModel : ObservableObject
 {
     private WorkspacePaneNodeViewModel _root;
     private TerminalPaneViewModel _activePane;
+    private bool _isDropBefore;
+    private bool _isDropAfter;
 
     public WorkspaceTabViewModel(
         Guid id,
@@ -24,6 +26,7 @@ public sealed class WorkspaceTabViewModel : ObservableObject
         }
 
         _activePane.IsActive = true;
+        _activePane.PropertyChanged += ActivePane_OnPropertyChanged;
     }
 
     public Guid Id { get; }
@@ -45,14 +48,66 @@ public sealed class WorkspaceTabViewModel : ObservableObject
             }
 
             _activePane.IsActive = false;
+            _activePane.PropertyChanged -= ActivePane_OnPropertyChanged;
             _activePane = value;
+            _activePane.PropertyChanged += ActivePane_OnPropertyChanged;
             _activePane.IsActive = true;
             OnPropertyChanged();
             OnPropertyChanged(nameof(Title));
+            OnPropertyChanged(nameof(StatusIsConnected));
+            OnPropertyChanged(nameof(StatusIsConnecting));
+            OnPropertyChanged(nameof(StatusIsDisconnected));
+            OnPropertyChanged(nameof(StatusIsIdle));
         }
     }
 
     public string Title => ActivePane.Title;
+
+    public bool IsConnecting => ActivePane.IsConnecting;
+
+    public bool HasConnectionError => ActivePane.HasConnectionError;
+
+    public bool StatusIsConnected => ActivePane.StatusIsConnected;
+
+    public bool StatusIsConnecting => ActivePane.StatusIsConnecting;
+
+    public bool StatusIsDisconnected => ActivePane.StatusIsDisconnected;
+
+    public bool StatusIsIdle => ActivePane.StatusIsIdle;
+
+
+    private void ActivePane_OnPropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName is nameof(TerminalPaneViewModel.Title)
+            or nameof(TerminalPaneViewModel.IsConnecting)
+            or nameof(TerminalPaneViewModel.HasConnectionError)
+            or nameof(TerminalPaneViewModel.StatusIsConnected)
+            or nameof(TerminalPaneViewModel.StatusIsConnecting)
+            or nameof(TerminalPaneViewModel.StatusIsDisconnected)
+            or nameof(TerminalPaneViewModel.StatusIsIdle))
+        {
+            OnPropertyChanged(nameof(Title));
+            OnPropertyChanged(nameof(IsConnecting));
+            OnPropertyChanged(nameof(HasConnectionError));
+            OnPropertyChanged(nameof(StatusIsConnected));
+            OnPropertyChanged(nameof(StatusIsConnecting));
+            OnPropertyChanged(nameof(StatusIsDisconnected));
+            OnPropertyChanged(nameof(StatusIsIdle));
+        }
+    }
+
+
+    public bool IsDropBefore
+    {
+        get => _isDropBefore;
+        set => SetProperty(ref _isDropBefore, value);
+    }
+
+    public bool IsDropAfter
+    {
+        get => _isDropAfter;
+        set => SetProperty(ref _isDropAfter, value);
+    }
 
     public IReadOnlyList<TerminalPaneViewModel> Panes => Root.EnumerateLeaves().ToArray();
 

@@ -1,4 +1,5 @@
 using NetOpsTerminal.Core.Connections;
+using NetOpsTerminal.Core.Devices;
 
 namespace NetOpsTerminal.Application.Devices;
 
@@ -11,9 +12,13 @@ public sealed record DeviceExportOptions(IReadOnlyCollection<Guid>? DeviceIds = 
 public sealed record DeviceImportPreviewItem(string Name, string Host, int Port, string SiteName, string GroupName, string CredentialName, string CredentialUsername, bool HasCredentialMatch, bool HasConflict)
 {
     public ConnectionType ConnectionType { get; init; } = ConnectionType.Ssh;
-    public string EndpointLabel => ConnectionType == ConnectionType.Serial
-        ? $"Serial ? {Host} ? {Port} baud"
-        : $"{ConnectionType} ? {Host}:{Port}";
+    public DeviceAccessMode AccessMode { get; init; } = DeviceAccessMode.TerminalOnly;
+    public string WebAddress { get; init; } = string.Empty;
+    public string EndpointLabel => AccessMode == DeviceAccessMode.WebOnly
+        ? $"WEB · {new Uri(WebAddress).Authority}"
+        : ConnectionType == ConnectionType.Serial
+        ? $"SERIAL · {Host} · {Port} baud"
+        : $"{(ConnectionType == ConnectionType.RawTcp ? "RAW TCP" : ConnectionType.ToString().ToUpperInvariant())} · {Host}:{Port}";
 }
 
 public sealed record DeviceImportPreview(int SchemaVersion, DateTimeOffset ExportedAtUtc, IReadOnlyList<DeviceImportPreviewItem> Devices)

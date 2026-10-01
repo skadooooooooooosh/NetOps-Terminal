@@ -36,6 +36,14 @@ public sealed partial class SshHostKeyPromptWindow : ThemedWindow
         Close(SshHostKeyPromptDecision.TrustAndSave);
     }
 
+    private void ReplaceAndSave_OnClick(object? sender, RoutedEventArgs e)
+    {
+        if (DataContext is SshHostKeyPromptViewModel { IsChanged: true })
+        {
+            Close(SshHostKeyPromptDecision.ReplaceAndSave);
+        }
+    }
+
     private void Cancel_OnClick(object? sender, RoutedEventArgs e)
     {
         Close(SshHostKeyPromptDecision.Cancel);

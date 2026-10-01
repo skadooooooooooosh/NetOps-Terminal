@@ -21,6 +21,8 @@ public interface ISiteRepository
     Task<IReadOnlyList<Site>> GetAllAsync(CancellationToken cancellationToken);
 
     Task<Site> GetOrCreateAsync(string name, CancellationToken cancellationToken);
+
+    Task DeleteEmptyAsync(Guid id, CancellationToken cancellationToken);
 }
 
 public interface IDeviceGroupRepository
@@ -31,6 +33,23 @@ public interface IDeviceGroupRepository
         string name,
         Guid? siteId,
         CancellationToken cancellationToken);
+
+    Task<DeviceGroup> GetOrCreateChildAsync(
+        string name,
+        Guid? siteId,
+        Guid parentGroupId,
+        CancellationToken cancellationToken);
+
+    Task DeleteEmptyAsync(Guid id, CancellationToken cancellationToken);
+}
+
+public interface IExplorerOrderRepository
+{
+    Task<IReadOnlyDictionary<Guid, int>> LoadAsync(CancellationToken cancellationToken);
+
+    Task SaveAsync(IReadOnlyList<Guid> siblingIds, CancellationToken cancellationToken);
+
+    Task ClearAsync(IReadOnlyList<Guid> siblingIds, CancellationToken cancellationToken);
 }
 
 public interface ICredentialProfileRepository

@@ -5,6 +5,22 @@ namespace NetOpsTerminal.Terminal.RoyalTerminal.Tests;
 public sealed class TerminalKeyRoutingPolicyTests
 {
     [Theory]
+    [InlineData(Key.Back, KeyModifiers.None, false, false, false, null)]
+    [InlineData(Key.Back, KeyModifiers.None, false, true, false, "\b")]
+    [InlineData(Key.Back, KeyModifiers.None, false, false, true, "\u007f")]
+    [InlineData(Key.Back, KeyModifiers.None, true, true, false, null)]
+    [InlineData(Key.Back, KeyModifiers.None, true, false, true, null)]
+    [InlineData(Key.Back, KeyModifiers.Control, false, true, false, null)]
+    [InlineData(Key.Delete, KeyModifiers.None, false, false, true, null)]
+    public void BackspaceModeOverridesOnlyUnlockedPlainBackspace(
+        Key key, KeyModifiers modifiers, bool locked, bool sendControlH,
+        bool sendDelete, string? expected)
+    {
+        Assert.Equal(expected, TerminalKeyRoutingPolicy.GetBackspaceInput(
+            key, modifiers, locked, sendControlH, sendDelete));
+    }
+
+    [Theory]
     [InlineData(KeyModifiers.None)]
     [InlineData(KeyModifiers.Shift)]
     public void PaneNavigationKeyIsAlwaysBlockedFromTerminal(

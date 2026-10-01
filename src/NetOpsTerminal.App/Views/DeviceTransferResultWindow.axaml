@@ -2,14 +2,52 @@
     x:Class="NetOpsTerminal.App.Views.DeviceTransferResultWindow"
     xmlns="https://github.com/avaloniaui"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-    Title="Device data" Width="420" Height="210" CanResize="False"
-    WindowStartupLocation="CenterOwner" Background="{DynamicResource AppWindowBrush}">
-  <Grid RowDefinitions="*,Auto" Margin="20">
-    <StackPanel Spacing="8" VerticalAlignment="Center">
-      <TextBlock x:Name="HeadingText" FontSize="17" FontWeight="SemiBold" />
-      <TextBlock x:Name="MessageText" Classes="muted" FontSize="10" TextWrapping="Wrap" />
-    </StackPanel>
-    <Button Grid.Row="1" HorizontalAlignment="Right" Classes="primary"
-            Click="Close_OnClick" Content="Done" />
-  </Grid>
+    Title="Device data"
+    Width="420"
+    Height="200"
+    CanResize="False"
+    CanMinimize="False"
+    CanMaximize="False"
+    Icon="/Assets/NetOpsTerminal.ico"
+    WindowDecorations="None"
+    ExtendClientAreaToDecorationsHint="True"
+    TransparencyLevelHint="Transparent"
+    TransparencyBackgroundFallback="{DynamicResource AppWindowBrush}"
+    CornerRadius="12"
+    Background="Transparent"
+    ShowInTaskbar="False"
+    WindowStartupLocation="CenterOwner">
+  <Border Classes="dialog-shell">
+    <Border Classes="dialog-surface">
+      <Grid RowDefinitions="35,*,Auto">
+        <Border Grid.Row="0" Classes="dialog-titlebar"
+                WindowDecorationProperties.ElementRole="TitleBar">
+          <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="8">
+            <Image Classes="dialog-title-icon" Source="/Assets/NetOpsTerminal.ico" />
+            <TextBlock Grid.Column="1" Classes="dialog-title" Text="Device data" />
+            <Button Grid.Column="2" Classes="window-caption close-caption"
+                    Width="24" Height="24" VerticalAlignment="Center"
+                    WindowDecorationProperties.ElementRole="User"
+                    Click="Close_OnClick" ToolTip.Tip="Close"
+                    AutomationProperties.Name="Close device data">
+              <Path Width="8" Height="8" Stretch="Uniform"
+                    Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"
+                    StrokeThickness="1.25" Data="M3,3 L13,13 M13,3 L3,13" />
+            </Button>
+          </Grid>
+        </Border>
+        <StackPanel Grid.Row="1" Margin="20,16" Spacing="8"
+                    VerticalAlignment="Center">
+          <TextBlock x:Name="HeadingText" FontSize="16" FontWeight="SemiBold"
+                     TextWrapping="Wrap" />
+          <TextBlock x:Name="MessageText" Classes="muted" TextWrapping="Wrap" />
+        </StackPanel>
+        <Border Grid.Row="2" Padding="10" Background="{DynamicResource AppSurfaceBrush}"
+                BorderBrush="{DynamicResource AppBorderBrush}" BorderThickness="0,1,0,0">
+          <Button HorizontalAlignment="Right" Classes="accent" Click="Close_OnClick"
+                  Content="Done" IsDefault="True" />
+        </Border>
+      </Grid>
+    </Border>
+  </Border>
 </Window>

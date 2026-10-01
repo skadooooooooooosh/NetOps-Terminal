@@ -17,6 +17,13 @@ public sealed partial class ConfirmationWindow : ThemedWindow
         MessageText.Text = message;
         ConfirmButton.Content = confirmText;
         CancelButton.Content = cancelText;
+        if (confirmText.StartsWith("Delete", StringComparison.OrdinalIgnoreCase))
+        {
+            Title = "Confirm deletion";
+            TitleText.Text = Title;
+            ConfirmButton.Classes.Remove("accent");
+            ConfirmButton.Classes.Add("destructive");
+        }
     }
 
     private void Cancel_OnClick(object? sender, RoutedEventArgs e) => Close(false);

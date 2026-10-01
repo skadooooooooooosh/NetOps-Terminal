@@ -10,7 +10,6 @@ using NetOpsTerminal.Application.Devices;
 using NetOpsTerminal.Application.Workspaces;
 using NetOpsTerminal.Core.Connections;
 using NetOpsTerminal.Core.Devices;
-using NetOpsTerminal.Core.Sessions;
 using NetOpsTerminal.Terminal.Abstractions;
 
 namespace NetOpsTerminal.App.ViewModels;
@@ -25,6 +24,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
     private readonly IWorkspaceService _workspaceService;
     private readonly ISessionLogService? _sessionLogService;
     private readonly ILogger<MainWindowViewModel> _logger;
+    private readonly IDeviceWebAccessService? _deviceWebAccessService;
     private bool _isSidebarCollapsed;
     private bool _isDeviceExplorerPinned;
     private double _sidebarWidth = ApplicationSettingsPolicy.DefaultSidebarWidth;
@@ -35,6 +35,8 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
     private string? _connectionErrorTechnicalDetails;
     private bool _isConnectionBusy;
     private CancellationTokenSource? _connectionCancellation;
+    private readonly Dictionary<TerminalPaneViewModel, CancellationTokenSource> _pendingConnections = [];
+    private bool _isShuttingDown;
     private TerminalTabViewModel? _selectedTerminal;
     private WorkspaceTabViewModel? _selectedWorkspace;
     private int _powerShellSequence;
@@ -47,7 +49,8 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
         ISavedDeviceSessionService savedDeviceSessionService,
         IWorkspaceService workspaceService,
         ILogger<MainWindowViewModel> logger,
-        ISessionLogService? sessionLogService = null)
+        ISessionLogService? sessionLogService = null,
+        IDeviceWebAccessService? deviceWebAccessService = null)
     {
         _settingsService = settingsService;
         _sessionManager = sessionManager;
@@ -56,6 +59,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
         _workspaceService = workspaceService;
         _logger = logger;
         _sessionLogService = sessionLogService;
+        _deviceWebAccessService = deviceWebAccessService;
 
         ToggleSidebarCommand = new AsyncRelayCommand(ToggleSidebarAsync);
         ToggleDeviceExplorerPinCommand = new RelayCommand(ToggleDeviceExplorerPin);
@@ -122,9 +126,17 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
         get => _selectedWorkspace;
         set
         {
+            if (ReferenceEquals(_selectedWorkspace, value))
+                return;
+
+            if (_selectedWorkspace is not null)
+                _selectedWorkspace.PropertyChanged -= SelectedWorkspace_OnPropertyChanged;
             if (SetProperty(ref _selectedWorkspace, value))
             {
+                if (_selectedWorkspace is not null)
+                    _selectedWorkspace.PropertyChanged += SelectedWorkspace_OnPropertyChanged;
                 SelectedTerminal = value?.ActivePane.Terminal;
+                NotifyFooterChanged();
             }
         }
     }
@@ -135,14 +147,18 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
 
     public bool HasSelectedTerminal => SelectedTerminal is not null;
 
-    public bool IsFooterConnected => SelectedTerminal?.State == SessionState.Connected;
+    public bool IsFooterConnected => SelectedWorkspace?.StatusIsConnected == true;
 
-    public bool IsFooterWarning => SelectedTerminal?.State is
-        SessionState.Connecting or SessionState.Disconnecting or SessionState.Reconnecting;
+    public bool IsFooterWarning => SelectedWorkspace?.StatusIsConnecting == true;
 
-    public bool IsFooterError => SelectedTerminal?.State == SessionState.Faulted;
+    public bool IsFooterError => SelectedWorkspace?.StatusIsDisconnected == true;
 
     public bool IsFooterIdle => !IsFooterConnected && !IsFooterWarning && !IsFooterError;
+
+    public string ActiveTabStatusText => IsFooterConnected ? "Selected tab connected"
+        : IsFooterWarning ? "Selected tab connecting"
+        : IsFooterError ? "Selected tab disconnected or failed"
+        : "No active connection";
 
     public string FooterSessionCountText => TerminalTabs.Count == 1
         ? "1 session"
@@ -154,7 +170,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
         ? "Logging On"
         : "Logging Off";
 
-    public bool CanStartConnection => !IsConnectionBusy;
+    public bool CanStartConnection => !_isShuttingDown;
 
     public bool IsConnectionBusy
     {
@@ -163,7 +179,6 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
         {
             if (SetProperty(ref _isConnectionBusy, value))
             {
-                OnPropertyChanged(nameof(CanStartConnection));
                 CancelConnectionCommand.NotifyCanExecuteChanged();
             }
         }
@@ -316,6 +331,37 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
         SelectedWorkspace = WorkspaceTabs[nextIndex];
     }
 
+    public bool CanMoveWorkspaceTab(
+        WorkspaceTabViewModel source, WorkspaceTabViewModel target, bool insertAfter)
+    {
+        int sourceIndex = WorkspaceTabs.IndexOf(source);
+        int targetIndex = WorkspaceTabs.IndexOf(target);
+        if (sourceIndex < 0 || targetIndex < 0)
+            return false;
+
+        int destination = targetIndex + (insertAfter ? 1 : 0);
+        if (sourceIndex < destination)
+            destination--;
+        return destination != sourceIndex;
+    }
+
+    public async Task<bool> MoveWorkspaceTabAsync(
+        WorkspaceTabViewModel source, WorkspaceTabViewModel target,
+        bool insertAfter, CancellationToken cancellationToken = default)
+    {
+        if (!CanMoveWorkspaceTab(source, target, insertAfter))
+            return false;
+
+        int sourceIndex = WorkspaceTabs.IndexOf(source);
+        int destination = WorkspaceTabs.IndexOf(target) + (insertAfter ? 1 : 0);
+        if (sourceIndex < destination)
+            destination--;
+        WorkspaceTabs.Move(sourceIndex, destination);
+        SelectedWorkspace = source;
+        await PersistWorkspaceAsync(cancellationToken);
+        return true;
+    }
+
     public Task CloseSelectedTerminalAsync()
     {
         return SelectedWorkspace?.ActivePane is { } pane
@@ -334,6 +380,9 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
 
     public async Task ShutdownAsync()
     {
+        _isShuttingDown = true;
+        foreach (CancellationTokenSource pending in _pendingConnections.Values)
+            pending.Cancel();
         _connectionCancellation?.Cancel();
         await PersistWorkspaceAsync(CancellationToken.None);
         try
@@ -361,6 +410,9 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
 
     public void Dispose()
     {
+        _isShuttingDown = true;
+        foreach (CancellationTokenSource pending in _pendingConnections.Values)
+            pending.Cancel();
         _connectionCancellation?.Cancel();
         _connectionCancellation?.Dispose();
         _connectionCancellation = null;
@@ -371,233 +423,329 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
         }
     }
 
-    public async Task OpenSshAsync(TerminalSessionRequest request)
+    public async Task OpenSshAsync(
+        TerminalSessionRequest request,
+        bool backspaceSendsControlH = false,
+        bool backspaceSendsDelete = false,
+        TerminalPaneViewModel? targetPane = null)
     {
         ArgumentNullException.ThrowIfNull(request);
-        if (request.ConnectionType != Core.Connections.ConnectionType.Ssh
-            || request.SshOptions is null)
-        {
+        if (request.ConnectionType != ConnectionType.Ssh || request.SshOptions is null)
             throw new ArgumentException("An SSH terminal request is required.", nameof(request));
-        }
 
-        if (IsConnectionBusy)
-        {
-            request.SshOptions.Dispose();
-            return;
-        }
-
-        ClearConnectionError();
-        IsSettingsVisible = false;
-        IsConnectionBusy = true;
-        _connectionCancellation = new CancellationTokenSource();
         SshConnectionOptions options = request.SshOptions;
-        StatusMessage = $"Verifying SSH host key for {options.Host}:{options.Port}…";
-        bool sessionOpened = false;
-
+        string target = $"{options.Host}:{options.Port}";
+        WorkspaceLaunchReference launch = new()
+        {
+            Kind = WorkspaceLaunchKind.TransientConnection,
+            DisplayName = request.DisplayName,
+            ConnectionType = request.ConnectionType,
+        };
+        TerminalPaneViewModel pane = StartConnectionPane(
+            launch, $"Verifying SSH host key for {target}...", targetPane);
+        CancellationTokenSource cancellation = _pendingConnections[pane];
+        bool attached = false;
         try
         {
-            ITerminalSession session = await _sessionManager.OpenAsync(
-                request,
-                _connectionCancellation.Token);
-            AddTerminal(session, new WorkspaceLaunchReference
+            ITerminalSession session = await _sessionManager.OpenAsync(request, cancellation.Token);
+            if (CanAttachConnection(pane, cancellation))
             {
-                Kind = WorkspaceLaunchKind.TransientConnection,
-                DisplayName = request.DisplayName,
-                ConnectionType = request.ConnectionType,
-            });
-            sessionOpened = true;
-            StatusMessage = $"Connected securely to {options.Host}:{options.Port}";
-        }
-        catch (TerminalConnectionException exception)
-        {
-            if (exception.FailureKind == TerminalConnectionFailureKind.Cancelled)
-            {
-                StatusMessage = "SSH connection cancelled";
+                AddTerminal(session, launch, pane, backspaceSendsControlH, backspaceSendsDelete,
+                    activate: false);
+                attached = true;
+                StatusMessage = $"Connected securely to {target}";
             }
             else
             {
-                ConnectionErrorMessage = exception.UserMessage;
-                ConnectionErrorTechnicalDetails = exception.TechnicalDetails;
-                StatusMessage = exception.UserMessage;
+                await _sessionManager.CloseAsync(session.Id, CancellationToken.None);
             }
-
-            LogSshOpenFailed(
-                _logger,
-                request.SessionId,
-                options.Host,
-                options.Port,
-                exception.FailureKind,
-                exception.GetType().Name);
+        }
+        catch (TerminalConnectionException exception)
+        {
+            string? message = exception.FailureKind == TerminalConnectionFailureKind.Cancelled
+                ? null : exception.UserMessage;
+            FinishConnectionError(pane, cancellation, message,
+                exception.TechnicalDetails, "SSH connection cancelled");
+            LogSshOpenFailed(_logger, request.SessionId, options.Host, options.Port,
+                exception.FailureKind, exception.GetType().Name);
+        }
+        catch (OperationCanceledException) when (cancellation.IsCancellationRequested)
+        {
+            FinishConnectionError(pane, cancellation, null, null, "SSH connection cancelled");
         }
         catch (Exception exception)
         {
-            ConnectionErrorMessage = $"SSH connection to {options.Host}:{options.Port} failed.";
-            ConnectionErrorTechnicalDetails = exception.GetType().Name;
-            StatusMessage = ConnectionErrorMessage;
-            LogSshOpenFailed(
-                _logger,
-                request.SessionId,
-                options.Host,
-                options.Port,
-                TerminalConnectionFailureKind.Unknown,
-                exception.GetType().Name);
+            FinishConnectionError(pane, cancellation,
+                $"SSH connection to {target} failed.", exception.GetType().Name,
+                "SSH connection cancelled");
+            LogSshOpenFailed(_logger, request.SessionId, options.Host, options.Port,
+                TerminalConnectionFailureKind.Unknown, exception.GetType().Name);
         }
         finally
         {
-            if (!sessionOpened)
-            {
+            if (!attached)
                 options.Dispose();
-            }
-
-            _connectionCancellation.Dispose();
-            _connectionCancellation = null;
-            IsConnectionBusy = false;
+            EndPendingConnection(pane, cancellation);
         }
     }
 
-    public async Task OpenRemoteAsync(TerminalSessionRequest request)
+    public async Task OpenRemoteAsync(
+        TerminalSessionRequest request,
+        bool backspaceSendsControlH = false,
+        bool backspaceSendsDelete = false,
+        TerminalPaneViewModel? targetPane = null)
     {
         ArgumentNullException.ThrowIfNull(request);
         if (request.ConnectionType == ConnectionType.Ssh)
         {
-            await OpenSshAsync(request);
+            await OpenSshAsync(request, backspaceSendsControlH, backspaceSendsDelete, targetPane);
             return;
         }
 
         if (request.ConnectionType == ConnectionType.LocalShell)
-        {
             throw new ArgumentException("A remote terminal request is required.", nameof(request));
-        }
-
-        if (IsConnectionBusy)
-        {
-            return;
-        }
 
         string target = GetSafeRemoteTarget(request);
-        ClearConnectionError();
-        IsSettingsVisible = false;
-        IsConnectionBusy = true;
-        _connectionCancellation = new CancellationTokenSource();
-        StatusMessage = $"Connecting to {target}…";
-
+        WorkspaceLaunchReference launch = new()
+        {
+            Kind = WorkspaceLaunchKind.TransientConnection,
+            DisplayName = request.DisplayName,
+            ConnectionType = request.ConnectionType,
+        };
+        TerminalPaneViewModel pane = StartConnectionPane(
+            launch, $"Connecting to {target}...", targetPane);
+        CancellationTokenSource cancellation = _pendingConnections[pane];
         try
         {
-            ITerminalSession session = await _sessionManager.OpenAsync(
-                request,
-                _connectionCancellation.Token);
-            AddTerminal(session, new WorkspaceLaunchReference
+            ITerminalSession session = await _sessionManager.OpenAsync(request, cancellation.Token);
+            if (CanAttachConnection(pane, cancellation))
             {
-                Kind = WorkspaceLaunchKind.TransientConnection,
-                DisplayName = request.DisplayName,
-                ConnectionType = request.ConnectionType,
-            });
-            StatusMessage = $"Connected to {target}";
-        }
-        catch (TerminalConnectionException exception)
-        {
-            if (exception.FailureKind == TerminalConnectionFailureKind.Cancelled)
-            {
-                StatusMessage = $"{request.ConnectionType} connection cancelled";
+                AddTerminal(session, launch, pane, backspaceSendsControlH, backspaceSendsDelete,
+                    activate: false);
+                StatusMessage = $"Connected to {target}";
             }
             else
             {
-                ConnectionErrorMessage = exception.UserMessage;
-                ConnectionErrorTechnicalDetails = exception.TechnicalDetails;
-                StatusMessage = exception.UserMessage;
+                await _sessionManager.CloseAsync(session.Id, CancellationToken.None);
             }
-
-            LogRemoteOpenFailed(
-                _logger,
-                request.SessionId,
-                request.ConnectionType,
-                target,
-                exception.FailureKind,
-                exception.GetType().Name);
+        }
+        catch (TerminalConnectionException exception)
+        {
+            FinishConnectionError(pane, cancellation,
+                exception.FailureKind == TerminalConnectionFailureKind.Cancelled
+                    ? null : exception.UserMessage,
+                exception.TechnicalDetails,
+                $"{request.ConnectionType} connection cancelled");
+            LogRemoteOpenFailed(_logger, request.SessionId, request.ConnectionType, target,
+                exception.FailureKind, exception.GetType().Name);
+        }
+        catch (OperationCanceledException) when (cancellation.IsCancellationRequested)
+        {
+            FinishConnectionError(pane, cancellation, null, null,
+                $"{request.ConnectionType} connection cancelled");
         }
         catch (Exception exception)
         {
-            ConnectionErrorMessage = $"{request.ConnectionType} connection to {target} failed.";
-            ConnectionErrorTechnicalDetails = exception.GetType().Name;
-            StatusMessage = ConnectionErrorMessage;
-            LogRemoteOpenFailed(
-                _logger,
-                request.SessionId,
-                request.ConnectionType,
-                target,
-                TerminalConnectionFailureKind.Unknown,
-                exception.GetType().Name);
+            FinishConnectionError(pane, cancellation,
+                $"{request.ConnectionType} connection to {target} failed.",
+                exception.GetType().Name, $"{request.ConnectionType} connection cancelled");
+            LogRemoteOpenFailed(_logger, request.SessionId, request.ConnectionType, target,
+                TerminalConnectionFailureKind.Unknown, exception.GetType().Name);
         }
         finally
         {
-            _connectionCancellation.Dispose();
-            _connectionCancellation = null;
-            IsConnectionBusy = false;
+            EndPendingConnection(pane, cancellation);
         }
     }
 
-    public async Task OpenSelectedSavedDeviceAsync()
+    public Task OpenSelectedSavedDeviceAsync()
     {
         DeviceProfile? device = DeviceExplorer.SelectedDevice;
-        if (device is null || IsConnectionBusy)
+        return device?.WebAccess?.DefaultAction == DeviceOpenAction.Web
+            ? OpenSelectedWebInterfaceAsync()
+            : OpenSelectedSavedTerminalAsync();
+    }
+
+    public Task OpenSelectedSavedTerminalAsync()
+    {
+        return DeviceExplorer.SelectedDevice is { AccessMode: not DeviceAccessMode.WebOnly } device
+            ? OpenSavedDeviceAsync(device.Id, device.Name, connectionType: device.ConnectionType,
+                environment: device.Environment)
+            : Task.CompletedTask;
+    }
+
+    public Task OpenSelectedWebInterfaceAsync()
+    {
+        if (DeviceExplorer.SelectedDevice is not { WebAccess: { } webAccess } device)
+            return Task.CompletedTask;
+
+        try
         {
-            return;
+            if (_deviceWebAccessService is null)
+                throw new InvalidOperationException("Web browser integration is unavailable.");
+            _deviceWebAccessService.Open(webAccess);
+            ClearConnectionError();
+            StatusMessage = $"Opened {device.Name} in a web browser";
+            CloseDeviceExplorerUnlessPinned();
+        }
+        catch (Exception exception) when (exception is System.ComponentModel.Win32Exception
+            or InvalidOperationException or System.IO.FileNotFoundException)
+        {
+            ConnectionErrorMessage = $"Could not open the web interface for {device.Name}. Check the browser setting.";
+            ConnectionErrorTechnicalDetails = exception.GetType().Name;
+            StatusMessage = ConnectionErrorMessage;
         }
 
-        ClearConnectionError();
-        IsSettingsVisible = false;
-        IsConnectionBusy = true;
-        _connectionCancellation = new CancellationTokenSource();
-        StatusMessage = $"Connecting to saved device {device.Name}…";
+        return Task.CompletedTask;
+    }
+
+    private async Task OpenSavedDeviceAsync(
+        Guid deviceId, string displayName, TerminalPaneViewModel? targetPane = null,
+        ConnectionType connectionType = ConnectionType.Ssh,
+        DeviceEnvironment environment = DeviceEnvironment.Unknown)
+    {
+        WorkspaceLaunchReference launch = new()
+        {
+            Kind = WorkspaceLaunchKind.SavedDevice,
+            DisplayName = displayName,
+            DeviceId = deviceId,
+            ConnectionType = connectionType,
+            Environment = environment,
+        };
+        TerminalPaneViewModel pane = StartConnectionPane(
+            launch, $"Connecting to saved device {displayName}...", targetPane);
+        CancellationTokenSource cancellation = _pendingConnections[pane];
         try
         {
             SavedDeviceSessionResult result = await _savedDeviceSessionService
-                .OpenAsync(device.Id, _connectionCancellation.Token);
-            AddTerminal(result.Session, new WorkspaceLaunchReference
+                .OpenAsync(deviceId, cancellation.Token);
+            WorkspaceLaunchReference connectedLaunch = launch with
             {
-                Kind = WorkspaceLaunchKind.SavedDevice,
                 DisplayName = result.Device.Name,
                 ConnectionType = result.Device.ConnectionType,
-                DeviceId = result.Device.Id,
                 Environment = result.Device.Environment,
-            });
-            StatusMessage = result.Device.ConnectionType == ConnectionType.Ssh
-                ? $"Connected securely to {result.Device.Name}"
-                : $"Connected to {result.Device.Name} via {result.Device.ConnectionType}";
-            await DeviceExplorer.RefreshAsync();
-        }
-        catch (SavedDeviceConnectionException exception)
-        {
-            ConnectionErrorMessage = exception.Message;
-            ConnectionErrorTechnicalDetails = exception.GetType().Name;
-            StatusMessage = exception.Message;
-        }
-        catch (TerminalConnectionException exception)
-        {
-            if (exception.FailureKind == TerminalConnectionFailureKind.Cancelled)
+            };
+            if (CanAttachConnection(pane, cancellation))
             {
-                StatusMessage = "Saved-device connection cancelled";
+                AddTerminal(result.Session, connectedLaunch, pane,
+                    result.Device.Connection.BackspaceSendsControlH,
+                    result.Device.Connection.BackspaceSendsDelete, activate: false);
+                StatusMessage = result.Device.ConnectionType == ConnectionType.Ssh
+                    ? $"Connected securely to {result.Device.Name}"
+                    : $"Connected to {result.Device.Name} via {result.Device.ConnectionType}";
+                await DeviceExplorer.RefreshAsync();
+                CloseDeviceExplorerUnlessPinned();
             }
             else
             {
-                ConnectionErrorMessage = exception.UserMessage;
-                ConnectionErrorTechnicalDetails = exception.TechnicalDetails;
-                StatusMessage = exception.UserMessage;
+                await _sessionManager.CloseAsync(result.Session.Id, CancellationToken.None);
             }
+        }
+        catch (SavedDeviceConnectionException exception)
+        {
+            FinishConnectionError(pane, cancellation, exception.Message,
+                exception.GetType().Name, "Saved-device connection cancelled");
+        }
+        catch (TerminalConnectionException exception)
+        {
+            FinishConnectionError(pane, cancellation,
+                exception.FailureKind == TerminalConnectionFailureKind.Cancelled
+                    ? null : exception.UserMessage,
+                exception.TechnicalDetails, "Saved-device connection cancelled");
+        }
+        catch (OperationCanceledException) when (cancellation.IsCancellationRequested)
+        {
+            FinishConnectionError(pane, cancellation, null, null,
+                "Saved-device connection cancelled");
         }
         catch (Exception exception)
         {
-            ConnectionErrorMessage = $"Connection to saved device {device.Name} failed.";
-            ConnectionErrorTechnicalDetails = exception.GetType().Name;
-            StatusMessage = ConnectionErrorMessage;
-            LogSavedDeviceOpenFailed(_logger, device.Id, exception.GetType().Name);
+            FinishConnectionError(pane, cancellation,
+                $"Connection to saved device {displayName} failed.",
+                exception.GetType().Name, "Saved-device connection cancelled");
+            LogSavedDeviceOpenFailed(_logger, deviceId, exception.GetType().Name);
         }
         finally
         {
-            _connectionCancellation.Dispose();
-            _connectionCancellation = null;
-            IsConnectionBusy = false;
+            EndPendingConnection(pane, cancellation);
         }
+    }
+
+    private TerminalPaneViewModel StartConnectionPane(
+        WorkspaceLaunchReference launch, string status, TerminalPaneViewModel? targetPane)
+    {
+        if (targetPane is not null && _pendingConnections.ContainsKey(targetPane))
+            throw new InvalidOperationException("This pane is already connecting.");
+
+        ClearConnectionError();
+        IsSettingsVisible = false;
+        TerminalPaneViewModel pane = targetPane ?? new TerminalPaneViewModel(Guid.NewGuid());
+        if (targetPane is null)
+        {
+            var workspace = new WorkspaceTabViewModel(Guid.NewGuid(), pane, pane);
+            WorkspaceTabs.Add(workspace);
+            SelectedWorkspace = workspace;
+            NotifyTerminalCollectionChanged();
+        }
+        else
+        {
+            ActivatePane(pane);
+        }
+
+        pane.BeginConnection(launch, status);
+        FindWorkspace(pane).NotifyActiveContentChanged();
+        _pendingConnections.Add(pane, new CancellationTokenSource());
+        IsConnectionBusy = true;
+        StatusMessage = status;
+        return pane;
+    }
+
+    private bool CanAttachConnection(TerminalPaneViewModel pane, CancellationTokenSource cancellation)
+    {
+        return !_isShuttingDown && !cancellation.IsCancellationRequested
+            && _pendingConnections.TryGetValue(pane, out CancellationTokenSource? current)
+            && ReferenceEquals(current, cancellation)
+            && WorkspaceTabs.Any(tab => tab.Panes.Contains(pane));
+    }
+
+    private void FinishConnectionError(
+        TerminalPaneViewModel pane, CancellationTokenSource cancellation,
+        string? message, string? details, string cancellationMessage)
+    {
+        if (_isShuttingDown
+            || !_pendingConnections.TryGetValue(pane, out CancellationTokenSource? current)
+            || !ReferenceEquals(current, cancellation)
+            || !WorkspaceTabs.Any(tab => tab.Panes.Contains(pane)))
+            return;
+        bool cancelled = cancellation.IsCancellationRequested;
+        string display = cancelled ? cancellationMessage : message ?? cancellationMessage;
+        pane.EndConnection(display);
+        ConnectionErrorMessage = cancelled ? null : message;
+        ConnectionErrorTechnicalDetails = cancelled ? null : details;
+        StatusMessage = display;
+    }
+
+    private void EndPendingConnection(TerminalPaneViewModel pane, CancellationTokenSource cancellation)
+    {
+        if (_pendingConnections.TryGetValue(pane, out CancellationTokenSource? current)
+            && ReferenceEquals(current, cancellation))
+            _pendingConnections.Remove(pane);
+        cancellation.Dispose();
+        IsConnectionBusy = _pendingConnections.Count > 0;
+    }
+
+    public void CancelPaneConnection(TerminalPaneViewModel pane)
+    {
+        if (_pendingConnections.TryGetValue(pane, out CancellationTokenSource? cancellation))
+            cancellation.Cancel();
+    }
+
+    public Task RetrySavedPaneAsync(TerminalPaneViewModel pane)
+    {
+        return pane.Launch is { Kind: WorkspaceLaunchKind.SavedDevice, DeviceId: { } id } launch
+            ? OpenSavedDeviceAsync(id, launch.DisplayName, pane, launch.ConnectionType,
+                launch.Environment)
+            : Task.CompletedTask;
     }
 
     private async Task ToggleSidebarAsync()
@@ -636,6 +784,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
                 ShellKind = shellKind,
             });
             StatusMessage = $"{displayName} is running locally";
+            CloseDeviceExplorerUnlessPinned();
         }
         catch (Exception exception)
         {
@@ -647,13 +796,18 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
     private void AddTerminal(
         ITerminalSession session,
         WorkspaceLaunchReference launch,
-        TerminalPaneViewModel? targetPane = null)
+        TerminalPaneViewModel? targetPane = null,
+        bool backspaceSendsControlH = false,
+        bool backspaceSendsDelete = false,
+        bool activate = true)
     {
         var terminal = new TerminalTabViewModel(
             session,
             CloseTerminalAsync,
             launch.Environment,
-            _sessionLogService);
+            _sessionLogService,
+            backspaceSendsControlH,
+            backspaceSendsDelete);
         terminal.SetFontSize(TerminalFontSize);
         TerminalTabs.Add(terminal);
         targetPane ??= SelectedWorkspace?.ActivePane is { IsEmpty: true } emptyPane
@@ -666,22 +820,27 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
             WorkspaceTabs.Add(workspace);
             SelectedWorkspace = workspace;
         }
-        else
-        {
-            SelectedWorkspace = FindWorkspace(targetPane);
-        }
 
         targetPane.Attach(terminal, launch);
-        SelectedWorkspace?.Activate(targetPane);
-        SelectedWorkspace?.NotifyActiveContentChanged();
-        SelectedTerminal = terminal;
+        WorkspaceTabViewModel attachedWorkspace = FindWorkspace(targetPane);
+        if (activate)
+        {
+            SelectedWorkspace = attachedWorkspace;
+            attachedWorkspace.Activate(targetPane);
+        }
+        attachedWorkspace.NotifyActiveContentChanged();
+        if (ReferenceEquals(SelectedWorkspace?.ActivePane, targetPane))
+            SelectedTerminal = terminal;
         NotifyTerminalCollectionChanged();
         _ = PersistWorkspaceAsync(CancellationToken.None);
     }
 
     private void CancelPendingConnection()
     {
-        _connectionCancellation?.Cancel();
+        if (SelectedWorkspace?.ActivePane is { IsConnecting: true } pane)
+            CancelPaneConnection(pane);
+        else
+            _connectionCancellation?.Cancel();
     }
 
     private void ClearConnectionError()
@@ -729,6 +888,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
     public async Task ClosePaneAsync(TerminalPaneViewModel pane)
     {
         WorkspaceTabViewModel workspace = FindWorkspace(pane);
+        CancelPaneConnection(pane);
         TerminalTabViewModel? terminal = pane.Terminal;
         if (terminal is not null)
         {
@@ -785,7 +945,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
                 ITerminalSession session = await _sessionManager.OpenAsync(
                     new TerminalSessionRequest(Guid.NewGuid(), launch.DisplayName, shellKind),
                     CancellationToken.None);
-                AddTerminal(session, launch, pane);
+                AddTerminal(session, launch, pane, activate: false);
                 StatusMessage = $"{launch.DisplayName} restored";
             }
             catch (Exception exception)
@@ -796,36 +956,8 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
         }
         else if (launch.Kind == WorkspaceLaunchKind.SavedDevice && launch.DeviceId is { } deviceId)
         {
-            IsConnectionBusy = true;
-            _connectionCancellation = new CancellationTokenSource();
-            try
-            {
-                SavedDeviceSessionResult result = await _savedDeviceSessionService
-                    .OpenAsync(deviceId, _connectionCancellation.Token);
-                AddTerminal(result.Session, launch with
-                {
-                    DisplayName = result.Device.Name,
-                    ConnectionType = result.Device.ConnectionType,
-                    Environment = result.Device.Environment,
-                }, pane);
-                StatusMessage = result.Device.ConnectionType == ConnectionType.Ssh
-                    ? $"Connected securely to {result.Device.Name}"
-                    : $"Connected to {result.Device.Name} via {result.Device.ConnectionType}";
-            }
-            catch (Exception exception)
-            {
-                ConnectionErrorMessage = exception is TerminalConnectionException terminalException
-                    ? terminalException.UserMessage
-                    : "The saved device could not be reconnected.";
-                ConnectionErrorTechnicalDetails = exception.GetType().Name;
-                StatusMessage = ConnectionErrorMessage;
-            }
-            finally
-            {
-                _connectionCancellation.Dispose();
-                _connectionCancellation = null;
-                IsConnectionBusy = false;
-            }
+            await OpenSavedDeviceAsync(deviceId, launch.DisplayName, pane,
+                launch.ConnectionType, launch.Environment);
         }
     }
 
@@ -949,6 +1081,18 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
         NotifyFooterChanged();
     }
 
+    private void SelectedWorkspace_OnPropertyChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName == nameof(WorkspaceTabViewModel.ActivePane))
+            SelectedTerminal = SelectedWorkspace?.ActivePane.Terminal;
+        if (e.PropertyName is nameof(WorkspaceTabViewModel.ActivePane)
+            or nameof(WorkspaceTabViewModel.StatusIsConnected)
+            or nameof(WorkspaceTabViewModel.StatusIsConnecting)
+            or nameof(WorkspaceTabViewModel.StatusIsDisconnected)
+            or nameof(WorkspaceTabViewModel.StatusIsIdle))
+            NotifyFooterChanged();
+    }
+
     private void SelectedTerminal_OnPropertyChanged(object? sender, PropertyChangedEventArgs e)
     {
         if (e.PropertyName is nameof(TerminalTabViewModel.State)
@@ -965,6 +1109,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
         OnPropertyChanged(nameof(IsFooterWarning));
         OnPropertyChanged(nameof(IsFooterError));
         OnPropertyChanged(nameof(IsFooterIdle));
+        OnPropertyChanged(nameof(ActiveTabStatusText));
         OnPropertyChanged(nameof(FooterSessionCountText));
         OnPropertyChanged(nameof(FooterConnectionText));
         OnPropertyChanged(nameof(FooterLoggingText));

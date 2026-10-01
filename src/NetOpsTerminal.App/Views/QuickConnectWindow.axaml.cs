@@ -9,6 +9,10 @@ public sealed partial class QuickConnectWindow : ThemedWindow
 {
     private readonly ISerialPortCatalog? _serialPortCatalog;
 
+    public bool BackspaceSendsControlH => BackspaceKeyComboBox.SelectedIndex == 1;
+
+    public bool BackspaceSendsDelete => BackspaceKeyComboBox.SelectedIndex == 2;
+
     public QuickConnectWindow()
         : this(null)
     {
@@ -97,18 +101,13 @@ public sealed partial class QuickConnectWindow : ThemedWindow
 
     private TerminalSessionRequest CreateSshRequest()
     {
-        if (!int.TryParse(SshPortTextBox.Text, out int port))
-        {
-            throw new ArgumentException("SSH port must be a number between 1 and 65535.");
-        }
-
         EphemeralSecret? password = null;
         try
         {
             password = EphemeralSecret.Create(SshPasswordTextBox.Text ?? string.Empty);
             var options = new SshConnectionOptions(
                 SshHostTextBox.Text ?? string.Empty,
-                port,
+                22,
                 SshUsernameTextBox.Text ?? string.Empty,
                 password,
                 ReadTimeout(SshTimeoutComboBox, SshConnectionOptions.DefaultConnectTimeoutSeconds));
@@ -131,14 +130,9 @@ public sealed partial class QuickConnectWindow : ThemedWindow
             throw new ArgumentException("Acknowledge that Telnet sends all data without encryption before connecting.");
         }
 
-        if (!int.TryParse(TelnetPortTextBox.Text, out int port))
-        {
-            throw new ArgumentException("Telnet port must be a number between 1 and 65535.");
-        }
-
         var options = new TelnetConnectionOptions(
             TelnetHostTextBox.Text ?? string.Empty,
-            port,
+            23,
             TelnetTerminalTypeTextBox.Text ?? string.Empty,
             ReadEncoding(TelnetEncodingComboBox),
             ReadTimeout(TelnetTimeoutComboBox, TelnetConnectionOptions.DefaultConnectTimeoutSeconds));

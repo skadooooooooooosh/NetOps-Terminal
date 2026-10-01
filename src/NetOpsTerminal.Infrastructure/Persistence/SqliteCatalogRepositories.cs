@@ -43,6 +43,20 @@ public sealed class SqliteSiteRepository(SqliteConnectionFactory connectionFacto
 
         return new Site(Guid.Parse(reader.GetString(0)), reader.GetString(1));
     }
+    public async Task DeleteEmptyAsync(Guid id, CancellationToken cancellationToken)
+    {
+        await using SqliteConnection connection = await connectionFactory.OpenAsync(cancellationToken).ConfigureAwait(false);
+        await using SqliteCommand command = connection.CreateCommand();
+        command.CommandText = """
+            DELETE FROM Sites
+            WHERE Id = @id
+              AND NOT EXISTS (SELECT 1 FROM Devices WHERE SiteId = @id)
+              AND NOT EXISTS (SELECT 1 FROM DeviceGroups WHERE SiteId = @id);
+            """;
+        command.Parameters.AddWithValue("@id", id.ToString("D"));
+        if (await command.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false) != 1)
+            throw new InvalidOperationException("Move devices and folders out of this site before deleting it.");
+    }
 }
 
 public sealed class SqliteDeviceGroupRepository(SqliteConnectionFactory connectionFactory)
@@ -52,7 +66,7 @@ public sealed class SqliteDeviceGroupRepository(SqliteConnectionFactory connecti
     {
         await using SqliteConnection connection = await connectionFactory.OpenAsync(cancellationToken).ConfigureAwait(false);
         await using SqliteCommand command = connection.CreateCommand();
-        command.CommandText = "SELECT Id, Name, SiteId FROM DeviceGroups ORDER BY Name COLLATE NOCASE;";
+        command.CommandText = "SELECT Id, Name, SiteId, ParentGroupId FROM DeviceGroups ORDER BY Name COLLATE NOCASE;";
         await using SqliteDataReader reader = await command.ExecuteReaderAsync(cancellationToken).ConfigureAwait(false);
         var groups = new List<DeviceGroup>();
         while (await reader.ReadAsync(cancellationToken).ConfigureAwait(false))
@@ -60,31 +74,45 @@ public sealed class SqliteDeviceGroupRepository(SqliteConnectionFactory connecti
             groups.Add(new DeviceGroup(
                 Guid.Parse(reader.GetString(0)),
                 reader.GetString(1),
-                SqliteMapping.ReadNullableGuid(reader, 2)));
+                SqliteMapping.ReadNullableGuid(reader, 2),
+                SqliteMapping.ReadNullableGuid(reader, 3)));
         }
 
         return groups;
     }
 
-    public async Task<DeviceGroup> GetOrCreateAsync(
+    public Task<DeviceGroup> GetOrCreateAsync(
         string name,
         Guid? siteId,
         CancellationToken cancellationToken)
     {
-        var candidate = new DeviceGroup(Guid.NewGuid(), name, siteId);
+        return GetOrCreateCoreAsync(name, siteId, null, cancellationToken);
+    }
+
+    public Task<DeviceGroup> GetOrCreateChildAsync(
+        string name, Guid? siteId, Guid parentGroupId, CancellationToken cancellationToken)
+        => GetOrCreateCoreAsync(name, siteId, parentGroupId, cancellationToken);
+
+    private async Task<DeviceGroup> GetOrCreateCoreAsync(
+        string name, Guid? siteId, Guid? parentGroupId, CancellationToken cancellationToken)
+    {
+        var candidate = new DeviceGroup(Guid.NewGuid(), name, siteId, parentGroupId);
         await using SqliteConnection connection = await connectionFactory.OpenAsync(cancellationToken).ConfigureAwait(false);
         await using SqliteCommand command = connection.CreateCommand();
         command.CommandText = """
-            INSERT INTO DeviceGroups (Id, Name, SiteId) VALUES (@id, @name, @siteId)
+            INSERT INTO DeviceGroups (Id, Name, SiteId, ParentGroupId)
+            VALUES (@id, @name, @siteId, @parentId)
             ON CONFLICT DO NOTHING;
-            SELECT Id, Name, SiteId
+            SELECT Id, Name, SiteId, ParentGroupId
             FROM DeviceGroups
             WHERE Name = @name COLLATE NOCASE
-              AND ((SiteId IS NULL AND @siteId IS NULL) OR SiteId = @siteId);
+              AND ((SiteId IS NULL AND @siteId IS NULL) OR SiteId = @siteId)
+              AND ((ParentGroupId IS NULL AND @parentId IS NULL) OR ParentGroupId = @parentId);
             """;
         command.Parameters.AddWithValue("@id", candidate.Id.ToString("D"));
         command.Parameters.AddWithValue("@name", candidate.Name);
         command.Parameters.AddWithValue("@siteId", (object?)siteId?.ToString("D") ?? DBNull.Value);
+        command.Parameters.AddWithValue("@parentId", (object?)parentGroupId?.ToString("D") ?? DBNull.Value);
         await using SqliteDataReader reader = await command.ExecuteReaderAsync(cancellationToken).ConfigureAwait(false);
         if (!await reader.ReadAsync(cancellationToken).ConfigureAwait(false))
         {
@@ -94,7 +122,22 @@ public sealed class SqliteDeviceGroupRepository(SqliteConnectionFactory connecti
         return new DeviceGroup(
             Guid.Parse(reader.GetString(0)),
             reader.GetString(1),
-            SqliteMapping.ReadNullableGuid(reader, 2));
+            SqliteMapping.ReadNullableGuid(reader, 2),
+            SqliteMapping.ReadNullableGuid(reader, 3));
+    }
+    public async Task DeleteEmptyAsync(Guid id, CancellationToken cancellationToken)
+    {
+        await using SqliteConnection connection = await connectionFactory.OpenAsync(cancellationToken).ConfigureAwait(false);
+        await using SqliteCommand command = connection.CreateCommand();
+        command.CommandText = """
+            DELETE FROM DeviceGroups
+            WHERE Id = @id
+              AND NOT EXISTS (SELECT 1 FROM Devices WHERE GroupId = @id)
+              AND NOT EXISTS (SELECT 1 FROM DeviceGroups WHERE ParentGroupId = @id);
+            """;
+        command.Parameters.AddWithValue("@id", id.ToString("D"));
+        if (await command.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false) != 1)
+            throw new InvalidOperationException("Move devices and nested folders out before deleting this folder.");
     }
 }
 

@@ -1,7 +1,7 @@
 [CmdletBinding()]
 param(
     [ValidatePattern('^\d+\.\d+\.\d+(-[0-9A-Za-z.-]+)?$')]
-    [string]$Version = '1.0.0-rc.2',
+    [string]$Version = '1.1.0',
 
     [switch]$SkipTests
 )
@@ -52,10 +52,10 @@ foreach ($existingPackage in @($zipPath, $hashPath)) {
 
 Push-Location $repositoryRoot
 try {
-    Invoke-DotNet @('restore', 'NetOpsTerminal.sln', '--runtime', 'win-x64', '-p:PublishReadyToRun=true')
-    Invoke-DotNet @('build', 'NetOpsTerminal.sln', '-c', 'Release', '--no-restore')
+    Invoke-DotNet @('restore', 'NetOpsTerminal.sln', '--runtime', 'win-x64', '-p:PublishReadyToRun=true', '-p:BaseOutputPath=bin/ReleasePackaging/')
+    Invoke-DotNet @('build', 'NetOpsTerminal.sln', '-c', 'Release', '--no-restore', '-p:BaseOutputPath=bin/ReleasePackaging/')
     if (-not $SkipTests) {
-        Invoke-DotNet @('test', 'NetOpsTerminal.sln', '-c', 'Release', '--no-build')
+        Invoke-DotNet @('test', 'NetOpsTerminal.sln', '-c', 'Release', '--no-build', '-p:BaseOutputPath=bin/ReleasePackaging/')
     }
 
     Invoke-DotNet @(
@@ -77,11 +77,11 @@ try {
     $documentationRoot = Join-Path $publishRoot 'documentation'
     New-Item -ItemType Directory -Path $documentationRoot -Force | Out-Null
     Copy-Item -LiteralPath 'README.md','SECURITY.md','THIRD_PARTY_NOTICES.md' -Destination $documentationRoot
-    if ($Version -eq '1.0.0') {
-        Copy-Item -LiteralPath 'docs\USER_AGREEMENT.md' -Destination $documentationRoot
-    }
+    Copy-Item -LiteralPath 'docs\USER_AGREEMENT.md' -Destination $documentationRoot
     $releaseGuide = if ($Version -eq '1.0.0') {
         'docs\RELEASE_V1.md'
+    } elseif ($Version -eq '1.1.0') {
+        'docs\RELEASE_V1_1.md'
     } else {
         'docs\RELEASE_CANDIDATE.md'
     }

@@ -28,6 +28,9 @@ public sealed partial class SavedDeviceSessionService(
             .GetAsync(deviceId, cancellationToken)
             .ConfigureAwait(false)
             ?? throw new SavedDeviceConnectionException("The saved device no longer exists.");
+        if (device.AccessMode == DeviceAccessMode.WebOnly)
+            throw new SavedDeviceConnectionException("This device opens in a web browser. Select Open web interface.");
+
         TerminalSessionRequest request;
         SshConnectionOptions? sshOptions = null;
         EphemeralSecret? secret = null;

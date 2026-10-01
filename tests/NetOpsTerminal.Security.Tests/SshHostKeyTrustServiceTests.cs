@@ -43,6 +43,7 @@ public sealed class SshHostKeyTrustServiceTests
     [InlineData(SshHostKeyPromptDecision.TrustOnce, SshHostKeyVerificationResult.Trusted, 0)]
     [InlineData(SshHostKeyPromptDecision.TrustAndSave, SshHostKeyVerificationResult.Trusted, 1)]
     [InlineData(SshHostKeyPromptDecision.Cancel, SshHostKeyVerificationResult.Rejected, 0)]
+    [InlineData(SshHostKeyPromptDecision.ReplaceAndSave, SshHostKeyVerificationResult.Rejected, 0)]
     public async Task UnknownKeyRequiresExplicitDecision(
         SshHostKeyPromptDecision decision,
         SshHostKeyVerificationResult expectedResult,
@@ -79,7 +80,28 @@ public sealed class SshHostKeyTrustServiceTests
         Assert.Equal(1, prompt.ChangedPromptCount);
         Assert.Equal(0, prompt.UnknownPromptCount);
         Assert.Equal(0, store.SaveCount);
+        Assert.Equal(0, store.ReplaceCount);
         Assert.Same(existingKey, prompt.TrustedKey);
+    }
+
+    [Fact]
+    public async Task ChangedKeyIsReplacedOnlyAfterExplicitDecision()
+    {
+        SshHostKey existingKey = CreateKey([9, 8, 7, 6]);
+        var store = new RecordingKnownHostsStore(KnownHostKeyStatus.Changed, existingKey);
+        var prompt = new RecordingPrompt
+        {
+            ChangedDecision = SshHostKeyPromptDecision.ReplaceAndSave,
+        };
+        var service = new SshHostKeyTrustService(store, prompt);
+
+        SshHostKeyVerificationResult result = await service.VerifyAsync(
+            Endpoint, PresentedKey, CancellationToken.None);
+
+        Assert.Equal(SshHostKeyVerificationResult.Trusted, result);
+        Assert.Equal(1, prompt.ChangedPromptCount);
+        Assert.Equal(1, store.ReplaceCount);
+        Assert.Equal(0, store.SaveCount);
     }
 
     [Fact]
@@ -109,6 +131,7 @@ public sealed class SshHostKeyTrustServiceTests
         SshHostKey? existingKey = null) : IKnownHostsStore
     {
         public int SaveCount { get; private set; }
+        public int ReplaceCount { get; private set; }
 
         public int TrustedKeyReadCount { get; private set; }
 
@@ -139,6 +162,15 @@ public sealed class SshHostKeyTrustServiceTests
             SaveCount++;
             return Task.CompletedTask;
         }
+
+        public Task ReplaceTrustedKeyAsync(
+            SshHostEndpoint endpoint, SshHostKey expectedKey,
+            SshHostKey replacementKey, CancellationToken cancellationToken)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            ReplaceCount++;
+            return Task.CompletedTask;
+        }
     }
 
     private sealed class RecordingPrompt : ISshHostKeyPrompt
@@ -147,6 +179,9 @@ public sealed class SshHostKeyTrustServiceTests
             = SshHostKeyPromptDecision.Cancel;
 
         public int UnknownPromptCount { get; private set; }
+
+        public SshHostKeyPromptDecision ChangedDecision { get; init; }
+            = SshHostKeyPromptDecision.Cancel;
 
         public int ChangedPromptCount { get; private set; }
 
@@ -162,7 +197,7 @@ public sealed class SshHostKeyTrustServiceTests
             return Task.FromResult(UnknownDecision);
         }
 
-        public Task ShowChangedAsync(
+        public Task<SshHostKeyPromptDecision> PromptChangedAsync(
             SshHostEndpoint endpoint,
             SshHostKey? trustedKey,
             SshHostKey presentedKey,
@@ -171,7 +206,7 @@ public sealed class SshHostKeyTrustServiceTests
             cancellationToken.ThrowIfCancellationRequested();
             ChangedPromptCount++;
             TrustedKey = trustedKey;
-            return Task.CompletedTask;
+            return Task.FromResult(ChangedDecision);
         }
     }
 }

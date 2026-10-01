@@ -261,6 +261,7 @@ internal sealed partial class RoyalSshTerminalSession : ITerminalSession, IRoyal
         cancellationToken.ThrowIfCancellationRequested();
         SetState(connectingState);
         long connectionStarted = Stopwatch.GetTimestamp();
+        string connectionStage = "trusted-host-key lookup";
         try
         {
             var endpoint = new SshHostEndpoint(_options.Host, _options.Port);
@@ -279,6 +280,7 @@ internal sealed partial class RoyalSshTerminalSession : ITerminalSession, IRoyal
 
             if (presentedKey is null)
             {
+                connectionStage = "host-key probe";
                 long probeStarted = Stopwatch.GetTimestamp();
                 presentedKey = await _hostKeyProbe
                     .ProbeAsync(_options, cancellationToken)
@@ -313,8 +315,11 @@ internal sealed partial class RoyalSshTerminalSession : ITerminalSession, IRoyal
                 }
             }
 
+            connectionStage = "SSH login and terminal startup";
             long transportStarted = Stopwatch.GetTimestamp();
-            await InvokeOnUiThreadAsync(
+            try
+            {
+                await InvokeOnUiThreadAsync(
                 async () =>
                 {
                     if (_control is null)
@@ -339,6 +344,31 @@ internal sealed partial class RoyalSshTerminalSession : ITerminalSession, IRoyal
                     }
                 },
                 cancellationToken).ConfigureAwait(false);
+            }
+            catch (TerminalConnectionException exception)
+                when (exception.FailureKind == TerminalConnectionFailureKind.HostKeyChanged)
+            {
+                connectionStage = "changed host-key probe";
+                SshHostKey replacementKey = await _hostKeyProbe
+                    .ProbeAsync(_options, cancellationToken).ConfigureAwait(false);
+                if (replacementKey.FingerprintSha256 == presentedKey.FingerprintSha256)
+                {
+                    throw;
+                }
+
+                SshHostKeyVerificationResult verification = await _hostKeyTrustService
+                    .VerifyAsync(endpoint, replacementKey, cancellationToken)
+                    .ConfigureAwait(false);
+                if (verification == SshHostKeyVerificationResult.Trusted)
+                {
+                    throw new TerminalConnectionException(
+                        TerminalConnectionFailureKind.HostKeyChanged,
+                        "The new SSH host key was saved. Connect again to open a session.",
+                        "Replacement host key explicitly verified and saved; no login was attempted.");
+                }
+
+                throw;
+            }
             if (_logger.IsEnabled(LogLevel.Information))
             {
                 double elapsedMilliseconds = Stopwatch.GetElapsedTime(transportStarted).TotalMilliseconds;
@@ -353,7 +383,7 @@ internal sealed partial class RoyalSshTerminalSession : ITerminalSession, IRoyal
         }
         catch (Exception exception)
         {
-            TerminalConnectionException mapped = MapConnectionException(exception);
+            TerminalConnectionException mapped = MapConnectionException(exception, connectionStage);
             SetState(mapped.FailureKind == TerminalConnectionFailureKind.Cancelled
                 ? SessionState.Disconnected
                 : SessionState.Faulted);
@@ -421,7 +451,7 @@ internal sealed partial class RoyalSshTerminalSession : ITerminalSession, IRoyal
         };
     }
 
-    private TerminalConnectionException MapConnectionException(Exception exception)
+    private TerminalConnectionException MapConnectionException(Exception exception, string connectionStage = "disconnect")
     {
         if (exception is TerminalConnectionException terminalException)
         {
@@ -480,10 +510,23 @@ internal sealed partial class RoyalSshTerminalSession : ITerminalSession, IRoyal
                 exception);
         }
 
+        if (exception is SshConnectionException sshException)
+        {
+            string category = sshException.Message.Contains("key exchange", StringComparison.OrdinalIgnoreCase)
+                || sshException.Message.Contains("negotiate", StringComparison.OrdinalIgnoreCase)
+                ? "algorithm negotiation"
+                : "SSH handshake or server disconnect";
+            return new TerminalConnectionException(
+                TerminalConnectionFailureKind.Unknown,
+                $"SSH connection to {target} failed during {connectionStage}. Check the device's SSH settings and logs.",
+                $"SshConnectionException; stage: {connectionStage}; category: {category}; disconnect reason: {sshException.DisconnectReason}",
+                exception);
+        }
+
         return new TerminalConnectionException(
             TerminalConnectionFailureKind.Unknown,
-            $"SSH connection to {target} failed.",
-            exception.GetType().Name,
+            $"SSH connection to {target} failed during {connectionStage}.",
+            $"{exception.GetType().Name}; stage: {connectionStage}",
             exception);
     }
 

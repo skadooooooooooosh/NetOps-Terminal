@@ -16,13 +16,13 @@ public sealed class AvaloniaSshHostKeyPrompt : ISshHostKeyPrompt
         return ShowAsync(endpoint, presentedKey, trustedKey: null, isChanged: false, cancellationToken);
     }
 
-    public async Task ShowChangedAsync(
+    public Task<SshHostKeyPromptDecision> PromptChangedAsync(
         SshHostEndpoint endpoint,
         SshHostKey? trustedKey,
         SshHostKey presentedKey,
         CancellationToken cancellationToken)
     {
-        _ = await ShowAsync(endpoint, presentedKey, trustedKey, isChanged: true, cancellationToken);
+        return ShowAsync(endpoint, presentedKey, trustedKey, isChanged: true, cancellationToken);
     }
 
     private static Task<SshHostKeyPromptDecision> ShowAsync(

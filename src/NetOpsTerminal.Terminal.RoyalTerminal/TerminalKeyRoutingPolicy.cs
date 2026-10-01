@@ -4,6 +4,18 @@ namespace NetOpsTerminal.Terminal.RoyalTerminal;
 
 internal static class TerminalKeyRoutingPolicy
 {
+    public static string? GetBackspaceInput(
+        Key key, KeyModifiers modifiers, bool isInputLocked,
+        bool sendControlH, bool sendDelete)
+    {
+        if (isInputLocked || key != Key.Back || modifiers != KeyModifiers.None)
+        {
+            return null;
+        }
+
+        return sendControlH ? "\b" : sendDelete ? "\u007f" : null;
+    }
+
     public static bool ShouldBlock(
         Key key,
         KeyModifiers modifiers,

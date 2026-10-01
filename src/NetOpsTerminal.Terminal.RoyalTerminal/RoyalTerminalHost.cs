@@ -48,6 +48,24 @@ public sealed class RoyalTerminalHost : ContentControl
         set => SetValue(SessionProperty, value);
     }
 
+    public static readonly StyledProperty<bool> BackspaceSendsControlHProperty =
+        AvaloniaProperty.Register<RoyalTerminalHost, bool>(nameof(BackspaceSendsControlH));
+
+    public bool BackspaceSendsControlH
+    {
+        get => GetValue(BackspaceSendsControlHProperty);
+        set => SetValue(BackspaceSendsControlHProperty, value);
+    }
+
+    public static readonly StyledProperty<bool> BackspaceSendsDeleteProperty =
+        AvaloniaProperty.Register<RoyalTerminalHost, bool>(nameof(BackspaceSendsDelete));
+
+    public bool BackspaceSendsDelete
+    {
+        get => GetValue(BackspaceSendsDeleteProperty);
+        set => SetValue(BackspaceSendsDeleteProperty, value);
+    }
+
     protected override void OnPropertyChanged(AvaloniaPropertyChangedEventArgs change)
     {
         base.OnPropertyChanged(change);
@@ -178,6 +196,20 @@ public sealed class RoyalTerminalHost : ContentControl
                 e.KeyModifiers,
                 Session?.IsInputLocked == true))
         {
+            e.Handled = true;
+            return;
+        }
+
+        string? backspaceInput = TerminalKeyRoutingPolicy.GetBackspaceInput(
+            e.Key, e.KeyModifiers, Session?.IsInputLocked == true,
+            BackspaceSendsControlH, BackspaceSendsDelete);
+        if (Content is TerminalControl control && backspaceInput is not null)
+        {
+            if (e.RoutedEvent == KeyDownEvent)
+            {
+                control.SendInput(backspaceInput);
+            }
+
             e.Handled = true;
         }
     }

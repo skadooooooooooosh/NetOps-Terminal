@@ -1,5 +1,15 @@
 # Changelog
 
+## [1.1.0] - 2026-10-01
+
+- Added saved-device CLI only, GUI only, and CLI + GUI modes, with browser choice, an explicit web action, and an optional manual web-port check.
+- Added site folders, manual Device Explorer ordering, multi-device moves and deletion, and drag ordering for terminal tabs.
+- Gave each connection attempt a visible tab, aligned connection status indicators, and added PowerShell and Command Prompt shortcuts.
+- Improved bulk import updates, protocol and default-port validation, and Excel dropdown guidance for web access.
+- Added per-session Backspace choices and explicit review before replacing a changed SSH host key.
+- Unified popup styling and Device Explorer action buttons.
+- Migrated saved-device metadata to SQLite schema 6. Existing devices remain CLI only; database downgrade to v1.0.0 is unsupported.
+
 ## [1.0.0] - 2026-09-28
 
 - Released SSH, Telnet, Serial / COM, Raw TCP, PowerShell, and Command Prompt sessions for Windows x64.

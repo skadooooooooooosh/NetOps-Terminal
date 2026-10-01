@@ -12,6 +12,7 @@ public enum SshHostKeyPromptDecision
     Cancel,
     TrustOnce,
     TrustAndSave,
+    ReplaceAndSave,
 }
 
 public enum SshHostKeyVerificationResult
@@ -40,6 +41,12 @@ public interface IKnownHostsStore
         SshHostEndpoint endpoint,
         SshHostKey hostKey,
         CancellationToken cancellationToken);
+
+    Task ReplaceTrustedKeyAsync(
+        SshHostEndpoint endpoint,
+        SshHostKey expectedKey,
+        SshHostKey replacementKey,
+        CancellationToken cancellationToken);
 }
 
 public interface ISshHostKeyPrompt
@@ -49,7 +56,7 @@ public interface ISshHostKeyPrompt
         SshHostKey presentedKey,
         CancellationToken cancellationToken);
 
-    Task ShowChangedAsync(
+    Task<SshHostKeyPromptDecision> PromptChangedAsync(
         SshHostEndpoint endpoint,
         SshHostKey? trustedKey,
         SshHostKey presentedKey,

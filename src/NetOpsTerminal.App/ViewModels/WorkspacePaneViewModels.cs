@@ -1,6 +1,8 @@
+using System.ComponentModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using NetOpsTerminal.Application.Workspaces;
 using Avalonia.Controls;
+using NetOpsTerminal.Core.Sessions;
 
 namespace NetOpsTerminal.App.ViewModels;
 
@@ -22,6 +24,9 @@ public sealed partial class TerminalPaneViewModel : WorkspacePaneNodeViewModel
     private TerminalTabViewModel? _terminal;
     private WorkspaceLaunchReference? _launch;
     private bool _isActive;
+    private bool _isConnecting;
+    private string? _connectionStatus;
+    private string? _connectionError;
 
     public TerminalPaneViewModel(
         Guid id,
@@ -38,8 +43,14 @@ public sealed partial class TerminalPaneViewModel : WorkspacePaneNodeViewModel
         get => _terminal;
         private set
         {
+            if (ReferenceEquals(_terminal, value))
+                return;
+            if (_terminal is not null)
+                _terminal.PropertyChanged -= Terminal_OnPropertyChanged;
             if (SetProperty(ref _terminal, value))
             {
+                if (_terminal is not null)
+                    _terminal.PropertyChanged += Terminal_OnPropertyChanged;
                 NotifyContentChanged();
             }
         }
@@ -66,12 +77,95 @@ public sealed partial class TerminalPaneViewModel : WorkspacePaneNodeViewModel
     public bool HasTerminal => Terminal is not null;
 
     public bool HasNoTerminal => Terminal is null;
+    public bool ShowLogging => Terminal?.IsLogging == true;
 
-    public bool IsRestoredPlaceholder => Terminal is null && Launch is not null;
+    public bool ShowInputLocked => Terminal?.IsInputLocked == true;
 
-    public bool IsEmpty => Terminal is null && Launch is null;
+    public bool ShowFind => Terminal?.IsFindVisible == true;
 
-    public bool CanReconnect => Terminal is null && Launch?.CanReconnect == true;
+    public bool ShowProductionBanner => HasTerminal && IsProduction;
+
+    public bool StatusIsConnected => Terminal?.State == SessionState.Connected;
+
+    public bool StatusIsConnecting => IsConnecting || Terminal?.State is
+        SessionState.Connecting or SessionState.Reconnecting or SessionState.Disconnecting;
+
+    public bool StatusIsDisconnected => HasConnectionError || Terminal?.State is
+        SessionState.Disconnected or SessionState.Faulted or SessionState.Disposed;
+
+    public bool StatusIsIdle => Terminal is not null
+        && !StatusIsConnected && !StatusIsConnecting && !StatusIsDisconnected;
+
+    private void NotifyStatusChanged()
+    {
+        OnPropertyChanged(nameof(StatusIsConnected));
+        OnPropertyChanged(nameof(StatusIsConnecting));
+        OnPropertyChanged(nameof(StatusIsDisconnected));
+        OnPropertyChanged(nameof(StatusIsIdle));
+    }
+
+
+    private void Terminal_OnPropertyChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName == nameof(TerminalTabViewModel.IsLogging))
+            OnPropertyChanged(nameof(ShowLogging));
+        else if (e.PropertyName == nameof(TerminalTabViewModel.IsInputLocked))
+            OnPropertyChanged(nameof(ShowInputLocked));
+        else if (e.PropertyName == nameof(TerminalTabViewModel.IsFindVisible))
+            OnPropertyChanged(nameof(ShowFind));
+        else if (e.PropertyName == nameof(TerminalTabViewModel.State))
+            NotifyStatusChanged();
+    }
+
+
+    public bool IsConnecting
+    {
+        get => _isConnecting;
+        private set
+        {
+            if (SetProperty(ref _isConnecting, value))
+                NotifyContentChanged();
+        }
+    }
+
+    public string? ConnectionStatus
+    {
+        get => _connectionStatus;
+        private set => SetProperty(ref _connectionStatus, value);
+    }
+
+    public string? ConnectionError
+    {
+        get => _connectionError;
+        private set
+        {
+            if (SetProperty(ref _connectionError, value))
+                NotifyContentChanged();
+        }
+    }
+
+    public bool HasConnectionError => ConnectionError is not null;
+
+    public void BeginConnection(WorkspaceLaunchReference launch, string status)
+    {
+        Launch = launch;
+        ConnectionError = null;
+        ConnectionStatus = status;
+        IsConnecting = true;
+    }
+
+    public void EndConnection(string? error = null)
+    {
+        IsConnecting = false;
+        ConnectionStatus = null;
+        ConnectionError = error;
+    }
+
+    public bool IsRestoredPlaceholder => Terminal is null && Launch is not null && !IsConnecting && !HasConnectionError;
+
+    public bool IsEmpty => Terminal is null && Launch is null && !IsConnecting;
+
+    public bool CanReconnect => Terminal is null && !IsConnecting && !HasConnectionError && Launch?.CanReconnect == true;
 
     public bool IsProduction => Launch?.Environment == Core.Devices.DeviceEnvironment.Production;
 
@@ -93,6 +187,7 @@ public sealed partial class TerminalPaneViewModel : WorkspacePaneNodeViewModel
         ArgumentNullException.ThrowIfNull(launch);
         Launch = launch;
         Terminal = terminal;
+        EndConnection();
     }
 
     public TerminalTabViewModel? Detach()
@@ -118,7 +213,13 @@ public sealed partial class TerminalPaneViewModel : WorkspacePaneNodeViewModel
 
     private void NotifyContentChanged()
     {
+        OnPropertyChanged(nameof(HasConnectionError));
         OnPropertyChanged(nameof(HasTerminal));
+        OnPropertyChanged(nameof(ShowLogging));
+        OnPropertyChanged(nameof(ShowInputLocked));
+        OnPropertyChanged(nameof(ShowFind));
+        OnPropertyChanged(nameof(ShowProductionBanner));
+        NotifyStatusChanged();
         OnPropertyChanged(nameof(HasNoTerminal));
         OnPropertyChanged(nameof(IsRestoredPlaceholder));
         OnPropertyChanged(nameof(IsEmpty));

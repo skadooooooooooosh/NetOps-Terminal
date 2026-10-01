@@ -40,6 +40,20 @@
     <Setter Property="Background" Value="{DynamicResource AppAccentHoverBrush}" />
   </Style>
 
+  <Style Selector="Button.destructive">
+    <Setter Property="Background" Value="#9E3945" />
+    <Setter Property="Foreground" Value="White" />
+    <Setter Property="BorderBrush" Value="{DynamicResource AppDangerBrush}" />
+    <Setter Property="BorderThickness" Value="1" />
+  </Style>
+
+  <Style Selector="Button.destructive:pointerover">
+    <Setter Property="Background" Value="#B64C58" />
+  </Style>
+
+  <Style Selector="Button.destructive:focus">
+    <Setter Property="BorderBrush" Value="{DynamicResource AppFocusBrush}" />
+  </Style>
   <Style Selector="Button.toolbar">
     <Setter Property="Background" Value="{DynamicResource AppSecondaryButtonBackgroundBrush}" />
     <Setter Property="Foreground" Value="{DynamicResource AppSecondaryButtonForegroundBrush}" />
@@ -175,7 +189,24 @@
   <Style Selector="Button.compact-icon.danger-icon:pointerover">
     <Setter Property="Foreground" Value="{DynamicResource AppDangerBrush}" />
   </Style>
-  <Style Selector="Border.dialog-shell">
+  <Style Selector="Button.explorer-action">
+    <Setter Property="Width" Value="32" />
+    <Setter Property="Height" Value="32" />
+    <Setter Property="MinHeight" Value="0" />
+    <Setter Property="Padding" Value="0" />
+    <Setter Property="HorizontalContentAlignment" Value="Center" />
+    <Setter Property="VerticalContentAlignment" Value="Center" />
+  </Style>
+  <Style Selector="Button.explorer-action.danger-icon">
+    <Setter Property="Foreground" Value="{DynamicResource AppDangerBrush}" />
+  </Style>
+  <Style Selector="Button.explorer-action.danger-icon:pointerover">
+    <Setter Property="Background" Value="{DynamicResource AppProductionSurfaceBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource AppDangerBrush}" />
+  </Style>
+  <Style Selector="Button.explorer-action.danger-icon:disabled">
+    <Setter Property="Foreground" Value="{DynamicResource AppDisabledForegroundBrush}" />
+  </Style>  <Style Selector="Border.dialog-shell">
     <Setter Property="Margin" Value="2" />
     <Setter Property="Padding" Value="2" />
     <Setter Property="Background" Value="{DynamicResource AppDialogOutlineBrush}" />

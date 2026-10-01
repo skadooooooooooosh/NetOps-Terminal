@@ -1,4 +1,4 @@
-﻿[CmdletBinding()]
+[CmdletBinding()]
 param(
     [switch]$SkipTests
 )
@@ -8,12 +8,12 @@ $ErrorActionPreference = 'Stop'
 
 $repositoryRoot = (Resolve-Path (Join-Path $PSScriptRoot '..')).Path
 $artifactsRoot = Join-Path $repositoryRoot 'artifacts\release'
-$publishRoot = Join-Path $artifactsRoot 'NetOpsTerminal-1.0.0-win-x64'
+$publishRoot = Join-Path $artifactsRoot 'NetOpsTerminal-1.1.0-win-x64'
 $installerProject = Join-Path $repositoryRoot 'installer\NetOpsTerminal.Installer\NetOpsTerminal.Installer.wixproj'
 $artworkScript = Join-Path $PSScriptRoot 'Generate-InstallerArtwork.ps1'
 $licenseScript = Join-Path $PSScriptRoot 'Generate-InstallerLicense.ps1'
-$builtMsi = Join-Path $repositoryRoot 'installer\NetOpsTerminal.Installer\bin\x64\Release\NetOpsTerminal-1.0.0-win-x64.msi'
-$releaseMsi = Join-Path $artifactsRoot 'NetOpsTerminal-1.0.0-win-x64.msi'
+$builtMsi = Join-Path $repositoryRoot 'installer\NetOpsTerminal.Installer\bin\x64\Release\NetOpsTerminal-1.1.0-win-x64.msi'
+$releaseMsi = Join-Path $artifactsRoot 'NetOpsTerminal-1.1.0-win-x64.msi'
 $hashPath = "$releaseMsi.sha256"
 $localDotnet = Join-Path $repositoryRoot '.dotnet\dotnet.exe'
 $dotnetPath = if (Test-Path -LiteralPath $localDotnet) {
@@ -24,9 +24,9 @@ $dotnetPath = if (Test-Path -LiteralPath $localDotnet) {
 
 # Publish-Release rebuilds the complete self-contained application and checks it.
 $publishScript = Join-Path $PSScriptRoot 'Publish-Release.ps1'
-& $publishScript -Version '1.0.0' -SkipTests:$SkipTests
+& $publishScript -Version '1.1.0' -SkipTests:$SkipTests
 if (-not $?) {
-    throw 'The Version 1 application publish failed.'
+    throw 'The Version 1.1 application publish failed.'
 }
 if (-not (Test-Path -LiteralPath (Join-Path $publishRoot 'NetOpsTerminal.exe'))) {
     throw 'The application publish did not contain NetOpsTerminal.exe.'
@@ -37,7 +37,7 @@ if (-not $?) { throw 'Installer artwork generation failed.' }
 & $licenseScript
 if (-not $?) { throw 'Installer license generation failed.' }
 
-& $dotnetPath build $installerProject -c Release "-p:PublishRoot=$publishRoot"
+& $dotnetPath build $installerProject -c Release "-p:PublishRoot=$publishRoot" "-p:InstallerVersion=1.1.0"
 if ($LASTEXITCODE -ne 0) {
     throw "The MSI build failed with exit code $LASTEXITCODE."
 }
@@ -65,11 +65,11 @@ if ((Get-MsiProperty 'ALLUSERS') -ne '1' -or
     $null -ne (Get-MsiProperty 'MSIINSTALLPERUSER') -or
     (Get-MsiProperty 'Manufacturer') -ne 'skadooooooooooosh' -or
     (Get-MsiProperty 'WIXUI_INSTALLDIR') -ne 'INSTALLFOLDER' -or
-    (Get-MsiProperty 'ProductVersion') -ne '1.0.0' -or
+    (Get-MsiProperty 'ProductVersion') -ne '1.1.0' -or
     (Get-MsiProperty 'ProductLanguage') -ne '1033' -or
-    (Get-MsiProperty 'ProductCode') -ne '{855FD10B-B134-4877-8237-FE684F529A40}' -or
+    (Get-MsiProperty 'ProductCode') -ne '{8F3F600B-B428-4832-B5D1-85FE100FEF02}' -or
     (Get-MsiProperty 'UpgradeCode') -ne '{3536CB34-CDD4-435C-B72E-8E7E1EEB259E}') {
-    throw 'The MSI metadata does not match the approved Version 1 all-users wizard.'
+    throw 'The MSI metadata does not match the approved Version 1.1 all-users wizard.'
 }
 foreach ($dialogName in @('WelcomeDlg', 'LicenseAgreementDlg', 'NetOpsInstallDirDlg', 'VerifyReadyDlg', 'ExitDialog')) {
     $dialogView = $database.OpenView("SELECT Dialog FROM Dialog WHERE Dialog = '$dialogName'")

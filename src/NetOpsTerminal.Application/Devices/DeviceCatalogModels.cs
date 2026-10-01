@@ -29,6 +29,8 @@ public sealed record DeviceEditRequest(
     string Notes)
 {
     public ConnectionType ConnectionType { get; init; } = ConnectionType.Ssh;
+    public DeviceAccessMode AccessMode { get; init; } = DeviceAccessMode.TerminalOnly;
+    public DeviceWebAccessSettings? WebAccess { get; init; }
     public string TerminalType { get; init; } = "xterm-256color";
     public string Encoding { get; init; } = "Utf8";
     public int ConnectTimeoutSeconds { get; init; } = 15;
@@ -38,6 +40,8 @@ public sealed record DeviceEditRequest(
     public string SerialFlowControl { get; init; } = "None";
     public string RawLineEnding { get; init; } = "CarriageReturnLineFeed";
     public bool TelnetAcknowledged { get; init; }
+    public bool BackspaceSendsControlH { get; init; }
+    public bool BackspaceSendsDelete { get; init; }
 }
 
 public sealed record DeviceCatalogSnapshot(
@@ -48,4 +52,5 @@ public sealed record DeviceCatalogSnapshot(
     IReadOnlyList<Guid> RecentDeviceIds,
     int? AllDeviceCount = null,
     int? FavoriteDeviceCount = null,
-    int? RecentDeviceCount = null);
+    int? RecentDeviceCount = null,
+    IReadOnlyDictionary<Guid, int>? ExplorerOrder = null);

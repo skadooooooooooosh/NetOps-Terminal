@@ -24,6 +24,7 @@ public sealed partial class DeviceEditorWindow : ThemedWindow
 
     private readonly Guid? _deviceId;
     private readonly ISerialPortCatalog? _serialPortCatalog;
+    private IDeviceWebAccessService? _webAccessService;
     private string _vendor = string.Empty;
     private string _model = string.Empty;
 
@@ -65,9 +66,11 @@ public sealed partial class DeviceEditorWindow : ThemedWindow
     public DeviceEditorWindow(
         DeviceEditRequest? existing,
         IReadOnlyList<CredentialProfile> credentials,
-        ISerialPortCatalog? serialPortCatalog = null)
+        ISerialPortCatalog? serialPortCatalog = null,
+        IDeviceWebAccessService? webAccessService = null)
         : this(serialPortCatalog)
     {
+        _webAccessService = webAccessService;
         CredentialComboBox.ItemsSource = credentials;
         CredentialComboBox.SelectedIndex = credentials.Count > 0 ? 0 : -1;
         if (existing is null)
@@ -88,7 +91,15 @@ public sealed partial class DeviceEditorWindow : ThemedWindow
             _ => 0,
         };
         HostTextBox.Text = existing.Host;
-        PortTextBox.Text = existing.Port.ToString(System.Globalization.CultureInfo.InvariantCulture);
+        int standardPort = existing.ConnectionType == ConnectionType.Ssh ? 22
+            : existing.ConnectionType == ConnectionType.Telnet ? 23 : existing.Port;
+        PortTextBox.Text = standardPort.ToString(System.Globalization.CultureInfo.InvariantCulture);
+        if (existing.ConnectionType is ConnectionType.Ssh or ConnectionType.Telnet
+            && existing.Port != standardPort)
+        {
+            PortCorrectionText.Text = $"Saved port {existing.Port} does not match {existing.ConnectionType}. Save this device to use port {standardPort}.";
+            PortCorrectionText.IsVisible = true;
+        }
         if (existing.ConnectionType == ConnectionType.Serial)
         {
             SerialPortComboBox.Text = existing.Host;
@@ -96,6 +107,9 @@ public sealed partial class DeviceEditorWindow : ThemedWindow
                 System.Globalization.CultureInfo.InvariantCulture);
         }
         TerminalTypeTextBox.Text = existing.TerminalType;
+        BackspaceControlHRadio.IsChecked = existing.BackspaceSendsControlH;
+        BackspaceDeleteRadio.IsChecked = existing.BackspaceSendsDelete;
+        BackspaceDefaultRadio.IsChecked = !existing.BackspaceSendsControlH && !existing.BackspaceSendsDelete;
         TelnetTimeoutTextBox.Text = existing.ConnectTimeoutSeconds.ToString(System.Globalization.CultureInfo.InvariantCulture);
         RawTimeoutTextBox.Text = existing.ConnectTimeoutSeconds.ToString(System.Globalization.CultureInfo.InvariantCulture);
         TelnetEncodingComboBox.SelectedItem = Enum.Parse<TerminalTextEncoding>(existing.Encoding);
@@ -124,6 +138,18 @@ public sealed partial class DeviceEditorWindow : ThemedWindow
         UsernameOverrideTextBox.Text = existing.UsernameOverride;
         FavoriteCheckBox.IsChecked = existing.IsFavorite;
         NotesTextBox.Text = existing.Notes;
+        WebAddressTextBox.Text = existing.WebAccess?.Address;
+        BrowserComboBox.SelectedIndex = existing.WebAccess?.Browser switch
+        {
+            WebBrowserPreference.MicrosoftEdge => 1,
+            WebBrowserPreference.GoogleChrome => 2,
+            _ => 0,
+        };
+        DefaultOpenComboBox.SelectedIndex = existing.WebAccess?.DefaultAction == DeviceOpenAction.Web ? 1 : 0;
+        WebOnlyRadio.IsChecked = existing.AccessMode == DeviceAccessMode.WebOnly;
+        TerminalAndWebRadio.IsChecked = existing.AccessMode == DeviceAccessMode.TerminalAndWeb;
+        TerminalOnlyRadio.IsChecked = existing.AccessMode == DeviceAccessMode.TerminalOnly;
+        UpdateAccessView();
     }
 
     private void Cancel_OnClick(object? sender, RoutedEventArgs e)
@@ -144,8 +170,59 @@ public sealed partial class DeviceEditorWindow : ThemedWindow
             _ => 22,
         };
         PortTextBox.Text = defaultPort.ToString(System.Globalization.CultureInfo.InvariantCulture);
+        PortCorrectionText.IsVisible = false;
         UpdateProtocolView();
     }
+
+    private void AccessMode_OnChecked(object? sender, RoutedEventArgs e)
+    {
+        if (TerminalAccessPanel is not null)
+            UpdateAccessView();
+    }
+
+    private DeviceAccessMode SelectedAccessMode() =>
+        WebOnlyRadio.IsChecked == true ? DeviceAccessMode.WebOnly
+        : TerminalAndWebRadio.IsChecked == true ? DeviceAccessMode.TerminalAndWeb
+        : DeviceAccessMode.TerminalOnly;
+
+    private void UpdateAccessView()
+    {
+        DeviceAccessMode mode = SelectedAccessMode();
+        TerminalAccessPanel.IsVisible = mode != DeviceAccessMode.WebOnly;
+        WebAccessPanel.IsVisible = mode != DeviceAccessMode.TerminalOnly;
+        DefaultOpenPanel.IsVisible = mode == DeviceAccessMode.TerminalAndWeb;
+        UpdateProtocolView();
+    }
+
+    private async void CheckWebAccess_OnClick(object? sender, RoutedEventArgs e)
+    {
+        try
+        {
+            DeviceWebAccessSettings settings = CreateWebAccessSettings();
+            if (_webAccessService is null)
+                throw new InvalidOperationException("Web access checking is unavailable.");
+            WebCheckStatusText.Text = "Checking the web port...";
+            bool reachable = await _webAccessService.CheckPortAsync(settings, CancellationToken.None);
+            WebCheckStatusText.Text = reachable
+                ? "Web port responds. Open the page to verify the sign-in screen."
+                : "Web port did not respond from this PC.";
+        }
+        catch (Exception exception) when (exception is ArgumentException or InvalidOperationException)
+        {
+            WebCheckStatusText.Text = exception.Message;
+        }
+    }
+
+    private DeviceWebAccessSettings CreateWebAccessSettings() =>
+        new(WebAddressTextBox.Text ?? string.Empty,
+            BrowserComboBox.SelectedIndex switch
+            {
+                1 => WebBrowserPreference.MicrosoftEdge,
+                2 => WebBrowserPreference.GoogleChrome,
+                _ => WebBrowserPreference.WindowsDefault,
+            },
+            SelectedAccessMode() == DeviceAccessMode.WebOnly || DefaultOpenComboBox.SelectedIndex == 1
+                ? DeviceOpenAction.Web : DeviceOpenAction.Terminal);
 
     private void UpdateProtocolView()
     {
@@ -155,11 +232,12 @@ public sealed partial class DeviceEditorWindow : ThemedWindow
         ConnectionType type = SelectedProtocol();
         bool ssh = type == ConnectionType.Ssh;
         NetworkEndpointPanel.IsVisible = type != ConnectionType.Serial;
+        PortTextBox.IsReadOnly = type is ConnectionType.Ssh or ConnectionType.Telnet;
         SshHint.IsVisible = ssh;
         TelnetOptionsPanel.IsVisible = type == ConnectionType.Telnet;
         SerialOptionsPanel.IsVisible = type == ConnectionType.Serial;
         RawOptionsPanel.IsVisible = type == ConnectionType.RawTcp;
-        CredentialsTab.IsEnabled = ssh;
+        CredentialsTab.IsEnabled = ssh && SelectedAccessMode() != DeviceAccessMode.WebOnly;
     }
 
     private void RefreshSerialPorts_OnClick(object? sender, RoutedEventArgs e)
@@ -201,17 +279,27 @@ public sealed partial class DeviceEditorWindow : ThemedWindow
         ValidationErrorText.IsVisible = false;
         try
         {
-            ConnectionType type = SelectedProtocol();
-            string? portText = type == ConnectionType.Serial
-                ? SerialBaudRateComboBox.Text : PortTextBox.Text;
+            DeviceAccessMode accessMode = SelectedAccessMode();
+            DeviceWebAccessSettings? webAccess = accessMode == DeviceAccessMode.TerminalOnly
+                ? null : CreateWebAccessSettings();
+            ConnectionType type = accessMode == DeviceAccessMode.WebOnly
+                ? ConnectionType.Ssh : SelectedProtocol();
+            string? portText = type switch
+            {
+                ConnectionType.Ssh => "22",
+                ConnectionType.Telnet => "23",
+                ConnectionType.Serial => SerialBaudRateComboBox.Text,
+                _ => PortTextBox.Text,
+            };
             if (!int.TryParse(portText, out int port))
                 throw new ArgumentException(type == ConnectionType.Serial
                     ? "Baud rate must be a valid number."
                     : "Port must be a number between 1 and 65535.");
-            if (type == ConnectionType.Telnet && TelnetAcknowledgementCheckBox.IsChecked != true)
+            if (accessMode != DeviceAccessMode.WebOnly
+                && type == ConnectionType.Telnet && TelnetAcknowledgementCheckBox.IsChecked != true)
                 throw new ArgumentException("Acknowledge that Telnet is plaintext before saving.");
             Guid? credentialId = null;
-            if (type == ConnectionType.Ssh)
+            if (type == ConnectionType.Ssh && accessMode != DeviceAccessMode.WebOnly)
             {
                 if (CredentialComboBox.SelectedItem is not CredentialProfile credential)
                     throw new ArgumentException("Create and select a credential profile for SSH.");
@@ -235,9 +323,11 @@ public sealed partial class DeviceEditorWindow : ThemedWindow
                 _deviceId,
                 NameTextBox.Text ?? string.Empty,
                 DescriptionTextBox.Text ?? string.Empty,
-                type == ConnectionType.Serial
-                    ? SerialPortComboBox.Text ?? string.Empty
-                    : HostTextBox.Text ?? string.Empty,
+                accessMode == DeviceAccessMode.WebOnly
+                    ? new Uri(webAccess!.Address).Host
+                    : type == ConnectionType.Serial
+                        ? SerialPortComboBox.Text ?? string.Empty
+                        : HostTextBox.Text ?? string.Empty,
                 port,
                 DeviceTypeComboBox.SelectedItem is DeviceType deviceType ? deviceType : DeviceType.Other,
                 _vendor,
@@ -252,6 +342,8 @@ public sealed partial class DeviceEditorWindow : ThemedWindow
                 NotesTextBox.Text ?? string.Empty)
             {
                 ConnectionType = type,
+                AccessMode = accessMode,
+                WebAccess = webAccess,
                 TerminalType = TerminalTypeTextBox.Text ?? string.Empty,
                 Encoding = encoding,
                 ConnectTimeoutSeconds = timeout,
@@ -261,6 +353,8 @@ public sealed partial class DeviceEditorWindow : ThemedWindow
                 SerialFlowControl = SerialFlowControlComboBox.SelectedItem?.ToString() ?? "None",
                 RawLineEnding = RawLineEndingComboBox.SelectedItem?.ToString() ?? "CarriageReturnLineFeed",
                 TelnetAcknowledged = type == ConnectionType.Telnet && TelnetAcknowledgementCheckBox.IsChecked == true,
+                BackspaceSendsControlH = BackspaceControlHRadio.IsChecked == true,
+                BackspaceSendsDelete = BackspaceDeleteRadio.IsChecked == true,
             };
             _ = new DeviceProfile(
                 request.Id ?? Guid.NewGuid(),
@@ -269,10 +363,12 @@ public sealed partial class DeviceEditorWindow : ThemedWindow
                 new SavedDeviceConnectionSettings(type, request.Host, request.Port,
                     request.TerminalType, request.Encoding, request.ConnectTimeoutSeconds,
                     request.SerialDataBits, request.SerialParity, request.SerialStopBits,
-                    request.SerialFlowControl, request.RawLineEnding, request.TelnetAcknowledged),
+                    request.SerialFlowControl, request.RawLineEnding, request.TelnetAcknowledged,
+                    request.BackspaceSendsControlH, request.BackspaceSendsDelete),
                 request.DeviceType, request.Vendor, request.Model, null, null, request.Environment,
                 request.CredentialProfileId, request.UsernameOverride, request.IsFavorite,
-                request.Notes, DateTimeOffset.UtcNow, DateTimeOffset.UtcNow, null);
+                request.Notes, DateTimeOffset.UtcNow, DateTimeOffset.UtcNow, null,
+                request.AccessMode, request.WebAccess);
             TerminalTextEncoding selectedEncoding = Enum.Parse<TerminalTextEncoding>(request.Encoding);
             switch (type)
             {

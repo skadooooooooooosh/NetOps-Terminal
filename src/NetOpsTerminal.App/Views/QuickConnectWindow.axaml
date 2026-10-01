@@ -65,7 +65,8 @@
       </Grid>
     </Border>
 
-    <Grid Grid.Row="3" Margin="16,6,16,8">
+    <ScrollViewer Grid.Row="3" Margin="16,6,16,8" VerticalScrollBarVisibility="Auto">
+      <StackPanel Spacing="12">
       <Grid>
         <StackPanel x:Name="SshPanel" Spacing="7">
           <TextBlock Text="Hostname / IP" />
@@ -73,7 +74,7 @@
           <Grid ColumnDefinitions="150,*" ColumnSpacing="12">
             <StackPanel Spacing="6">
               <TextBlock Text="Port" />
-              <TextBox x:Name="SshPortTextBox" Text="22" />
+              <TextBox x:Name="SshPortTextBox" Text="22" IsReadOnly="True" />
             </StackPanel>
             <StackPanel Grid.Column="1" Spacing="6">
               <TextBlock Text="Username" />
@@ -127,7 +128,7 @@
             </StackPanel>
             <StackPanel Grid.Column="1" Spacing="5">
               <TextBlock Text="Port" />
-              <TextBox x:Name="TelnetPortTextBox" Text="23" />
+              <TextBox x:Name="TelnetPortTextBox" Text="23" IsReadOnly="True" />
             </StackPanel>
           </Grid>
           <StackPanel Spacing="8">
@@ -267,7 +268,18 @@
           </StackPanel>
         </StackPanel>
       </Grid>
-    </Grid>
+      <StackPanel Spacing="5">
+        <TextBlock FontWeight="SemiBold" Text="Backspace key" />
+        <ComboBox x:Name="BackspaceKeyComboBox" SelectedIndex="0" HorizontalAlignment="Stretch">
+          <ComboBoxItem Content="Standard" />
+          <ComboBoxItem Content="Compatibility: BS (Ctrl+H)" />
+          <ComboBoxItem Content="Compatibility: DEL" />
+        </ComboBox>
+        <TextBlock Classes="muted" FontSize="11" TextWrapping="Wrap"
+                   Text="Press Backspace normally. If it does not erase, try BS, then DEL." />
+      </StackPanel>
+      </StackPanel>
+    </ScrollViewer>
 
     <Border
         Grid.Row="4"

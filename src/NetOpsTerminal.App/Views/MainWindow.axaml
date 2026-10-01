@@ -180,8 +180,13 @@
               </Flyout>
             </Button.Flyout>
           </Button>
-          <Ellipse Width="7" Height="7" Margin="6,0,10,0" VerticalAlignment="Center"
-                   Fill="{DynamicResource AppConnectedBrush}" ToolTip.Tip="Application ready" />
+          <Grid Width="7" Height="7" Margin="6,0,10,0" VerticalAlignment="Center"
+                ToolTip.Tip="{Binding ActiveTabStatusText}">
+            <Ellipse Fill="{DynamicResource AppConnectedBrush}" IsVisible="{Binding IsFooterConnected}" />
+            <Ellipse Fill="{DynamicResource AppWarningBrush}" IsVisible="{Binding IsFooterWarning}" />
+            <Ellipse Fill="{DynamicResource AppDangerBrush}" IsVisible="{Binding IsFooterError}" />
+            <Ellipse Fill="{DynamicResource AppDisconnectedBrush}" IsVisible="{Binding IsFooterIdle}" />
+          </Grid>
           <Border Width="1" Height="22" Margin="0,0,7,0" VerticalAlignment="Center"
                   Background="{DynamicResource AppBorderBrush}" />
           <Button Classes="window-caption" Width="24" Height="24" WindowDecorationProperties.ElementRole="User"
@@ -229,6 +234,26 @@
                 <Canvas Width="24" Height="24">
                   <Path Classes="rail-glyph" Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"
                         Data="{StaticResource IconRailConnect}" />
+                </Canvas>
+              </Viewbox>
+            </Button>
+            <Button Classes="rail-icon" Command="{Binding NewPowerShellCommand}"
+                    ToolTip.Tip="Open PowerShell (Alt+P)"
+                    AutomationProperties.Name="Open PowerShell">
+              <Viewbox Width="19" Height="19" Stretch="Uniform">
+                <Canvas Width="24" Height="24">
+                  <Path Classes="rail-glyph" Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"
+                        Data="{StaticResource IconRailPowerShell}" />
+                </Canvas>
+              </Viewbox>
+            </Button>
+            <Button Classes="rail-icon" Command="{Binding NewCommandPromptCommand}"
+                    ToolTip.Tip="Open Command Prompt (Alt+C)"
+                    AutomationProperties.Name="Open Command Prompt">
+              <Viewbox Width="19" Height="19" Stretch="Uniform">
+                <Canvas Width="24" Height="24">
+                  <Path Classes="rail-glyph" Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"
+                        Data="{StaticResource IconRailCommandPrompt}" />
                 </Canvas>
               </Viewbox>
             </Button>
@@ -397,21 +422,45 @@
             <Grid Grid.Row="2">
               <TreeView
                   x:Name="DeviceTree"
+                  Background="Transparent"
+                  DragDrop.AllowDrop="True"
+                  DragDrop.DragOver="DeviceNode_OnDragOver"
+                  DragDrop.DragLeave="DeviceNode_OnDragLeave"
+                  DragDrop.Drop="DeviceNode_OnDrop"
                   ItemsSource="{Binding DeviceExplorer.Nodes}"
                   SelectedItem="{Binding DeviceExplorer.SelectedNode}"
+                  SelectionMode="Multiple"
+                  SelectionChanged="DeviceTree_OnSelectionChanged"
                   DoubleTapped="DeviceTree_OnDoubleTapped"
                   KeyDown="DeviceTree_OnKeyDown">
+                <TreeView.Styles>
+                  <Style Selector="TreeViewItem" x:DataType="vm:DeviceExplorerNodeViewModel">
+                    <Setter Property="IsExpanded" Value="{Binding IsExpanded, Mode=TwoWay}" />
+                  </Style>
+                </TreeView.Styles>
                 <TreeView.ContextMenu>
                   <ContextMenu>
-                    <MenuItem Header="Connect" Click="ConnectSavedDevice_OnClick" />
+                    <MenuItem Header="New site" Click="CreateSite_OnClick"
+                              IsEnabled="{Binding DeviceExplorer.CanOrganize}" />
+                    <MenuItem Header="New Organization folder" Click="CreateFolder_OnClick"
+                              IsEnabled="{Binding DeviceExplorer.CanCreateFolder}" />
+                    <MenuItem Header="Sort alphabetically" Click="SortExplorerAlphabetically_OnClick"
+                              IsEnabled="{Binding DeviceExplorer.CanSortSelectedAlphabetically}" />
+                    <Separator />
+                    <MenuItem Header="Open terminal" Click="OpenSavedTerminal_OnClick"
+                              IsEnabled="{Binding DeviceExplorer.CanOpenSelectedTerminal}" />
+                    <MenuItem Header="Open web interface" Click="OpenSavedWeb_OnClick"
+                              IsEnabled="{Binding DeviceExplorer.CanOpenSelectedWeb}" />
                     <MenuItem Header="Edit device" Click="EditDevice_OnClick" />
-                    <MenuItem Header="Delete device" Click="DeleteDevice_OnClick" />
+                    <MenuItem Header="Delete empty site or folder" Click="DeleteEmptyFolder_OnClick" />
+                    <MenuItem Header="Delete selected devices" Click="DeleteDevice_OnClick" />
                   </ContextMenu>
                 </TreeView.ContextMenu>
                 <TreeView.ItemTemplate>
                   <TreeDataTemplate x:DataType="vm:DeviceExplorerNodeViewModel"
                                     ItemsSource="{Binding Children}">
-                    <Grid Margin="2,2" ColumnDefinitions="Auto,*,Auto">
+                    <Grid Margin="2,2" ColumnDefinitions="Auto,*,Auto"
+                          Background="Transparent">
                       <Grid Width="16" Height="16" VerticalAlignment="Center">
                         <PathIcon IsVisible="{Binding IsGroup}"
                                   Data="{StaticResource IconFolder}" />
@@ -442,6 +491,12 @@
                         <TextBlock Classes="muted" FontSize="9" Text="{Binding Details}" />
                       </StackPanel>
                       <StackPanel Grid.Column="2" VerticalAlignment="Center">
+                        <Border Classes="badge lab" IsVisible="{Binding IsWebOnly}">
+                          <TextBlock FontSize="8" Foreground="{DynamicResource AppLabBrush}" Text="WEB" />
+                        </Border>
+                        <Border Classes="badge lab" IsVisible="{Binding IsTerminalAndWeb}">
+                          <TextBlock FontSize="8" Foreground="{DynamicResource AppLabBrush}" Text="CLI+WEB" />
+                        </Border>
                         <Border Classes="badge production" IsVisible="{Binding IsProduction}">
                           <TextBlock FontSize="8" Foreground="{DynamicResource AppProductionBrush}" Text="PROD" />
                         </Border>
@@ -458,6 +513,17 @@
                           <TextBlock FontSize="8" Foreground="{DynamicResource AppLabBrush}" Text="DEV" />
                         </Border>
                       </StackPanel>
+                      <Border Grid.ColumnSpan="3" Height="2"
+                              HorizontalAlignment="Stretch" VerticalAlignment="Top"
+                              Background="{DynamicResource AppAccentBrush}"
+                              IsHitTestVisible="False" IsVisible="{Binding IsDropBefore}" />
+                      <Border Grid.ColumnSpan="3" Height="2"
+                              HorizontalAlignment="Stretch" VerticalAlignment="Bottom"
+                              Background="{DynamicResource AppAccentBrush}"
+                              IsHitTestVisible="False" IsVisible="{Binding IsDropAfter}" />
+                      <Border Grid.ColumnSpan="3" BorderThickness="1" CornerRadius="4"
+                              BorderBrush="{DynamicResource AppAccentBrush}"
+                              IsHitTestVisible="False" IsVisible="{Binding IsDropInto}" />
                     </Grid>
                   </TreeDataTemplate>
                 </TreeView.ItemTemplate>
@@ -474,25 +540,25 @@
           <Border Grid.Row="3" Padding="8,7" Background="{DynamicResource AppSurfaceBrush}"
                   BorderBrush="{DynamicResource AppBorderBrush}" BorderThickness="0,1,0,0"
                   IsVisible="{Binding IsSidebarExpanded}">
-            <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="4">
-              <Button Classes="toolbar" MinHeight="30" Click="ConnectSavedDevice_OnClick"
+            <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="6">
+              <Button Classes="toolbar" Height="32" MinHeight="32" Click="ConnectSavedDevice_OnClick"
                       HorizontalContentAlignment="Center" VerticalContentAlignment="Center"
                       IsEnabled="{Binding DeviceExplorer.HasSelectedDevice}">
                 <StackPanel Orientation="Horizontal" HorizontalAlignment="Center"
                             VerticalAlignment="Center" Spacing="6">
-                  <PathIcon Width="14" Height="14"
+                  <PathIcon Width="16" Height="16"
                             Data="{StaticResource IconConnect}" />
-                  <TextBlock Text="Connect" />
+                  <TextBlock Text="{Binding DeviceExplorer.SelectedOpenLabel}" />
                 </StackPanel>
               </Button>
-              <Button Grid.Column="1" Classes="compact-icon" Click="EditDevice_OnClick"
+              <Button Grid.Column="1" Classes="toolbar explorer-action" Click="EditDevice_OnClick"
                       IsEnabled="{Binding DeviceExplorer.HasSelectedDevice}" ToolTip.Tip="Edit selected device">
-                <PathIcon Width="12" Height="12"
+                <PathIcon Width="16" Height="16"
                           Data="{StaticResource IconEdit}" />
               </Button>
-              <Button Grid.Column="2" Classes="compact-icon danger-icon" Click="DeleteDevice_OnClick"
-                      IsEnabled="{Binding DeviceExplorer.HasSelectedDevice}" ToolTip.Tip="Delete selected device">
-                <PathIcon Width="12" Height="12"
+              <Button Grid.Column="2" Classes="toolbar explorer-action danger-icon" Click="DeleteDevice_OnClick"
+                      IsEnabled="{Binding DeviceExplorer.HasSelectedDevices}" ToolTip.Tip="Delete selected devices (Ctrl/Shift-click to select several)">
+                <PathIcon Width="16" Height="16"
                           Data="{StaticResource IconDelete}" />
               </Button>
             </Grid>
@@ -590,6 +656,10 @@
               x:Name="TerminalTabsControl"
               Grid.Row="0"
               Margin="0"
+              DragDrop.AllowDrop="True"
+              DragDrop.DragOver="TerminalTab_OnDragOver"
+              DragDrop.DragLeave="TerminalTab_OnDragLeave"
+              DragDrop.Drop="TerminalTab_OnDrop"
               Classes="minimal-tabs"
               Background="{DynamicResource AppTerminalBrush}"
               ItemsSource="{Binding WorkspaceTabs}"
@@ -603,11 +673,18 @@
             <TabControl.ItemTemplate>
               <DataTemplate x:DataType="vm:WorkspaceTabViewModel">
                 <Grid ColumnDefinitions="Auto,Auto,Auto" Margin="1,0">
-                  <TextBlock
-                      VerticalAlignment="Center"
-                      FontSize="9"
-                      Foreground="{DynamicResource AppConnectedBrush}"
-                      Text="{Binding ActivePane.Terminal.StatusGlyph}" />
+                  <Ellipse Width="7" Height="7" VerticalAlignment="Center"
+                      Fill="{DynamicResource AppConnectedBrush}"
+                      IsVisible="{Binding StatusIsConnected}" />
+                  <Ellipse Width="7" Height="7" VerticalAlignment="Center"
+                      Fill="{DynamicResource AppWarningBrush}"
+                      IsVisible="{Binding StatusIsConnecting}" />
+                  <Ellipse Width="7" Height="7" VerticalAlignment="Center"
+                      Fill="{DynamicResource AppDangerBrush}"
+                      IsVisible="{Binding StatusIsDisconnected}" />
+                  <Ellipse Width="7" Height="7" VerticalAlignment="Center"
+                      Fill="{DynamicResource AppDisconnectedBrush}"
+                      IsVisible="{Binding StatusIsIdle}" />
                   <TextBlock
                       Grid.Column="1"
                       Margin="6,0,7,0"
@@ -627,6 +704,16 @@
                       Click="WorkspaceTabClose_OnClick"
                       Content="×"
                       ToolTip.Tip="Close active pane" />
+                  <Border Grid.ColumnSpan="3" Width="2" Height="24"
+                          HorizontalAlignment="Left" VerticalAlignment="Center"
+                          Background="{DynamicResource AppAccentBrush}"
+                          IsHitTestVisible="False"
+                          IsVisible="{Binding IsDropBefore}" />
+                  <Border Grid.ColumnSpan="3" Width="2" Height="24"
+                          HorizontalAlignment="Right" VerticalAlignment="Center"
+                          Background="{DynamicResource AppAccentBrush}"
+                          IsHitTestVisible="False"
+                          IsVisible="{Binding IsDropAfter}" />
                 </Grid>
               </DataTemplate>
             </TabControl.ItemTemplate>

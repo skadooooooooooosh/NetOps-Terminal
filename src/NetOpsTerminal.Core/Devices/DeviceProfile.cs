@@ -46,7 +46,9 @@ public sealed record DeviceProfile
         string notes,
         DateTimeOffset createdAtUtc,
         DateTimeOffset updatedAtUtc,
-        DateTimeOffset? lastConnectedAtUtc)
+        DateTimeOffset? lastConnectedAtUtc,
+        DeviceAccessMode accessMode = DeviceAccessMode.TerminalOnly,
+        DeviceWebAccessSettings? webAccess = null)
     {
         if (id == Guid.Empty)
         {
@@ -61,7 +63,18 @@ public sealed record DeviceProfile
         }
 
         ArgumentNullException.ThrowIfNull(connection);
-        if (connection.Type == ConnectionType.Ssh && (credentialProfileId is null || credentialProfileId == Guid.Empty))
+        if (!Enum.IsDefined(accessMode))
+            throw new ArgumentException("Select a valid access mode.", nameof(accessMode));
+        if (accessMode == DeviceAccessMode.TerminalOnly && webAccess is not null
+            || accessMode != DeviceAccessMode.TerminalOnly && webAccess is null)
+            throw new ArgumentException("Web access settings must match the selected access mode.", nameof(webAccess));
+        if (accessMode == DeviceAccessMode.WebOnly
+            && (connection.Type != ConnectionType.Ssh
+                || webAccess?.DefaultAction != DeviceOpenAction.Web
+                || credentialProfileId is not null || !string.IsNullOrWhiteSpace(usernameOverride)))
+            throw new ArgumentException("A web-only device cannot use terminal credentials.");
+        if (connection.Type == ConnectionType.Ssh && accessMode != DeviceAccessMode.WebOnly
+            && (credentialProfileId is null || credentialProfileId == Guid.Empty))
         {
             throw new ArgumentException("An SSH credential profile is required.", nameof(credentialProfileId));
         }
@@ -80,6 +93,8 @@ public sealed record DeviceProfile
         Name = name.Trim();
         Description = NormalizeOptional(description, 500, nameof(description));
         Connection = connection;
+        AccessMode = accessMode;
+        WebAccess = webAccess;
         DeviceType = deviceType;
         Vendor = NormalizeOptional(vendor, 120, nameof(vendor));
         Model = NormalizeOptional(model, 120, nameof(model));
@@ -106,6 +121,10 @@ public sealed record DeviceProfile
     public ConnectionType ConnectionType => Connection.Type;
 
     public SavedDeviceConnectionSettings Connection { get; }
+
+    public DeviceAccessMode AccessMode { get; }
+
+    public DeviceWebAccessSettings? WebAccess { get; }
 
     public DeviceType DeviceType { get; }
 

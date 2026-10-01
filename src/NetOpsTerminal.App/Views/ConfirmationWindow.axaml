@@ -4,21 +4,55 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     Title="Confirm"
     Width="400"
-    Height="180"
+    Height="190"
     CanResize="False"
+    CanMinimize="False"
+    CanMaximize="False"
+    Icon="/Assets/NetOpsTerminal.ico"
+    WindowDecorations="None"
+    ExtendClientAreaToDecorationsHint="True"
+    TransparencyLevelHint="Transparent"
+    TransparencyBackgroundFallback="{DynamicResource AppWindowBrush}"
+    CornerRadius="12"
+    Background="Transparent"
     ShowInTaskbar="False"
     WindowStartupLocation="CenterOwner">
-  <Grid RowDefinitions="*,Auto">
-    <StackPanel Margin="16" Spacing="8">
-      <TextBlock x:Name="HeadingText" FontSize="17" FontWeight="SemiBold" />
-      <TextBlock x:Name="MessageText" Classes="muted" TextWrapping="Wrap" />
-    </StackPanel>
-    <Border Grid.Row="1" Padding="10" Background="{DynamicResource AppSurfaceBrush}"
-            BorderBrush="{DynamicResource AppBorderBrush}" BorderThickness="0,1,0,0">
-      <StackPanel HorizontalAlignment="Right" Orientation="Horizontal" Spacing="8">
-        <Button x:Name="CancelButton" Classes="toolbar" Click="Cancel_OnClick" Content="Cancel" IsCancel="True" />
-        <Button x:Name="ConfirmButton" Classes="accent" Click="Confirm_OnClick" Content="Confirm" />
-      </StackPanel>
+  <Border Classes="dialog-shell">
+    <Border Classes="dialog-surface">
+      <Grid RowDefinitions="35,*,Auto">
+        <Border Grid.Row="0" Classes="dialog-titlebar"
+                WindowDecorationProperties.ElementRole="TitleBar">
+          <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="8">
+            <Image Classes="dialog-title-icon" Source="/Assets/NetOpsTerminal.ico" />
+            <TextBlock x:Name="TitleText" Grid.Column="1" Classes="dialog-title" Text="Confirm" />
+            <Button Grid.Column="2" Classes="window-caption close-caption"
+                    Width="24" Height="24" VerticalAlignment="Center"
+                    WindowDecorationProperties.ElementRole="User"
+                    Click="Cancel_OnClick" ToolTip.Tip="Close"
+                    AutomationProperties.Name="Close confirmation">
+              <Path Width="8" Height="8" Stretch="Uniform"
+                    Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"
+                    StrokeThickness="1.25" Data="M3,3 L13,13 M13,3 L3,13" />
+            </Button>
+          </Grid>
+        </Border>
+        <ScrollViewer Grid.Row="1">
+          <StackPanel Margin="16" Spacing="8">
+            <TextBlock x:Name="HeadingText" FontSize="16" FontWeight="SemiBold"
+                       TextWrapping="Wrap" />
+            <TextBlock x:Name="MessageText" Classes="muted" TextWrapping="Wrap" />
+          </StackPanel>
+        </ScrollViewer>
+        <Border Grid.Row="2" Padding="10" Background="{DynamicResource AppSurfaceBrush}"
+                BorderBrush="{DynamicResource AppBorderBrush}" BorderThickness="0,1,0,0">
+          <StackPanel HorizontalAlignment="Right" Orientation="Horizontal" Spacing="8">
+            <Button x:Name="CancelButton" Classes="toolbar" Click="Cancel_OnClick"
+                    Content="Cancel" IsCancel="True" />
+            <Button x:Name="ConfirmButton" Classes="accent" Click="Confirm_OnClick"
+                    Content="Confirm" IsDefault="True" />
+          </StackPanel>
+        </Border>
+      </Grid>
     </Border>
-  </Grid>
+  </Border>
 </Window>

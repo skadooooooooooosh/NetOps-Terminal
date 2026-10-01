@@ -9,7 +9,7 @@ public sealed partial class SqliteDatabaseInitializer(
     ILogger<SqliteDatabaseInitializer> logger)
     : IApplicationDatabaseInitializer, IDisposable
 {
-    public const int CurrentSchemaVersion = 4;
+    public const int CurrentSchemaVersion = 6;
 
     private readonly SemaphoreSlim _gate = new(1, 1);
     private bool _initialized;
@@ -73,6 +73,18 @@ public sealed partial class SqliteDatabaseInitializer(
                 version = 4;
             }
 
+            if (version == 4)
+            {
+                await ApplyVersionFiveAsync(connection, cancellationToken).ConfigureAwait(false);
+                version = 5;
+            }
+
+            if (version == 5)
+            {
+                await ApplyVersionSixAsync(connection, cancellationToken).ConfigureAwait(false);
+                version = 6;
+            }
+
             if (startingVersion != version)
             {
                 await ValidateMigratedDatabaseAsync(connection, cancellationToken).ConfigureAwait(false);
@@ -123,6 +135,56 @@ public sealed partial class SqliteDatabaseInitializer(
             throw new InvalidOperationException(
                 "The device database migration did not reach the current schema.");
         }
+    }
+
+    private static async Task ApplyVersionSixAsync(
+        SqliteConnection connection,
+        CancellationToken cancellationToken)
+    {
+        await using SqliteTransaction transaction = (SqliteTransaction)await connection
+            .BeginTransactionAsync(cancellationToken).ConfigureAwait(false);
+        await using SqliteCommand command = connection.CreateCommand();
+        command.Transaction = transaction;
+        command.CommandText = """
+            ALTER TABLE Devices ADD COLUMN AccessMode TEXT NOT NULL DEFAULT 'TerminalOnly';
+            ALTER TABLE Devices ADD COLUMN WebUrl TEXT NULL;
+            ALTER TABLE Devices ADD COLUMN BrowserPreference TEXT NOT NULL DEFAULT 'WindowsDefault';
+            ALTER TABLE Devices ADD COLUMN DefaultOpenAction TEXT NOT NULL DEFAULT 'Terminal';
+            PRAGMA user_version = 6;
+            """;
+        await command.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
+        await transaction.CommitAsync(cancellationToken).ConfigureAwait(false);
+    }
+
+    private static async Task ApplyVersionFiveAsync(
+        SqliteConnection connection,
+        CancellationToken cancellationToken)
+    {
+        await using SqliteCommand columnCheck = connection.CreateCommand();
+        columnCheck.CommandText =
+            "SELECT COUNT(*) FROM pragma_table_info('DeviceGroups') WHERE name = 'ParentGroupId';";
+        bool hasParentColumn = (long)(await columnCheck.ExecuteScalarAsync(cancellationToken)
+            .ConfigureAwait(false) ?? 0L) > 0;
+
+        await using SqliteTransaction transaction = (SqliteTransaction)await connection
+            .BeginTransactionAsync(cancellationToken).ConfigureAwait(false);
+        await using SqliteCommand command = connection.CreateCommand();
+        command.Transaction = transaction;
+        command.CommandText = (hasParentColumn ? string.Empty
+            : "ALTER TABLE DeviceGroups ADD COLUMN ParentGroupId TEXT NULL REFERENCES DeviceGroups(Id) ON DELETE SET NULL;")
+            + """
+            DROP INDEX IF EXISTS IX_DeviceGroups_Site_Name;
+            CREATE UNIQUE INDEX IF NOT EXISTS IX_DeviceGroups_Parent_Name
+                ON DeviceGroups(IFNULL(SiteId, ''), IFNULL(ParentGroupId, ''), Name COLLATE NOCASE);
+            CREATE INDEX IF NOT EXISTS IX_DeviceGroups_ParentId ON DeviceGroups(ParentGroupId);
+            CREATE TABLE IF NOT EXISTS ExplorerOrder (
+                EntityId TEXT PRIMARY KEY NOT NULL,
+                SortPosition INTEGER NOT NULL
+            );
+            PRAGMA user_version = 5;
+            """;
+        await command.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
+        await transaction.CommitAsync(cancellationToken).ConfigureAwait(false);
     }
 
     private static async Task ApplyVersionFourAsync(

@@ -19,6 +19,21 @@ namespace NetOpsTerminal.App.Views;
 
 public sealed partial class MainWindow : ThemedWindow, IDisposable
 {
+    private sealed record ExplorerDragPayload(IReadOnlyList<DeviceExplorerNodeViewModel> Nodes);
+
+    private static readonly DataFormat<ExplorerDragPayload> ExplorerNodeFormat =
+        DataFormat.CreateInProcessFormat<ExplorerDragPayload>("netops-explorer-nodes");
+    private ExplorerDragPayload? _dragCandidate;
+    private DeviceExplorerNodeViewModel? _deviceDropTarget;
+    private static readonly DataFormat<WorkspaceTabViewModel> WorkspaceTabFormat =
+        DataFormat.CreateInProcessFormat<WorkspaceTabViewModel>("netops-workspace-tab");
+    private WorkspaceTabViewModel? _tabDragCandidate;
+    private PointerPressedEventArgs? _tabDragPressEvent;
+    private Point _tabDragStart;
+    private bool _tabDragInProgress;
+    private Point _dragStart;
+    private PointerPressedEventArgs? _dragPressEvent;
+    private bool _dragInProgress;
     private bool _isResizingSidebar;
     private Point _resizeStartPoint;
     private double _resizeStartWidth;
@@ -28,16 +43,35 @@ public sealed partial class MainWindow : ThemedWindow, IDisposable
     private readonly ISerialPortCatalog? _serialPortCatalog;
     private readonly IDeviceTransferService? _deviceTransferService;
     private readonly ISessionLogsFolderOpener? _sessionLogsFolderOpener;
+    private readonly IDeviceWebAccessService? _deviceWebAccessService;
     private CancellationTokenSource? _deviceSearchCancellation;
 
     public MainWindow()
     {
         InitializeComponent();
+        DeviceTree.AddHandler(
+            InputElement.PointerPressedEvent, DeviceTree_OnPointerPressed,
+            RoutingStrategies.Tunnel, handledEventsToo: true);
+        DeviceTree.AddHandler(
+            InputElement.PointerMovedEvent, DeviceTree_OnPointerMoved,
+            RoutingStrategies.Tunnel, handledEventsToo: true);
+        DeviceTree.AddHandler(
+            InputElement.PointerReleasedEvent, DeviceTree_OnPointerReleased,
+            RoutingStrategies.Tunnel, handledEventsToo: true);
         SettingsPanel.ImportDevicesRequested += ImportDevices_OnRequested;
         SettingsPanel.ExportDevicesRequested += ExportDevices_OnRequested;
         SettingsPanel.ExcelTemplateRequested += ExcelTemplate_OnRequested;
         SettingsPanel.OpenLogsFolderRequested += OpenLogsFolder_OnRequested;
         TerminalTabsControl.SelectionChanged += TerminalTabs_OnSelectionChanged;
+        TerminalTabsControl.AddHandler(
+            InputElement.PointerPressedEvent, TerminalTabs_OnPointerPressed,
+            RoutingStrategies.Tunnel, handledEventsToo: true);
+        TerminalTabsControl.AddHandler(
+            InputElement.PointerMovedEvent, TerminalTabs_OnPointerMoved,
+            RoutingStrategies.Tunnel, handledEventsToo: true);
+        TerminalTabsControl.AddHandler(
+            InputElement.PointerReleasedEvent, TerminalTabs_OnPointerReleased,
+            RoutingStrategies.Tunnel, handledEventsToo: true);
         Activated += MainWindow_OnActivated;
         AddHandler(
             InputElement.KeyDownEvent,
@@ -73,7 +107,8 @@ public sealed partial class MainWindow : ThemedWindow, IDisposable
         ICredentialProfileService? credentialProfileService,
         ISerialPortCatalog? serialPortCatalog,
         IDeviceTransferService? deviceTransferService = null,
-        ISessionLogsFolderOpener? sessionLogsFolderOpener = null)
+        ISessionLogsFolderOpener? sessionLogsFolderOpener = null,
+        IDeviceWebAccessService? deviceWebAccessService = null)
         : this()
     {
         DataContext = viewModel;
@@ -81,6 +116,7 @@ public sealed partial class MainWindow : ThemedWindow, IDisposable
         _serialPortCatalog = serialPortCatalog;
         _deviceTransferService = deviceTransferService;
         _sessionLogsFolderOpener = sessionLogsFolderOpener;
+        _deviceWebAccessService = deviceWebAccessService;
         Opened += MainWindow_OnOpened;
     }
 
@@ -107,6 +143,155 @@ public sealed partial class MainWindow : ThemedWindow, IDisposable
     private void TerminalTabs_OnSelectionChanged(object? sender, SelectionChangedEventArgs e)
     {
         RequestSelectedTerminalFocus();
+    }
+
+    private void TerminalTabs_OnPointerPressed(object? sender, PointerPressedEventArgs e)
+    {
+        _tabDragCandidate = null;
+        _tabDragPressEvent = null;
+        if (DataContext is not MainWindowViewModel { WorkspaceTabs.Count: > 1 }
+            || !e.GetCurrentPoint(TerminalTabsControl).Properties.IsLeftButtonPressed
+            || IsWithinTabButton(e.Source)
+            || FindTabItem(e.Source)?.DataContext is not WorkspaceTabViewModel tab)
+            return;
+
+        _tabDragCandidate = tab;
+        _tabDragPressEvent = e;
+        _tabDragStart = e.GetPosition(TerminalTabsControl);
+    }
+
+    private async void TerminalTabs_OnPointerMoved(object? sender, PointerEventArgs e)
+    {
+        if (_tabDragInProgress
+            || _tabDragCandidate is not { } tab
+            || _tabDragPressEvent is not { } pressEvent
+            || !e.GetCurrentPoint(TerminalTabsControl).Properties.IsLeftButtonPressed
+            || Math.Abs(e.GetPosition(TerminalTabsControl).X - _tabDragStart.X) < 6
+                && Math.Abs(e.GetPosition(TerminalTabsControl).Y - _tabDragStart.Y) < 6)
+            return;
+
+        _tabDragCandidate = null;
+        _tabDragPressEvent = null;
+        _tabDragInProgress = true;
+        try
+        {
+            var transfer = new DataTransfer();
+            transfer.Add(DataTransferItem.Create(WorkspaceTabFormat, tab));
+            await DragDrop.DoDragDropAsync(pressEvent, transfer, DragDropEffects.Move);
+        }
+        catch (Exception exception)
+        {
+            await new ConnectionErrorWindow(
+                "The tab could not be dragged.", exception.Message).ShowDialog(this);
+        }
+        finally
+        {
+            ClearTabDropIndicators();
+            _tabDragInProgress = false;
+        }
+    }
+
+    private void TerminalTabs_OnPointerReleased(object? sender, PointerReleasedEventArgs e)
+    {
+        _tabDragCandidate = null;
+        _tabDragPressEvent = null;
+    }
+
+    private void TerminalTab_OnDragOver(object? sender, DragEventArgs e)
+    {
+        WorkspaceTabViewModel? source = e.DataTransfer.TryGetValue(WorkspaceTabFormat);
+        TabItem? item = FindTabDropTarget(e);
+        WorkspaceTabViewModel? target = item?.DataContext as WorkspaceTabViewModel;
+        bool insertAfter = item is not null
+            && e.GetPosition(item).X >= item.Bounds.Width / 2;
+        if (source is not null && target is not null
+            && DataContext is MainWindowViewModel viewModel
+            && viewModel.CanMoveWorkspaceTab(source, target, insertAfter))
+        {
+            ShowTabDropIndicator(target, insertAfter);
+            e.DragEffects = DragDropEffects.Move;
+        }
+        else
+        {
+            ClearTabDropIndicators();
+            e.DragEffects = DragDropEffects.None;
+        }
+        e.Handled = true;
+    }
+
+    private void TerminalTab_OnDragLeave(object? sender, DragEventArgs e)
+    {
+        ClearTabDropIndicators();
+    }
+
+    private async void TerminalTab_OnDrop(object? sender, DragEventArgs e)
+    {
+        WorkspaceTabViewModel? source = e.DataTransfer.TryGetValue(WorkspaceTabFormat);
+        TabItem? item = FindTabDropTarget(e);
+        WorkspaceTabViewModel? target = item?.DataContext as WorkspaceTabViewModel;
+        bool insertAfter = item is not null
+            && e.GetPosition(item).X >= item.Bounds.Width / 2;
+        ClearTabDropIndicators();
+        if (source is null || target is null
+            || DataContext is not MainWindowViewModel viewModel
+            || !viewModel.CanMoveWorkspaceTab(source, target, insertAfter))
+            return;
+
+        e.Handled = true;
+        e.DragEffects = DragDropEffects.Move;
+        try
+        {
+            await viewModel.MoveWorkspaceTabAsync(source, target, insertAfter);
+            TerminalTabsControl.SelectedItem = source;
+        }
+        catch (Exception exception)
+        {
+            await new ConnectionErrorWindow(
+                "The tab could not be moved.", exception.Message).ShowDialog(this);
+        }
+    }
+
+    private TabItem? FindTabDropTarget(DragEventArgs e)
+        => FindTabItem(e.Source)
+            ?? FindTabItem(TerminalTabsControl.InputHitTest(
+                e.GetPosition(TerminalTabsControl)));
+
+    private static TabItem? FindTabItem(object? source)
+    {
+        Visual? visual = source as Visual;
+        return visual as TabItem
+            ?? visual?.GetVisualAncestors().OfType<TabItem>().FirstOrDefault();
+    }
+
+    private static bool IsWithinTabButton(object? source)
+    {
+        Visual? visual = source as Visual;
+        return visual is Button
+            || visual?.GetVisualAncestors()
+                .TakeWhile(ancestor => ancestor is not TabItem)
+                .OfType<Button>().Any() == true;
+    }
+
+    private void ShowTabDropIndicator(WorkspaceTabViewModel target, bool insertAfter)
+    {
+        if (DataContext is not MainWindowViewModel viewModel)
+            return;
+        foreach (WorkspaceTabViewModel tab in viewModel.WorkspaceTabs)
+        {
+            tab.IsDropBefore = ReferenceEquals(tab, target) && !insertAfter;
+            tab.IsDropAfter = ReferenceEquals(tab, target) && insertAfter;
+        }
+    }
+
+    private void ClearTabDropIndicators()
+    {
+        if (DataContext is not MainWindowViewModel viewModel)
+            return;
+        foreach (WorkspaceTabViewModel tab in viewModel.WorkspaceTabs)
+        {
+            tab.IsDropBefore = false;
+            tab.IsDropAfter = false;
+        }
     }
 
     private void RequestSelectedTerminalFocus()
@@ -152,15 +337,19 @@ public sealed partial class MainWindow : ThemedWindow, IDisposable
         await OpenQuickConnectAsync();
     }
 
-    private async Task OpenQuickConnectAsync()
+    private async Task OpenQuickConnectAsync(TerminalPaneViewModel? targetPane = null)
     {
         var dialog = new QuickConnectWindow(_serialPortCatalog);
         TerminalSessionRequest? request = await dialog.ShowDialog<TerminalSessionRequest?>(this);
         if (request is not null && DataContext is MainWindowViewModel viewModel)
         {
-            await viewModel.OpenRemoteAsync(request);
+            await viewModel.OpenRemoteAsync(
+                request, dialog.BackspaceSendsControlH, dialog.BackspaceSendsDelete, targetPane);
         }
     }
+
+    internal Task RetryQuickConnectAsync(TerminalPaneViewModel pane) =>
+        OpenQuickConnectAsync(pane);
 
     private async void MainWindow_OnKeyDown(object? sender, KeyEventArgs e)
     {
@@ -380,9 +569,9 @@ public sealed partial class MainWindow : ThemedWindow, IDisposable
             await ShowTransferResultAsync("Import complete",
                 $"{result.ImportedCount} added, {result.UpdatedCount} updated, {result.SkippedCount} skipped, {result.CredentialRequiredCount} require credentials.");
         }
-        catch (Exception exception) when (exception is IOException or JsonException or InvalidDataException or ArgumentException or InvalidOperationException)
+        catch (Exception exception)
         {
-            await new ConnectionErrorWindow("Devices could not be imported.", exception.Message).ShowDialog(this);
+            await new ConnectionErrorWindow("Devices could not be imported.", $"{exception.GetType().Name}: {exception.Message}", "Device import failed").ShowDialog(this);
         }
     }
 
@@ -667,14 +856,15 @@ public sealed partial class MainWindow : ThemedWindow, IDisposable
         {
             bool createCredential = await new ConfirmationWindow(
                 "SSH credential profile",
-                "SSH saved devices need a Windows-protected credential profile. Create one now, or continue to add a Telnet, Serial, or Raw TCP device.",
+                "SSH saved devices need a Windows-protected credential profile. Create one now, or continue to add a web, Telnet, Serial, or Raw TCP device.",
                 "Create credential",
-                "Choose other protocol").ShowDialog<bool>(this);
+                "Continue without credential").ShowDialog<bool>(this);
             if (createCredential && !await CreateCredentialForDeviceAsync(viewModel))
                 return;
         }
 
-        var editor = new DeviceEditorWindow(null, viewModel.DeviceExplorer.Credentials, _serialPortCatalog);
+        var editor = new DeviceEditorWindow(null, viewModel.DeviceExplorer.Credentials,
+            _serialPortCatalog, _deviceWebAccessService);
         DeviceEditRequest? request = await editor.ShowDialog<DeviceEditRequest?>(this);
         if (request is not null)
         {
@@ -685,13 +875,15 @@ public sealed partial class MainWindow : ThemedWindow, IDisposable
     private async void EditDevice_OnClick(object? sender, RoutedEventArgs e)
     {
         if (DataContext is not MainWindowViewModel viewModel
+            || !viewModel.DeviceExplorer.HasSelectedDevice
             || viewModel.DeviceExplorer.SelectedDevice is not { } device)
         {
             return;
         }
 
         DeviceEditRequest existing = viewModel.DeviceExplorer.CreateEditRequest(device);
-        var editor = new DeviceEditorWindow(existing, viewModel.DeviceExplorer.Credentials, _serialPortCatalog);
+        var editor = new DeviceEditorWindow(existing, viewModel.DeviceExplorer.Credentials,
+            _serialPortCatalog, _deviceWebAccessService);
         DeviceEditRequest? request = await editor.ShowDialog<DeviceEditRequest?>(this);
         if (request is not null)
         {
@@ -699,18 +891,281 @@ public sealed partial class MainWindow : ThemedWindow, IDisposable
         }
     }
 
-    private async void DeleteDevice_OnClick(object? sender, RoutedEventArgs e)
+    private async void CreateSite_OnClick(object? sender, RoutedEventArgs e)
+    {
+        if (DataContext is not MainWindowViewModel viewModel || !viewModel.DeviceExplorer.CanOrganize)
+            return;
+        string? name = await new ExplorerNameWindow(true, string.Empty).ShowDialog<string?>(this);
+        if (name is null)
+            return;
+        try
+        {
+            await viewModel.DeviceExplorer.CreateSiteAsync(name);
+        }
+        catch (Exception exception)
+        {
+            await new ConnectionErrorWindow(
+                "The site could not be created.", exception.Message).ShowDialog(this);
+        }
+    }
+
+    private async void CreateFolder_OnClick(object? sender, RoutedEventArgs e)
+    {
+        if (DataContext is not MainWindowViewModel viewModel || !viewModel.DeviceExplorer.CanOrganize)
+            return;
+        DeviceExplorerNodeViewModel? parent = viewModel.DeviceExplorer.SelectedNode;
+        if (parent?.SiteId is null)
+        {
+            await new ConnectionErrorWindow(
+                "Select a site first.",
+                "Choose a site or a device within that site to create an Organization folder.")
+                .ShowDialog(this);
+            return;
+        }
+        string location = viewModel.DeviceExplorer.GetFolderLocation(parent);
+        string? name = await new ExplorerNameWindow(false, location).ShowDialog<string?>(this);
+        if (name is null)
+            return;
+        try
+        {
+            await viewModel.DeviceExplorer.CreateFolderAsync(name, parent);
+        }
+        catch (Exception exception)
+        {
+            await new ConnectionErrorWindow(
+                "The folder could not be created.", exception.Message).ShowDialog(this);
+        }
+    }
+
+    private async void SortExplorerAlphabetically_OnClick(object? sender, RoutedEventArgs e)
     {
         if (DataContext is not MainWindowViewModel viewModel
-            || viewModel.DeviceExplorer.SelectedDevice is not { } device)
+            || !viewModel.DeviceExplorer.CanSortSelectedAlphabetically)
+            return;
+        try
+        {
+            await viewModel.DeviceExplorer.SortSelectedAlphabeticallyAsync();
+        }
+        catch (Exception exception)
+        {
+            await new ConnectionErrorWindow(
+                "The device order could not be reset.", exception.Message).ShowDialog(this);
+        }
+    }
+
+    private async void DeleteEmptyFolder_OnClick(object? sender, RoutedEventArgs e)
+    {
+        if (DataContext is not MainWindowViewModel viewModel
+            || viewModel.DeviceExplorer.SelectedNode is not { } node
+            || node.Kind == DeviceExplorerNodeKind.Device
+            || node.Kind == DeviceExplorerNodeKind.Site && node.SiteId is null)
+            return;
+        string kind = node.Kind == DeviceExplorerNodeKind.Site ? "site" : "folder";
+        bool confirmed = await new ConfirmationWindow(
+            $"Delete empty {kind}?",
+            $"Delete \"{node.Label}\"? Move devices out of this site or folder first.",
+            $"Delete {kind}").ShowDialog<bool>(this);
+        if (!confirmed)
+            return;
+        try
+        {
+            await viewModel.DeviceExplorer.DeleteEmptyNodeAsync(node);
+        }
+        catch (Exception exception)
+        {
+            await new ConnectionErrorWindow(
+                $"The {kind} could not be deleted.", exception.Message).ShowDialog(this);
+        }
+    }
+
+    private void DeviceTree_OnPointerPressed(object? sender, PointerPressedEventArgs e)
+    {
+        _dragCandidate = null;
+        _dragPressEvent = null;
+        TreeViewItem? item = FindDeviceTreeItem(e.Source);
+        if (DataContext is not MainWindowViewModel viewModel)
+            return;
+        if (item?.DataContext is not DeviceExplorerNodeViewModel node)
+        {
+            if (e.GetCurrentPoint(DeviceTree).Properties.IsRightButtonPressed)
+            {
+                DeviceTree.SelectedItems.Clear();
+                DeviceTree.SelectedItem = null;
+                viewModel.DeviceExplorer.SetSelectedNodes([]);
+                viewModel.DeviceExplorer.SelectedNode = null;
+            }
+            return;
+        }
+        if (e.GetCurrentPoint(DeviceTree).Properties.IsRightButtonPressed)
+        {
+            DeviceTree.SelectedItem = node;
+            viewModel.DeviceExplorer.SelectedNode = node;
+            viewModel.DeviceExplorer.SetSelectedNodes([node]);
+            return;
+        }
+        if (!viewModel.DeviceExplorer.CanOrganize
+            || !e.GetCurrentPoint(DeviceTree).Properties.IsLeftButtonPressed)
+            return;
+        IReadOnlyList<DeviceExplorerNodeViewModel> selected =
+            DeviceTree.SelectedItems.OfType<DeviceExplorerNodeViewModel>().ToArray();
+        _dragCandidate = new ExplorerDragPayload(
+            viewModel.DeviceExplorer.GetDragSources(node, selected));
+        _dragPressEvent = e;
+        _dragStart = e.GetPosition(DeviceTree);
+    }
+
+    private async void DeviceTree_OnPointerMoved(object? sender, PointerEventArgs e)
+    {
+        if (_dragInProgress || _dragCandidate is not { } payload || _dragPressEvent is not { } pressEvent
+            || !e.GetCurrentPoint(DeviceTree).Properties.IsLeftButtonPressed
+            || Math.Abs(e.GetPosition(DeviceTree).X - _dragStart.X) < 6
+                && Math.Abs(e.GetPosition(DeviceTree).Y - _dragStart.Y) < 6)
+            return;
+        _dragCandidate = null;
+        _dragPressEvent = null;
+        _dragInProgress = true;
+        try
+        {
+            var transfer = new DataTransfer();
+            transfer.Add(DataTransferItem.Create(ExplorerNodeFormat, payload));
+            await DragDrop.DoDragDropAsync(pressEvent, transfer, DragDropEffects.Move);
+        }
+        catch (Exception exception)
+        {
+            await new ConnectionErrorWindow(
+                "The drag could not start.", exception.Message).ShowDialog(this);
+        }
+        finally
+        {
+            ClearDeviceDropIndicator();
+            _dragInProgress = false;
+        }
+    }
+
+    private void DeviceTree_OnPointerReleased(object? sender, PointerReleasedEventArgs e)
+    {
+        _dragCandidate = null;
+        _dragPressEvent = null;
+    }
+
+    private void DeviceNode_OnDragOver(object? sender, DragEventArgs e)
+    {
+        ExplorerDragPayload? payload = e.DataTransfer.TryGetValue(ExplorerNodeFormat);
+        TreeViewItem? item = FindDropTarget(e);
+        DeviceExplorerNodeViewModel? target = item?.DataContext as DeviceExplorerNodeViewModel;
+        if (payload is not null && target is not null && item is not null
+            && DataContext is MainWindowViewModel viewModel
+            && viewModel.DeviceExplorer.CanDrop(payload.Nodes, target))
+        {
+            bool intoFolder = target.Kind != DeviceExplorerNodeKind.Device
+                && payload.Nodes.All(source => source.Kind == DeviceExplorerNodeKind.Device);
+            bool insertAfter = e.GetPosition(item).Y >= item.Bounds.Height / 2;
+            ShowDeviceDropIndicator(target, intoFolder, insertAfter);
+            e.DragEffects = DragDropEffects.Move;
+        }
+        else
+        {
+            ClearDeviceDropIndicator();
+            e.DragEffects = DragDropEffects.None;
+        }
+        e.Handled = true;
+    }
+
+    private void DeviceNode_OnDragLeave(object? sender, DragEventArgs e)
+    {
+        ClearDeviceDropIndicator();
+    }
+
+    private void ShowDeviceDropIndicator(
+        DeviceExplorerNodeViewModel target, bool intoFolder, bool insertAfter)
+    {
+        if (!ReferenceEquals(_deviceDropTarget, target))
+            ClearDeviceDropIndicator();
+        _deviceDropTarget = target;
+        target.IsDropInto = intoFolder;
+        target.IsDropBefore = !intoFolder && !insertAfter;
+        target.IsDropAfter = !intoFolder && insertAfter;
+    }
+
+    private void ClearDeviceDropIndicator()
+    {
+        if (_deviceDropTarget is not { } target)
+            return;
+        target.IsDropBefore = false;
+        target.IsDropAfter = false;
+        target.IsDropInto = false;
+        _deviceDropTarget = null;
+    }
+
+    private async void DeviceNode_OnDrop(object? sender, DragEventArgs e)
+    {
+        ExplorerDragPayload? payload = e.DataTransfer.TryGetValue(ExplorerNodeFormat);
+        TreeViewItem? item = FindDropTarget(e);
+        ClearDeviceDropIndicator();
+        if (item?.DataContext is not DeviceExplorerNodeViewModel target
+            || payload is null
+            || DataContext is not MainWindowViewModel viewModel
+            || !viewModel.DeviceExplorer.CanDrop(payload.Nodes, target))
+            return;
+        e.Handled = true;
+        e.DragEffects = DragDropEffects.Move;
+        bool insertAfter = e.GetPosition(item).Y >= item.Bounds.Height / 2;
+        try
+        {
+            await viewModel.DeviceExplorer.MoveOrReorderAsync(payload.Nodes, target, insertAfter);
+        }
+        catch (Exception exception)
+        {
+            await viewModel.DeviceExplorer.RefreshAsync();
+            await new ConnectionErrorWindow(
+                "The device or folder could not be moved.", exception.Message).ShowDialog(this);
+        }
+    }
+
+    private TreeViewItem? FindDropTarget(DragEventArgs e)
+    {
+        TreeViewItem? item = FindDeviceTreeItem(e.Source);
+        if (item is not null)
+            return item;
+        return FindDeviceTreeItem(DeviceTree.InputHitTest(e.GetPosition(DeviceTree)));
+    }
+
+    private static TreeViewItem? FindDeviceTreeItem(object? source)
+    {
+        Visual? visual = source as Visual;
+        return visual as TreeViewItem
+            ?? visual?.GetVisualAncestors().OfType<TreeViewItem>().FirstOrDefault();
+    }
+
+    private void DeviceTree_OnSelectionChanged(object? sender, SelectionChangedEventArgs e)
+    {
+        if (DataContext is MainWindowViewModel viewModel)
+        {
+            viewModel.DeviceExplorer.SetSelectedNodes(
+                DeviceTree.SelectedItems.OfType<DeviceExplorerNodeViewModel>().ToArray());
+        }
+    }
+
+    private async void DeleteDevice_OnClick(object? sender, RoutedEventArgs e)
+    {
+        if (DataContext is not MainWindowViewModel viewModel)
         {
             return;
         }
 
+        IReadOnlyList<Guid> deviceIds = viewModel.DeviceExplorer.GetSelectedDeviceIds();
+        if (deviceIds.Count == 0)
+        {
+            return;
+        }
+
+        bool single = deviceIds.Count == 1;
+        string heading = single ? "Delete saved device?" : $"Delete {deviceIds.Count} saved devices?";
+        string message = single
+            ? $"Delete \"{viewModel.DeviceExplorer.SelectedDevice?.Name ?? "the selected device"}\" and its recent-session metadata? Its credential profile will remain available."
+            : $"Delete these {deviceIds.Count} devices and their recent-session metadata? Credential profiles will remain available.";
         bool confirmed = await new ConfirmationWindow(
-            "Delete saved device?",
-            $"Delete “{device.Name}” and its recent-session metadata? Its credential profile will remain available.",
-            "Delete device").ShowDialog<bool>(this);
+            heading, message, single ? "Delete device" : "Delete devices").ShowDialog<bool>(this);
         if (!confirmed)
         {
             return;
@@ -718,23 +1173,38 @@ public sealed partial class MainWindow : ThemedWindow, IDisposable
 
         try
         {
-            await viewModel.DeviceExplorer.DeleteSelectedAsync();
+            await viewModel.DeviceExplorer.DeleteDevicesAsync(deviceIds);
         }
         catch (Exception exception)
         {
+            await viewModel.DeviceExplorer.RefreshAsync();
             await new ConnectionErrorWindow(
-                "The saved device could not be deleted.",
+                "The selected devices could not all be deleted. Check the refreshed list before retrying.",
                 exception.GetType().Name).ShowDialog(this);
         }
     }
 
     private async void ConnectSavedDevice_OnClick(object? sender, RoutedEventArgs e)
     {
-        if (DataContext is MainWindowViewModel viewModel)
+        if (DataContext is MainWindowViewModel viewModel
+            && viewModel.DeviceExplorer.HasSelectedDevice)
         {
             await viewModel.OpenSelectedSavedDeviceAsync();
-            viewModel.CloseDeviceExplorerUnlessPinned();
         }
+    }
+
+    private async void OpenSavedTerminal_OnClick(object? sender, RoutedEventArgs e)
+    {
+        if (DataContext is MainWindowViewModel viewModel
+            && viewModel.DeviceExplorer.CanOpenSelectedTerminal)
+            await viewModel.OpenSelectedSavedTerminalAsync();
+    }
+
+    private async void OpenSavedWeb_OnClick(object? sender, RoutedEventArgs e)
+    {
+        if (DataContext is MainWindowViewModel viewModel
+            && viewModel.DeviceExplorer.CanOpenSelectedWeb)
+            await viewModel.OpenSelectedWebInterfaceAsync();
     }
 
     private async void DeviceTree_OnDoubleTapped(object? sender, TappedEventArgs e)
@@ -744,7 +1214,6 @@ public sealed partial class MainWindow : ThemedWindow, IDisposable
         {
             e.Handled = true;
             await viewModel.OpenSelectedSavedDeviceAsync();
-            viewModel.CloseDeviceExplorerUnlessPinned();
         }
     }
 
@@ -756,7 +1225,6 @@ public sealed partial class MainWindow : ThemedWindow, IDisposable
         {
             e.Handled = true;
             await viewModel.OpenSelectedSavedDeviceAsync();
-            viewModel.CloseDeviceExplorerUnlessPinned();
         }
     }
 

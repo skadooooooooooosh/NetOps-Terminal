@@ -1,6 +1,6 @@
 # NetOps Terminal
 
-**Version 1.0.0** — a Windows desktop terminal workspace for managing local shells and network device sessions.
+**Version 1.1.0** — a Windows desktop terminal workspace for managing local shells and network device sessions.
 
 ## Connections
 
@@ -17,9 +17,14 @@ Telnet and Raw TCP send data without encryption. Use them only on networks you t
 
 Quick Connect, saved devices and groups, Favorites and Recent, credential profiles protected by Windows Credential Manager, terminal tabs and split panes, reconnect and disconnect, terminal search, optional output logging, Input Lock, keyboard shortcuts, and a dark Device Explorer workspace. Device import and export support JSON and Excel; CSV import is also supported. Passwords and trusted host keys are excluded from device exports.
 
+## What's new in 1.1.0
+
+Saved devices can open a CLI session, an external web interface, or both. The editor shows protocol settings only for CLI modes and lets dual-access devices choose their default action. Device Explorer supports site folders, manual ordering, moving several selected devices, and bulk deletion. Terminal tabs can be rearranged, and each connection attempt has its own visible tab. Excel import templates list the accepted access and browser choices. See [CHANGELOG.md](CHANGELOG.md) for the full update.
+
+Upgrading saved-device metadata to SQLite schema 6 is forward-only. Back up your application data before upgrading if you may need to return to v1.0.0; that release cannot read the upgraded database.
 ## Install
 
-Open the [v1.0.0 GitHub Release](https://github.com/skadooooooooooosh/NetOps-Terminal/releases/tag/v1.0.0) and expand **Assets**. Download [NetOpsTerminal-1.0.0-win-x64.msi](https://github.com/skadooooooooooosh/NetOps-Terminal/releases/download/v1.0.0/NetOpsTerminal-1.0.0-win-x64.msi) and its SHA256 sidecar, then check the MSI hash before running it. GitHub sign-in and repository access are required while the repository is private. The installer includes the .NET runtime, defaults to Program Files, and asks for administrator approval. It can create Desktop and Start menu shortcuts. The MSI is unsigned, so Windows may show a publisher warning.
+Open the [v1.1.0 GitHub Release](https://github.com/skadooooooooooosh/NetOps-Terminal/releases/tag/v1.1.0) and expand **Assets**. Download [NetOpsTerminal-1.1.0-win-x64.msi](https://github.com/skadooooooooooosh/NetOps-Terminal/releases/download/v1.1.0/NetOpsTerminal-1.1.0-win-x64.msi) and its SHA256 sidecar, then check the MSI hash before running it. GitHub sign-in and repository access are required while the repository is private. Close NetOps Terminal before upgrading. The installer includes the .NET runtime, defaults to Program Files, and asks for administrator approval. It can create Desktop and Start menu shortcuts. The MSI is unsigned, so Windows may show a publisher warning.
 
 The portable Windows x64 ZIP is also available for users who do not need an installer. See [Version 1 release guidance](docs/RELEASE_V1.md) for install and uninstall details.
 

@@ -36,6 +36,7 @@ public sealed class SshHostKeyProbe : ISshHostKeyProbe
             {
                 Timeout = TimeSpan.FromSeconds(options.ConnectTimeoutSeconds),
             };
+            SshKeyExchangePreference.Apply(connectionInfo);
             using var client = new SshClient(connectionInfo);
             SshHostKey? presentedKey = null;
 

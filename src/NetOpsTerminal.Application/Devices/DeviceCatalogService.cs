@@ -12,6 +12,7 @@ public sealed partial class DeviceCatalogService(
     IDeviceRepository deviceRepository,
     ISiteRepository siteRepository,
     IDeviceGroupRepository groupRepository,
+    IExplorerOrderRepository explorerOrderRepository,
     ICredentialProfileRepository credentialRepository,
     IRecentDeviceRepository recentDeviceRepository,
     ILogger<DeviceCatalogService> logger)
@@ -62,6 +63,8 @@ public sealed partial class DeviceCatalogService(
         IReadOnlyList<DeviceGroup> groups = await groupRepository
             .GetAllAsync(cancellationToken)
             .ConfigureAwait(false);
+        IReadOnlyDictionary<Guid, int> explorerOrder = await explorerOrderRepository
+            .LoadAsync(cancellationToken).ConfigureAwait(false);
         IReadOnlyList<CredentialProfile> credentials = await credentialRepository
             .GetAllAsync(cancellationToken)
             .ConfigureAwait(false);
@@ -113,7 +116,8 @@ public sealed partial class DeviceCatalogService(
             recentIds,
             allDevices.Count,
             allDevices.Count(device => device.IsFavorite),
-            recentIds.Count(allDeviceIds.Contains));
+            recentIds.Count(allDeviceIds.Contains),
+            explorerOrder);
     }
 
     public async Task SaveAsync(DeviceEditRequest request, CancellationToken cancellationToken)
@@ -122,7 +126,7 @@ public sealed partial class DeviceCatalogService(
         await InitializeAsync(cancellationToken).ConfigureAwait(false);
 
         CredentialProfile? credential = null;
-        if (request.ConnectionType == ConnectionType.Ssh)
+        if (request.ConnectionType == ConnectionType.Ssh && request.AccessMode != DeviceAccessMode.WebOnly)
         {
             if (request.CredentialProfileId is not { } credentialId)
                 throw new InvalidOperationException("Select an existing SSH credential profile.");
@@ -137,18 +141,31 @@ public sealed partial class DeviceCatalogService(
             throw new ArgumentException("Only SSH devices can use saved credentials or a username override.");
         }
 
-        SavedDeviceConnectionSettings connection = CreateConnection(request);
+        SavedDeviceConnectionSettings connection = request.AccessMode == DeviceAccessMode.WebOnly
+            ? CreateWebPlaceholderConnection(request.WebAccess)
+            : CreateConnection(request);
+        if (!string.IsNullOrWhiteSpace(request.GroupName))
+        {
+            if (request.GroupName.Contains('/'))
+                throw new ArgumentException("Choose one Organization folder within a site.");
+            if (string.IsNullOrWhiteSpace(request.SiteName))
+                throw new ArgumentException("Choose a site before entering an Organization folder.");
+        }
 
         Site? site = string.IsNullOrWhiteSpace(request.SiteName)
             ? null
             : await siteRepository
                 .GetOrCreateAsync(request.SiteName, cancellationToken)
                 .ConfigureAwait(false);
-        DeviceGroup? group = string.IsNullOrWhiteSpace(request.GroupName)
-            ? null
-            : await groupRepository
-                .GetOrCreateAsync(request.GroupName, site?.Id, cancellationToken)
-                .ConfigureAwait(false);
+        DeviceGroup? group = null;
+        if (!string.IsNullOrWhiteSpace(request.GroupName))
+        {
+            string folderName = request.GroupName.Trim();
+            if (site is null)
+                throw new ArgumentException("Choose a site before entering an Organization folder.");
+            group = await groupRepository.GetOrCreateAsync(
+                folderName, site.Id, cancellationToken).ConfigureAwait(false);
+        }
 
         DateTimeOffset now = DateTimeOffset.UtcNow;
         DeviceProfile? existing = request.Id is { } id
@@ -171,9 +188,103 @@ public sealed partial class DeviceCatalogService(
             request.Notes,
             existing?.CreatedAtUtc ?? now,
             now,
-            existing?.LastConnectedAtUtc);
+            existing?.LastConnectedAtUtc,
+            request.AccessMode,
+            request.WebAccess);
         await deviceRepository.SaveAsync(device, cancellationToken).ConfigureAwait(false);
         LogDeviceSaved(logger, device.Id, device.ConnectionType, device.Environment);
+    }
+
+    public async Task<Site> CreateSiteAsync(string name, CancellationToken cancellationToken)
+    {
+        await InitializeAsync(cancellationToken).ConfigureAwait(false);
+        string normalized = new Site(Guid.NewGuid(), name).Name;
+        if ((await siteRepository.GetAllAsync(cancellationToken).ConfigureAwait(false))
+            .Any(site => string.Equals(site.Name, normalized, StringComparison.OrdinalIgnoreCase)))
+            throw new ArgumentException("A site with that name already exists.", nameof(name));
+        return await siteRepository.GetOrCreateAsync(normalized, cancellationToken).ConfigureAwait(false);
+    }
+
+    public async Task DeleteEmptySiteAsync(Guid id, CancellationToken cancellationToken)
+    {
+        await InitializeAsync(cancellationToken).ConfigureAwait(false);
+        await siteRepository.DeleteEmptyAsync(id, cancellationToken).ConfigureAwait(false);
+    }
+
+    public async Task DeleteEmptyFolderAsync(Guid id, CancellationToken cancellationToken)
+    {
+        await InitializeAsync(cancellationToken).ConfigureAwait(false);
+        await groupRepository.DeleteEmptyAsync(id, cancellationToken).ConfigureAwait(false);
+    }
+
+    public async Task<DeviceGroup> CreateFolderAsync(
+        string name, Guid? siteId, Guid? parentGroupId, CancellationToken cancellationToken)
+    {
+        await InitializeAsync(cancellationToken).ConfigureAwait(false);
+        string normalized = new DeviceGroup(Guid.NewGuid(), name, siteId, parentGroupId).Name;
+        if (normalized.Contains('/'))
+            throw new ArgumentException("Folder names cannot contain a slash.", nameof(name));
+        if (siteId is not { } id
+            || (await siteRepository.GetAllAsync(cancellationToken).ConfigureAwait(false))
+                .All(site => site.Id != id))
+            throw new ArgumentException("Choose an existing site.", nameof(siteId));
+        if (parentGroupId is not null)
+            throw new ArgumentException("Organization folders belong directly to a site.", nameof(parentGroupId));
+        IReadOnlyList<DeviceGroup> groups = await groupRepository
+            .GetAllAsync(cancellationToken).ConfigureAwait(false);
+        if (groups.Any(group => group.SiteId == siteId && group.ParentGroupId is null
+            && string.Equals(group.Name, normalized, StringComparison.OrdinalIgnoreCase)))
+            throw new ArgumentException("A folder with that name already exists here.", nameof(name));
+        return await groupRepository.GetOrCreateAsync(
+            normalized, siteId, cancellationToken).ConfigureAwait(false);
+    }
+
+    public async Task MoveDeviceAsync(
+        Guid deviceId, Guid? siteId, Guid? groupId, CancellationToken cancellationToken)
+    {
+        await InitializeAsync(cancellationToken).ConfigureAwait(false);
+        DeviceProfile device = await deviceRepository.GetAsync(deviceId, cancellationToken).ConfigureAwait(false)
+            ?? throw new ArgumentException("The selected device no longer exists.", nameof(deviceId));
+        if (siteId is { } id
+            && (await siteRepository.GetAllAsync(cancellationToken).ConfigureAwait(false))
+                .All(site => site.Id != id))
+            throw new ArgumentException("Choose an existing site.", nameof(siteId));
+        if (groupId is { } folderId
+            && (await groupRepository.GetAllAsync(cancellationToken).ConfigureAwait(false))
+                .All(group => group.Id != folderId || group.SiteId != siteId))
+            throw new ArgumentException("Choose a folder within the selected site.", nameof(groupId));
+        if (device.SiteId == siteId && device.GroupId == groupId)
+            return;
+
+        var moved = new DeviceProfile(
+            device.Id, device.Name, device.Description, device.Connection, device.DeviceType,
+            device.Vendor, device.Model, siteId, groupId, device.Environment,
+            device.CredentialProfileId, device.UsernameOverride, device.IsFavorite, device.Notes,
+            device.CreatedAtUtc, DateTimeOffset.UtcNow, device.LastConnectedAtUtc,
+            device.AccessMode, device.WebAccess);
+        await deviceRepository.SaveAsync(moved, cancellationToken).ConfigureAwait(false);
+    }
+
+    public async Task SaveExplorerOrderAsync(
+        IReadOnlyList<Guid> siblingIds, CancellationToken cancellationToken)
+    {
+        await InitializeAsync(cancellationToken).ConfigureAwait(false);
+        await explorerOrderRepository.SaveAsync(siblingIds, cancellationToken).ConfigureAwait(false);
+    }
+
+    public async Task ResetExplorerOrderAsync(
+        IReadOnlyList<Guid> siblingIds, CancellationToken cancellationToken)
+    {
+        await InitializeAsync(cancellationToken).ConfigureAwait(false);
+        await explorerOrderRepository.ClearAsync(siblingIds, cancellationToken).ConfigureAwait(false);
+    }
+
+    private static SavedDeviceConnectionSettings CreateWebPlaceholderConnection(DeviceWebAccessSettings? webAccess)
+    {
+        if (webAccess is null)
+            throw new ArgumentException("Enter a web address for this device.");
+        return new SavedDeviceConnectionSettings(ConnectionType.Ssh,
+            new Uri(webAccess.Address).Host, 22);
     }
 
     internal static SavedDeviceConnectionSettings CreateConnection(DeviceEditRequest request)
@@ -207,7 +318,7 @@ public sealed partial class DeviceCatalogService(
         return new SavedDeviceConnectionSettings(request.ConnectionType, request.Host, request.Port,
             request.TerminalType, request.Encoding, request.ConnectTimeoutSeconds,
             request.SerialDataBits, request.SerialParity, request.SerialStopBits,
-            request.SerialFlowControl, request.RawLineEnding, request.TelnetAcknowledged);
+            request.SerialFlowControl, request.RawLineEnding, request.TelnetAcknowledged, request.BackspaceSendsControlH, request.BackspaceSendsDelete);
     }
 
     public async Task DeleteAsync(Guid id, CancellationToken cancellationToken)

@@ -47,7 +47,8 @@ public sealed partial class DeviceTransferService
         "Favorite", "Recent", "Notes", "Terminal Type", "Encoding",
         "Connect Timeout Seconds", "Serial Data Bits", "Serial Parity",
         "Serial Stop Bits", "Serial Flow Control", "Raw Line Ending",
-        "Telnet Acknowledged",
+        "Telnet Acknowledged", "Access Mode", "Web Address",
+        "Browser Preference", "Default Open Action",
     ];
 
     public async Task WriteExcelExportAsync(
@@ -112,6 +113,8 @@ public sealed partial class DeviceTransferService
                 item.SerialDataBits.ToString(System.Globalization.CultureInfo.InvariantCulture),
                 item.SerialParity, item.SerialStopBits, item.SerialFlowControl, item.RawLineEnding,
                 item.TelnetAcknowledged ? "Yes" : "No",
+                item.AccessMode.ToString(), item.WebAddress,
+                item.BrowserPreference.ToString(), item.DefaultOpenAction.ToString(),
             ];
             data.Append(new Row(values.Select((value, column) =>
                 TextCell(value, column + 1, rowIndex, 0)))
@@ -122,7 +125,7 @@ public sealed partial class DeviceTransferService
             new Column { Min = 1, Max = 2, Width = 24, CustomWidth = true },
             new Column { Min = 3, Max = 5, Width = 15, CustomWidth = true },
             new Column { Min = 6, Max = 6, Width = 36, CustomWidth = true },
-            new Column { Min = 7, Max = 26, Width = 20, CustomWidth = true });
+            new Column { Min = 7, Max = 30, Width = 20, CustomWidth = true });
         var view = new SheetView { WorkbookViewId = 0U };
         view.Append(new Pane
         {
@@ -134,8 +137,9 @@ public sealed partial class DeviceTransferService
         part.Worksheet = new Worksheet(new SheetViews(view), columns, data);
         part.Worksheet.Append(new AutoFilter
         {
-            Reference = $"A1:Z{items.Count + 1}",
+            Reference = $"A1:AD{items.Count + 1}",
         });
+        part.Worksheet.Append(CreateAccessValidations("AA", "AC", "AD"));
         sheets.Append(new Sheet
         {
             Id = workbook.GetIdOfPart(part),
@@ -154,6 +158,8 @@ public sealed partial class DeviceTransferService
         data.Append(RowOf(4, 0, "Telnet and Raw TCP are plaintext. Telnet Acknowledged must be Yes before a Telnet device can be saved."));
         data.Append(RowOf(5, 0, "For Serial devices, Host is the COM port and Port is the baud rate."));
         data.Append(RowOf(6, 0, "Do not add formulas. Save as .xlsx before importing."));
+        data.Append(RowOf(7, 0, "Access Mode: TerminalOnly, WebOnly, or TerminalAndWeb. Browser Preference: WindowsDefault, MicrosoftEdge, or GoogleChrome."));
+        data.Append(RowOf(8, 0, "Default Open Action: Terminal or Web. For WebOnly, use Web or leave this cell blank."));
         part.Worksheet = new Worksheet(
             new Columns(new Column { Min = 1, Max = 1, Width = 120, CustomWidth = true }),
             data);
@@ -173,7 +179,10 @@ public sealed partial class DeviceTransferService
         var columns = new Columns(
             new Column { Min = 1, Max = 2, Width = 22, CustomWidth = true },
             new Column { Min = 3, Max = 3, Width = 10, CustomWidth = true },
-            new Column { Min = 4, Max = 4, Width = 16, CustomWidth = true });
+            new Column { Min = 4, Max = 4, Width = 16, CustomWidth = true },
+            new Column { Min = 5, Max = 5, Width = 14, CustomWidth = true },
+            new Column { Min = 6, Max = 6, Width = 22, CustomWidth = true },
+            new Column { Min = 7, Max = 10, Width = 22, CustomWidth = true });
         var view = new SheetView { WorkbookViewId = 0U };
         view.Append(new Pane
         {
@@ -183,7 +192,7 @@ public sealed partial class DeviceTransferService
             State = PaneStateValues.Frozen,
         });
         part.Worksheet = new Worksheet(new SheetViews(view), columns, data);
-        part.Worksheet.Append(new AutoFilter { Reference = "A1:D1" });
+        part.Worksheet.Append(new AutoFilter { Reference = "A1:J1" });
         part.Worksheet.Append(CreateValidations());
         sheets.Append(new Sheet
         {
@@ -198,11 +207,16 @@ public sealed partial class DeviceTransferService
         WorksheetPart part = workbook.AddNewPart<WorksheetPart>();
         var data = new SheetData();
         data.Append(RowOf(1, 1, "NetOps Terminal Device Import Template"));
-        data.Append(RowOf(2, 0, "Enter one device per row. Name and Host are required."));
-        data.Append(RowOf(3, 0, "Port is optional and defaults to 22. Device Type is optional and defaults to Other."));
+        data.Append(RowOf(2, 0, "Enter one device per row. Name is required. Host is required for CLI devices."));
+        data.Append(RowOf(3, 0, "Protocol defaults to SSH. SSH uses port 22; Telnet uses port 23. Device Type defaults to Other."));
         data.Append(RowOf(4, 0, "Device Type values: Switch, Router, Firewall, Server, AccessPoint, Storage, Other. Legacy Appliance and ConsoleServer values remain importable."));
-        data.Append(RowOf(5, 0, "Optional metadata columns from older templates are still accepted when present."));
-        data.Append(RowOf(6, 0, "Do not use formulas. Save the workbook as .xlsx before importing."));
+        data.Append(RowOf(5, 0, "For Telnet, select Protocol = Telnet and Telnet Acknowledged = Yes. Port 23 without Protocol is rejected."));
+        data.Append(RowOf(6, 0, "Serial baud rates and Raw TCP ports may be changed. Optional metadata columns are accepted."));
+        data.Append(RowOf(7, 0, "For GUI-only devices, set Access Mode = WebOnly and enter a full HTTP or HTTPS Web Address. Leave Host and credentials blank."));
+        data.Append(RowOf(8, 0, "For CLI + GUI devices, set Access Mode = TerminalAndWeb and provide both terminal and web settings."));
+        data.Append(RowOf(9, 0, "Access Mode: TerminalOnly, WebOnly, or TerminalAndWeb. Browser Preference: WindowsDefault, MicrosoftEdge, or GoogleChrome."));
+        data.Append(RowOf(10, 0, "Default Open Action: Terminal or Web. For WebOnly, use Web or leave this cell blank."));
+        data.Append(RowOf(11, 0, "Do not use formulas. Save the workbook as .xlsx before importing."));
         part.Worksheet = new Worksheet(
             new Columns(new Column { Min = 1, Max = 1, Width = 110, CustomWidth = true }),
             data);
@@ -248,6 +262,25 @@ public sealed partial class DeviceTransferService
         DataValidation[] rules =
         [
             ListValidation("D2:D10001", "Switch,Router,Firewall,Server,AccessPoint,Storage,Other"),
+            ListValidation("E2:E10001", "SSH,Telnet,Serial,RawTcp"),
+            ListValidation("F2:F10001", "Yes,No"),
+            ListValidation("G2:G10001", "TerminalOnly,WebOnly,TerminalAndWeb"),
+            ListValidation("I2:I10001", "WindowsDefault,MicrosoftEdge,GoogleChrome"),
+            ListValidation("J2:J10001", "Terminal,Web"),
+        ];
+        var validations = new DataValidations { Count = (uint)rules.Length };
+        validations.Append(rules);
+        return validations;
+    }
+
+    private static DataValidations CreateAccessValidations(
+        string accessModeColumn, string browserColumn, string openActionColumn)
+    {
+        DataValidation[] rules =
+        [
+            ListValidation($"{accessModeColumn}2:{accessModeColumn}10001", "TerminalOnly,WebOnly,TerminalAndWeb"),
+            ListValidation($"{browserColumn}2:{browserColumn}10001", "WindowsDefault,MicrosoftEdge,GoogleChrome"),
+            ListValidation($"{openActionColumn}2:{openActionColumn}10001", "Terminal,Web"),
         ];
         var validations = new DataValidations { Count = (uint)rules.Length };
         validations.Append(rules);

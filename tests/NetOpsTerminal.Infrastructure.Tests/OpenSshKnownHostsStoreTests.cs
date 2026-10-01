@@ -63,6 +63,48 @@ public sealed class OpenSshKnownHostsStoreTests : IDisposable
     }
 
     [Fact]
+    public async Task ExplicitReplacementChangesOnlyTheSelectedEndpoint()
+    {
+        using var store = CreateStore();
+        var endpoint = new SshHostEndpoint("switch.test", 22);
+        var other = new SshHostEndpoint("other.test", 22);
+        SshHostKey oldKey = CreateKey([1, 2, 3, 4]);
+        SshHostKey newKey = CreateKey([5, 6, 7, 8]);
+        await store.TrustAsync(endpoint, oldKey, CancellationToken.None);
+        await store.TrustAsync(other, oldKey, CancellationToken.None);
+
+        await store.ReplaceTrustedKeyAsync(endpoint, oldKey, newKey, CancellationToken.None);
+
+        Assert.Equal(newKey.FingerprintSha256,
+            (await store.GetTrustedKeyAsync(endpoint, CancellationToken.None))?.FingerprintSha256);
+        Assert.Equal(oldKey.FingerprintSha256,
+            (await store.GetTrustedKeyAsync(other, CancellationToken.None))?.FingerprintSha256);
+        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            store.ReplaceTrustedKeyAsync(endpoint, oldKey, oldKey, CancellationToken.None));
+    }
+
+    [Fact]
+    public async Task ReplacementRefusesAmbiguousAndRevokedEntries()
+    {
+        Directory.CreateDirectory(_testDirectory);
+        var endpoint = new SshHostEndpoint("switch.test", 22);
+        SshHostKey oldKey = CreateKey([1, 2, 3, 4]);
+        SshHostKey newKey = CreateKey([5, 6, 7, 8]);
+        string oldLine = $"switch.test {oldKey.Algorithm} {oldKey.KeyBase64}";
+        using var store = CreateStore();
+
+        await File.WriteAllLinesAsync(KnownHostsPath, [oldLine, oldLine]);
+        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            store.ReplaceTrustedKeyAsync(endpoint, oldKey, newKey, CancellationToken.None));
+        await File.WriteAllLinesAsync(KnownHostsPath,
+            [$"@revoked {oldLine}"]);
+        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            store.ReplaceTrustedKeyAsync(endpoint, oldKey, newKey, CancellationToken.None));
+        Assert.DoesNotContain(newKey.KeyBase64,
+            await File.ReadAllTextAsync(KnownHostsPath), StringComparison.Ordinal);
+    }
+
+    [Fact]
     public async Task MalformedAndCommentLinesAreIgnoredSafely()
     {
         Directory.CreateDirectory(_testDirectory);

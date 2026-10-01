@@ -26,6 +26,75 @@ public sealed class Phase8MigrationTests
     }
 
     [Fact]
+    public async Task VersionFourUpgradeAddsNestedFoldersWithoutLosingGroups()
+    {
+        using var storage = new TemporaryStorage();
+        var factory = new SqliteConnectionFactory(storage);
+        await CreateCurrentDatabaseAsync(factory);
+        var sites = new SqliteSiteRepository(factory);
+        var groups = new SqliteDeviceGroupRepository(factory);
+        Site site = await sites.GetOrCreateAsync("Existing site", CancellationToken.None);
+        DeviceGroup group = await groups.GetOrCreateAsync(
+            "Existing group", site.Id, CancellationToken.None);
+        await ExecuteAsync(factory, """
+            DROP INDEX IX_DeviceGroups_Parent_Name;
+            DROP INDEX IX_DeviceGroups_ParentId;
+            DROP TABLE ExplorerOrder;
+            ALTER TABLE Devices DROP COLUMN DefaultOpenAction;
+            ALTER TABLE Devices DROP COLUMN BrowserPreference;
+            ALTER TABLE Devices DROP COLUMN WebUrl;
+            ALTER TABLE Devices DROP COLUMN AccessMode;
+            ALTER TABLE DeviceGroups DROP COLUMN ParentGroupId;
+            CREATE UNIQUE INDEX IX_DeviceGroups_Site_Name
+                ON DeviceGroups(IFNULL(SiteId, ''), Name COLLATE NOCASE);
+            PRAGMA user_version = 4;
+            """);
+
+        using var initializer = CreateInitializer(factory);
+        await initializer.InitializeAsync(CancellationToken.None);
+
+        Assert.Equal(SqliteDatabaseInitializer.CurrentSchemaVersion, await ReadVersionAsync(factory));
+        DeviceGroup restored = Assert.Single(
+            await groups.GetAllAsync(CancellationToken.None));
+        Assert.Equal(group.Id, restored.Id);
+        Assert.Null(restored.ParentGroupId);
+        DeviceGroup nested = await groups.GetOrCreateChildAsync(
+            "Child", site.Id, restored.Id, CancellationToken.None);
+        Assert.Equal(restored.Id, nested.ParentGroupId);
+    }
+
+    [Fact]
+    public async Task VersionFiveUpgradeDefaultsExistingDevicesToTerminalOnly()
+    {
+        using var storage = new TemporaryStorage();
+        var factory = new SqliteConnectionFactory(storage);
+        await CreateCurrentDatabaseAsync(factory);
+        await ExecuteAsync(factory, """
+            ALTER TABLE Devices DROP COLUMN DefaultOpenAction;
+            ALTER TABLE Devices DROP COLUMN BrowserPreference;
+            ALTER TABLE Devices DROP COLUMN WebUrl;
+            ALTER TABLE Devices DROP COLUMN AccessMode;
+            INSERT INTO Devices
+                (Id, Name, Description, Hostname, Port, ConnectionType, ProtocolOptions,
+                 DeviceType, Vendor, Model, Environment, IsFavorite, Notes, CreatedAtUtc, UpdatedAtUtc)
+            VALUES
+                ('33333333-3333-3333-3333-333333333333', 'Legacy terminal', '', 'legacy.test',
+                 23, 'Telnet', '{}', 'Switch', '', '', 'Unknown', 0, '',
+                 '2026-01-01T00:00:00+00:00', '2026-01-01T00:00:00+00:00');
+            PRAGMA user_version = 5;
+            """);
+        using var initializer = CreateInitializer(factory);
+
+        await initializer.InitializeAsync(CancellationToken.None);
+
+        Assert.Equal(SqliteDatabaseInitializer.CurrentSchemaVersion, await ReadVersionAsync(factory));
+        var repository = new SqliteDeviceRepository(factory);
+        DeviceProfile loaded = Assert.IsType<DeviceProfile>(await repository.GetAsync(
+            Guid.Parse("33333333-3333-3333-3333-333333333333"), CancellationToken.None));
+        Assert.Equal(DeviceAccessMode.TerminalOnly, loaded.AccessMode);
+        Assert.Null(loaded.WebAccess);
+    }
+    [Fact]
     public async Task VersionOneUpgradePreservesSavedDeviceMetadata()
     {
         using var storage = new TemporaryStorage();

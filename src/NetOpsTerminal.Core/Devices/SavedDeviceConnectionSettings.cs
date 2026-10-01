@@ -16,7 +16,9 @@ public sealed record SavedDeviceConnectionSettings
         string serialStopBits = "One",
         string serialFlowControl = "None",
         string rawLineEnding = "CarriageReturnLineFeed",
-        bool telnetAcknowledged = false)
+        bool telnetAcknowledged = false,
+        bool backspaceSendsControlH = false,
+        bool backspaceSendsDelete = false)
     {
         if (type is not (ConnectionType.Ssh or ConnectionType.Telnet or ConnectionType.Serial or ConnectionType.RawTcp))
             throw new ArgumentException("Select a supported saved-device protocol.", nameof(type));
@@ -37,6 +39,10 @@ public sealed record SavedDeviceConnectionSettings
         SerialFlowControl = serialFlowControl;
         RawLineEnding = rawLineEnding;
         TelnetAcknowledged = telnetAcknowledged;
+        if (backspaceSendsControlH && backspaceSendsDelete)
+            throw new ArgumentException("Select one Backspace key behavior.", nameof(backspaceSendsDelete));
+        BackspaceSendsControlH = backspaceSendsControlH;
+        BackspaceSendsDelete = backspaceSendsDelete;
     }
 
     public ConnectionType Type { get; }
@@ -51,4 +57,6 @@ public sealed record SavedDeviceConnectionSettings
     public string SerialFlowControl { get; }
     public string RawLineEnding { get; }
     public bool TelnetAcknowledged { get; }
+    public bool BackspaceSendsControlH { get; }
+    public bool BackspaceSendsDelete { get; }
 }

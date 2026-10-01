@@ -40,10 +40,18 @@ public sealed class SshHostKeyTrustService : ISshHostKeyTrustService
 
         if (lookup.Status == KnownHostKeyStatus.Changed)
         {
-            await _prompt
-                .ShowChangedAsync(endpoint, lookup.ExistingKey, presentedKey, cancellationToken)
+            SshHostKeyPromptDecision changedDecision = await _prompt
+                .PromptChangedAsync(endpoint, lookup.ExistingKey, presentedKey, cancellationToken)
                 .ConfigureAwait(false);
-            return SshHostKeyVerificationResult.Changed;
+            if (changedDecision != SshHostKeyPromptDecision.ReplaceAndSave
+                || lookup.ExistingKey is null)
+            {
+                return SshHostKeyVerificationResult.Changed;
+            }
+
+            await _knownHostsStore.ReplaceTrustedKeyAsync(
+                endpoint, lookup.ExistingKey, presentedKey, cancellationToken).ConfigureAwait(false);
+            return SshHostKeyVerificationResult.Trusted;
         }
 
         SshHostKeyPromptDecision decision = await _prompt
@@ -57,8 +65,8 @@ public sealed class SshHostKeyTrustService : ISshHostKeyTrustService
                 .ConfigureAwait(false);
         }
 
-        return decision == SshHostKeyPromptDecision.Cancel
-            ? SshHostKeyVerificationResult.Rejected
-            : SshHostKeyVerificationResult.Trusted;
+        return decision is SshHostKeyPromptDecision.TrustOnce or SshHostKeyPromptDecision.TrustAndSave
+            ? SshHostKeyVerificationResult.Trusted
+            : SshHostKeyVerificationResult.Rejected;
     }
 }

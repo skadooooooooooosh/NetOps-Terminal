@@ -1,0 +1,50 @@
+<Window
+    x:Class="NetOpsTerminal.App.Views.ExplorerNameWindow"
+    xmlns="https://github.com/avaloniaui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    Title="Create folder"
+    Width="380" Height="205"
+    CanResize="False" CanMinimize="False" CanMaximize="False"
+    Icon="/Assets/NetOpsTerminal.ico"
+    WindowDecorations="None"
+    ExtendClientAreaToDecorationsHint="True"
+    TransparencyLevelHint="Transparent"
+    TransparencyBackgroundFallback="{DynamicResource AppWindowBrush}"
+    CornerRadius="12" Background="Transparent"
+    ShowInTaskbar="False" WindowStartupLocation="CenterOwner">
+  <Border Classes="dialog-shell">
+    <Border Classes="dialog-surface">
+      <Grid RowDefinitions="35,*,Auto">
+        <Border Classes="dialog-titlebar" WindowDecorationProperties.ElementRole="TitleBar">
+          <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="8">
+            <Image Classes="dialog-title-icon" Source="/Assets/NetOpsTerminal.ico" />
+            <TextBlock x:Name="HeadingText" Grid.Column="1" Classes="dialog-title" Text="Create folder" />
+            <Button Grid.Column="2" Classes="window-caption close-caption"
+                    Width="24" Height="24" VerticalAlignment="Center"
+                    WindowDecorationProperties.ElementRole="User"
+                    Click="Cancel_OnClick" ToolTip.Tip="Close">
+              <Path Width="8" Height="8" Stretch="Uniform"
+                    Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"
+                    StrokeThickness="1.25" Data="M3,3 L13,13 M13,3 L3,13" />
+            </Button>
+          </Grid>
+        </Border>
+        <StackPanel Grid.Row="1" Margin="14,12" Spacing="7">
+          <TextBlock x:Name="LocationText" Classes="muted" FontSize="11" TextWrapping="Wrap" />
+          <TextBlock x:Name="NameLabel" Text="Folder name" />
+          <TextBox x:Name="NameTextBox" MaxLength="120" />
+          <TextBlock x:Name="ValidationText" Foreground="{DynamicResource AppDangerBrush}"
+                     FontSize="11" IsVisible="False" TextWrapping="Wrap" />
+        </StackPanel>
+        <Border Grid.Row="2" Padding="10" Background="{DynamicResource AppSurfaceBrush}"
+                BorderBrush="{DynamicResource AppBorderBrush}" BorderThickness="0,1,0,0">
+          <StackPanel HorizontalAlignment="Right" Orientation="Horizontal" Spacing="8">
+            <Button Classes="toolbar" Click="Cancel_OnClick" Content="Cancel" IsCancel="True" />
+            <Button x:Name="CreateButton" Classes="accent" Click="Create_OnClick"
+                    Content="Create folder" IsDefault="True" />
+          </StackPanel>
+        </Border>
+      </Grid>
+    </Border>
+  </Border>
+</Window>

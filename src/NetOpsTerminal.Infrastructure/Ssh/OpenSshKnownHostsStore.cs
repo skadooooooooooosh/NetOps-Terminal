@@ -125,6 +125,71 @@ public sealed partial class OpenSshKnownHostsStore : IKnownHostsStore, IDisposab
         }
     }
 
+    public async Task ReplaceTrustedKeyAsync(
+        SshHostEndpoint endpoint,
+        SshHostKey expectedKey,
+        SshHostKey replacementKey,
+        CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(endpoint);
+        ArgumentNullException.ThrowIfNull(expectedKey);
+        ArgumentNullException.ThrowIfNull(replacementKey);
+        ObjectDisposedException.ThrowIf(_disposed, this);
+
+        await _fileGate.WaitAsync(cancellationToken).ConfigureAwait(false);
+        try
+        {
+            string[] lines = await ReadLinesAsync(cancellationToken).ConfigureAwait(false);
+            var matches = lines.Select((line, index) => (line, index))
+                .Where(item => TryParseLine(item.line, out ParsedKnownHost? parsed)
+                    && parsed is not null
+                    && parsed.HostPatterns.Any(pattern => MatchesEndpoint(pattern, endpoint)))
+                .ToArray();
+            if (matches.Length != 1
+                || !TryParseLine(matches[0].line, out ParsedKnownHost? current)
+                || current is null
+                || current.IsRevoked
+                || current.HostPatterns.Count != 1
+                || current.HostPatterns[0].StartsWith('@')
+                || !string.Equals(current.HostKey.Algorithm, expectedKey.Algorithm, StringComparison.Ordinal)
+                || !CryptographicOperations.FixedTimeEquals(
+                    Convert.FromBase64String(current.HostKey.KeyBase64),
+                    Convert.FromBase64String(expectedKey.KeyBase64)))
+            {
+                throw new InvalidOperationException(
+                    "The trusted SSH key changed in storage or has multiple matching entries. No key was replaced.");
+            }
+
+            string path = _pathProvider.KnownHostsFilePath;
+            string directory = Path.GetDirectoryName(path)
+                ?? throw new InvalidOperationException("The known_hosts path has no parent directory.");
+            string temporaryPath = Path.Combine(directory,
+                $".{Path.GetFileName(path)}.{Guid.NewGuid():N}.tmp");
+            lines[matches[0].index] =
+                $"{current.HostPatterns[0]} {replacementKey.Algorithm} {replacementKey.KeyBase64}";
+            try
+            {
+                await File.WriteAllLinesAsync(temporaryPath, lines,
+                    new UTF8Encoding(encoderShouldEmitUTF8Identifier: false),
+                    cancellationToken).ConfigureAwait(false);
+                File.Move(temporaryPath, path, overwrite: true);
+                LogHostKeySaved(_logger, endpoint.Host, endpoint.Port,
+                    replacementKey.FingerprintSha256);
+            }
+            finally
+            {
+                if (File.Exists(temporaryPath))
+                {
+                    File.Delete(temporaryPath);
+                }
+            }
+        }
+        finally
+        {
+            _fileGate.Release();
+        }
+    }
+
     public void Dispose()
     {
         if (_disposed)

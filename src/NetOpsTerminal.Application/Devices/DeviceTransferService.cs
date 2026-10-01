@@ -7,7 +7,7 @@ namespace NetOpsTerminal.Application.Devices;
 
 public sealed partial class DeviceTransferService(IDeviceCatalogService catalog) : IDeviceTransferService
 {
-    public const int CurrentSchemaVersion = 2;
+    public const int CurrentSchemaVersion = 3;
     public const int MaximumDeviceCount = 10_000;
     private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web)
     {
@@ -36,12 +36,22 @@ public sealed partial class DeviceTransferService(IDeviceCatalogService catalog)
     {
         Document document = Parse(json);
         DeviceCatalogSnapshot data = await catalog.LoadAsync(null, DeviceCatalogFilter.All, cancellationToken).ConfigureAwait(false);
-        DeviceImportPreviewItem[] items = document.Devices.Select(x => new DeviceImportPreviewItem(
-            x.Name, x.Host, x.Port, x.SiteName, x.GroupName, x.CredentialName, x.CredentialUsername,
-            x.ConnectionType != ConnectionType.Ssh || FindCredential(data, x) is not null,
-            FindConflict(data.Devices, x) is not null)
+        DeviceImportPreviewItem[] items = document.Devices.Select(x =>
         {
-            ConnectionType = x.ConnectionType,
+            DeviceProfile? conflict = FindConflict(data.Devices, x);
+            bool hasCredential = x.AccessMode == DeviceAccessMode.WebOnly
+                || x.ConnectionType != ConnectionType.Ssh
+                || FindCredential(data, x) is not null
+                || conflict?.CredentialProfileId is { } credentialId
+                    && data.Credentials.Any(credential => credential.Id == credentialId);
+            return new DeviceImportPreviewItem(
+                x.Name, x.Host, x.Port, x.SiteName, x.GroupName, x.CredentialName, x.CredentialUsername,
+                hasCredential, conflict is not null)
+            {
+                ConnectionType = x.ConnectionType,
+                AccessMode = x.AccessMode,
+                WebAddress = x.WebAddress,
+            };
         }).ToArray();
         return new DeviceImportPreview(document.SchemaVersion, document.ExportedAtUtc, items);
     }
@@ -54,63 +64,89 @@ public sealed partial class DeviceTransferService(IDeviceCatalogService catalog)
         return await ImportItemsAsync(doc.Devices, data, policy, fallback, token);
     }
 
-    private async Task<DeviceImportResult> ImportItemsAsync(IReadOnlyList<Item> items, DeviceCatalogSnapshot data, DeviceImportConflictPolicy policy, Guid? fallback, CancellationToken token)
+    private async Task<DeviceImportResult> ImportItemsAsync(
+        IReadOnlyList<Item> items, DeviceCatalogSnapshot data,
+        DeviceImportConflictPolicy policy, Guid? fallback, CancellationToken token)
     {
-        int a = 0, u = 0, s = 0, r = 0;
+        int added = 0, updated = 0, skipped = 0, credentialRequired = 0;
+        var usedNames = data.Devices.Select(device => device.Name)
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
         foreach (Item item in items)
         {
-            var n = await ImportOneAsync(item, data, policy, fallback, token);
-            a += n.Added; u += n.Updated; s += n.Skipped; r += n.Required;
+            DeviceProfile? conflict = FindConflict(data.Devices, item);
+            if (conflict is not null && policy == DeviceImportConflictPolicy.Skip)
+            {
+                skipped++;
+                continue;
+            }
+
+            Guid? credential = item.AccessMode != DeviceAccessMode.WebOnly
+                && item.ConnectionType == ConnectionType.Ssh
+                ? FindCredential(data, item)?.Id
+                    ?? conflict?.CredentialProfileId
+                    ?? fallback
+                : null;
+            if (item.AccessMode != DeviceAccessMode.WebOnly
+                && item.ConnectionType == ConnectionType.Ssh
+                && (credential is null || data.Credentials.All(x => x.Id != credential)))
+            {
+                credentialRequired++;
+                continue;
+            }
+
+            bool update = conflict is not null && policy == DeviceImportConflictPolicy.Update;
+            Guid id = update ? conflict!.Id : Guid.NewGuid();
+            string name = conflict is not null && policy == DeviceImportConflictPolicy.KeepBoth
+                ? CreateCopyName(item.Name, usedNames)
+                : item.Name.Trim();
+            await catalog.SaveAsync(CreateImportRequest(item, id, name, credential), token);
+            usedNames.Add(name);
+            if (item.IsRecent)
+            {
+                await catalog.RecordRecentAsync(id, DateTimeOffset.UtcNow, token);
+            }
+
+            if (update) updated++;
+            else added++;
         }
-        return new(a, u, s, r);
+
+        return new(added, updated, skipped, credentialRequired);
     }
 
-    private async Task<(int Added, int Updated, int Skipped, int Required)> ImportOneAsync(Item item, DeviceCatalogSnapshot data, DeviceImportConflictPolicy policy, Guid? fallback, CancellationToken token)
+    private static string CreateCopyName(string original, HashSet<string> usedNames)
     {
-        DeviceProfile? conflict = FindConflict(data.Devices, item);
-        if (conflict is not null && policy == DeviceImportConflictPolicy.Skip) return (0, 0, 1, 0);
-        Guid? credential = item.ConnectionType == ConnectionType.Ssh
-            ? FindCredential(data, item)?.Id ?? fallback
-            : null;
-        if (item.ConnectionType == ConnectionType.Ssh
-            && (credential is null || data.Credentials.All(x => x.Id != credential)))
-            return (0, 0, 0, 1);
-        return await SaveImportedAsync(item, conflict, policy, credential, token);
-    }
+        for (int number = 1; ; number++)
+        {
+            string suffix = number == 1 ? " (imported)" : $" (imported {number})";
+            string candidate = original.Trim();
+            if (candidate.Length + suffix.Length > 160)
+            {
+                candidate = candidate[..(160 - suffix.Length)].TrimEnd();
+            }
 
-    private async Task<(int Added, int Updated, int Skipped, int Required)> SaveImportedAsync(Item item, DeviceProfile? conflict, DeviceImportConflictPolicy policy, Guid? credential, CancellationToken token)
-    {
-        bool update = conflict is not null && policy == DeviceImportConflictPolicy.Update;
-        Guid id = update ? conflict!.Id : Guid.NewGuid();
-        return await SaveResolvedAsync(item, conflict, policy, credential, id, update, token);
+            candidate += suffix;
+            if (!usedNames.Contains(candidate))
+            {
+                return candidate;
+            }
+        }
     }
-
-    private async Task<(int Added, int Updated, int Skipped, int Required)> SaveResolvedAsync(Item item, DeviceProfile? conflict, DeviceImportConflictPolicy policy, Guid? credential, Guid id, bool update, CancellationToken token)
-    {
-        return await SaveFinalAsync(item, conflict, policy, credential, id, update, token);
-    }
-
-    private async Task<(int Added, int Updated, int Skipped, int Required)> SaveFinalAsync(Item item, DeviceProfile? conflict, DeviceImportConflictPolicy policy, Guid? credential, Guid id, bool update, CancellationToken token)
-    {
-        string name = conflict is not null && policy == DeviceImportConflictPolicy.KeepBoth
-            ? $"{item.Name} (imported)"
-            : item.Name;
-        await SaveRequestAsync(item, id, name, credential, token);
-        return await FinishSaveAsync(item, id, update, token);
-    }
-
-    private Task SaveRequestAsync(Item x, Guid id, string name, Guid? credential, CancellationToken token)
-    {
-        return catalog.SaveAsync(CreateImportRequest(x, id, name, credential), token);
-    }
-
     private static DeviceEditRequest CreateImportRequest(Item x, Guid? id, string name, Guid? credential)
-        => new(id, name, x.Description, x.Host, x.Port,
+    {
+        DeviceWebAccessSettings? webAccess = x.AccessMode == DeviceAccessMode.TerminalOnly
+            ? null : new DeviceWebAccessSettings(x.WebAddress, x.BrowserPreference, x.DefaultOpenAction);
+        return new DeviceEditRequest(id, name, x.Description,
+            x.AccessMode == DeviceAccessMode.WebOnly
+                ? new Uri(webAccess!.Address).Host : x.Host,
+            x.AccessMode == DeviceAccessMode.WebOnly ? 22 : x.Port,
             x.DeviceType, x.Vendor, x.Model, x.SiteName, x.GroupName, x.Environment,
-            credential, x.ConnectionType == ConnectionType.Ssh ? x.UsernameOverride : null,
+            credential, x.AccessMode != DeviceAccessMode.WebOnly && x.ConnectionType == ConnectionType.Ssh
+                ? x.UsernameOverride : null,
             x.IsFavorite, x.Notes)
         {
             ConnectionType = x.ConnectionType,
+            AccessMode = x.AccessMode,
+            WebAccess = webAccess,
             TerminalType = x.TerminalType,
             Encoding = x.Encoding,
             ConnectTimeoutSeconds = x.ConnectTimeoutSeconds,
@@ -120,18 +156,16 @@ public sealed partial class DeviceTransferService(IDeviceCatalogService catalog)
             SerialFlowControl = x.SerialFlowControl,
             RawLineEnding = x.RawLineEnding,
             TelnetAcknowledged = x.TelnetAcknowledged,
+            BackspaceSendsControlH = x.BackspaceSendsControlH,
+            BackspaceSendsDelete = x.BackspaceSendsDelete,
         };
-
-    private async Task<(int, int, int, int)> FinishSaveAsync(Item item, Guid id, bool update, CancellationToken token)
-    {
-        if (item.IsRecent) await catalog.RecordRecentAsync(id, DateTimeOffset.UtcNow, token);
-        return update ? (0, 1, 0, 0) : (1, 0, 0, 0);
     }
+
 
     private static Item CreateItem(DeviceProfile x, DeviceCatalogSnapshot data, DeviceExportOptions options)
     {
         string site = data.Sites.FirstOrDefault(y => y.Id == x.SiteId)?.Name ?? string.Empty;
-        string group = data.Groups.FirstOrDefault(y => y.Id == x.GroupId)?.Name ?? string.Empty;
+        string group = GetFolderPath(data.Groups, x.GroupId);
         var credential = data.Credentials.FirstOrDefault(y => y.Id == x.CredentialProfileId);
         return new Item(x.Name, x.Description, x.Connection.Host, x.Connection.Port,
             x.DeviceType, x.Vendor, x.Model, site, group, x.Environment,
@@ -140,6 +174,10 @@ public sealed partial class DeviceTransferService(IDeviceCatalogService catalog)
             options.IncludeRecent && data.RecentDeviceIds.Contains(x.Id), x.Notes)
         {
             ConnectionType = x.ConnectionType,
+            AccessMode = x.AccessMode,
+            WebAddress = x.WebAccess?.Address ?? string.Empty,
+            BrowserPreference = x.WebAccess?.Browser ?? WebBrowserPreference.WindowsDefault,
+            DefaultOpenAction = x.WebAccess?.DefaultAction ?? DeviceOpenAction.Terminal,
             TerminalType = x.Connection.TerminalType,
             Encoding = x.Connection.Encoding,
             ConnectTimeoutSeconds = x.Connection.ConnectTimeoutSeconds,
@@ -149,7 +187,25 @@ public sealed partial class DeviceTransferService(IDeviceCatalogService catalog)
             SerialFlowControl = x.Connection.SerialFlowControl,
             RawLineEnding = x.Connection.RawLineEnding,
             TelnetAcknowledged = x.Connection.TelnetAcknowledged,
+            BackspaceSendsControlH = x.Connection.BackspaceSendsControlH,
+            BackspaceSendsDelete = x.Connection.BackspaceSendsDelete,
         };
+    }
+
+    private static string GetFolderPath(IReadOnlyList<DeviceGroup> groups, Guid? folderId)
+    {
+        var names = new Stack<string>();
+        var visited = new HashSet<Guid>();
+        while (folderId is { } id && visited.Add(id))
+        {
+            DeviceGroup? folder = groups.FirstOrDefault(group => group.Id == id);
+            if (folder is null)
+                break;
+            names.Push(folder.Name);
+            folderId = folder.ParentGroupId;
+        }
+
+        return string.Join(" / ", names);
     }
 
     private static Core.Credentials.CredentialProfile? FindCredential(DeviceCatalogSnapshot data, Item item)
@@ -158,9 +214,15 @@ public sealed partial class DeviceTransferService(IDeviceCatalogService catalog)
             && string.Equals(x.Username, item.CredentialUsername, StringComparison.OrdinalIgnoreCase));
 
     private static DeviceProfile? FindConflict(IEnumerable<DeviceProfile> devices, Item item)
-        => devices.FirstOrDefault(x => x.ConnectionType == item.ConnectionType
-            && x.Connection.Port == item.Port
-            && string.Equals(x.Connection.Host, item.Host, StringComparison.OrdinalIgnoreCase));
+        => devices.FirstOrDefault(x => string.Equals(
+                x.Name, item.Name.Trim(), StringComparison.OrdinalIgnoreCase))
+            ?? devices.FirstOrDefault(x => item.AccessMode == DeviceAccessMode.WebOnly
+                ? x.AccessMode == DeviceAccessMode.WebOnly
+                    && string.Equals(x.WebAccess?.Address, item.WebAddress, StringComparison.OrdinalIgnoreCase)
+                : x.AccessMode != DeviceAccessMode.WebOnly
+                    && x.ConnectionType == item.ConnectionType
+                    && x.Connection.Port == item.Port
+                    && string.Equals(x.Connection.Host, item.Host, StringComparison.OrdinalIgnoreCase));
 
     private static Document Parse(string json)
     {
@@ -198,23 +260,35 @@ public sealed partial class DeviceTransferService(IDeviceCatalogService catalog)
             throw new InvalidDataException($"A device export may contain at most {MaximumDeviceCount:N0} devices.");
         foreach (Item item in document.Devices)
         {
+            if (!Enum.IsDefined(item.AccessMode))
+                throw new InvalidDataException($"Device '{item.Name}' has an invalid access mode.");
+            if (item.AccessMode == DeviceAccessMode.WebOnly && item.ConnectionType != ConnectionType.Ssh)
+                throw new InvalidDataException($"Device '{item.Name}' cannot combine GUI-only access with a terminal protocol.");
+            if (item.ConnectionType == ConnectionType.Ssh && item.Port != 22)
+                throw new InvalidDataException($"Device '{item.Name}' uses SSH port {item.Port}. SSH imports must use port 22.");
+            if (item.ConnectionType == ConnectionType.Telnet && item.Port != 23)
+                throw new InvalidDataException($"Device '{item.Name}' uses Telnet port {item.Port}. Telnet imports must use port 23.");
             DeviceEditRequest request = CreateImportRequest(item, null, item.Name,
-                item.ConnectionType == ConnectionType.Ssh ? Guid.NewGuid() : null);
-            _ = DeviceCatalogService.CreateConnection(request);
+                item.ConnectionType == ConnectionType.Ssh && item.AccessMode != DeviceAccessMode.WebOnly
+                    ? Guid.NewGuid() : null);
+            if (item.AccessMode != DeviceAccessMode.WebOnly)
+                _ = DeviceCatalogService.CreateConnection(request);
             _ = new DeviceProfile(Guid.NewGuid(), item.Name, item.Description,
-                new SavedDeviceConnectionSettings(item.ConnectionType, item.Host, item.Port,
+                new SavedDeviceConnectionSettings(item.ConnectionType, request.Host, request.Port,
                     item.TerminalType, item.Encoding, item.ConnectTimeoutSeconds,
                     item.SerialDataBits, item.SerialParity, item.SerialStopBits,
-                    item.SerialFlowControl, item.RawLineEnding, item.TelnetAcknowledged), item.DeviceType,
+                    item.SerialFlowControl, item.RawLineEnding, item.TelnetAcknowledged,
+                    item.BackspaceSendsControlH, item.BackspaceSendsDelete), item.DeviceType,
                 item.Vendor, item.Model, null, null, item.Environment,
                 request.CredentialProfileId, request.UsernameOverride, item.IsFavorite,
-                item.Notes, DateTimeOffset.UtcNow, DateTimeOffset.UtcNow, null);
+                item.Notes, DateTimeOffset.UtcNow, DateTimeOffset.UtcNow, null,
+                request.AccessMode, request.WebAccess);
         }
         return document;
     }
 
     private static Document RequireSupported(Document? document)
-        => document?.SchemaVersion is 1 or CurrentSchemaVersion
+        => document?.SchemaVersion is 1 or 2 or CurrentSchemaVersion
             ? document
             : throw new InvalidDataException("This device export version is not supported.");
 
@@ -228,6 +302,10 @@ public sealed partial class DeviceTransferService(IDeviceCatalogService catalog)
         bool IsFavorite, bool IsRecent, string Notes)
     {
         public ConnectionType ConnectionType { get; init; } = ConnectionType.Ssh;
+        public DeviceAccessMode AccessMode { get; init; } = DeviceAccessMode.TerminalOnly;
+        public string WebAddress { get; init; } = string.Empty;
+        public WebBrowserPreference BrowserPreference { get; init; } = WebBrowserPreference.WindowsDefault;
+        public DeviceOpenAction DefaultOpenAction { get; init; } = DeviceOpenAction.Terminal;
         public string TerminalType { get; init; } = "xterm-256color";
         public string Encoding { get; init; } = "Utf8";
         public int ConnectTimeoutSeconds { get; init; } = 15;
@@ -237,5 +315,7 @@ public sealed partial class DeviceTransferService(IDeviceCatalogService catalog)
         public string SerialFlowControl { get; init; } = "None";
         public string RawLineEnding { get; init; } = "CarriageReturnLineFeed";
         public bool TelnetAcknowledged { get; init; }
+        public bool BackspaceSendsControlH { get; init; }
+        public bool BackspaceSendsDelete { get; init; }
     }
 }

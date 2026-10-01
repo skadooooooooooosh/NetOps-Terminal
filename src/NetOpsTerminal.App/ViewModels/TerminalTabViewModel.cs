@@ -25,13 +25,17 @@ public sealed partial class TerminalTabViewModel : ObservableObject, IDisposable
         ITerminalSession session,
         Func<TerminalTabViewModel, Task> closeAsync,
         DeviceEnvironment environment = DeviceEnvironment.Unknown,
-        ISessionLogService? sessionLogService = null)
+        ISessionLogService? sessionLogService = null,
+        bool backspaceSendsControlH = false,
+        bool backspaceSendsDelete = false)
     {
         Session = session;
         _closeAsync = closeAsync;
         _sessionLogService = sessionLogService;
         _state = session.State;
         Environment = environment;
+        BackspaceSendsControlH = backspaceSendsControlH;
+        BackspaceSendsDelete = backspaceSendsDelete;
         CloseCommand = new AsyncRelayCommand(() => _closeAsync(this));
         DisconnectCommand = new AsyncRelayCommand(DisconnectAsync, CanDisconnect);
         ReconnectCommand = new AsyncRelayCommand(ReconnectAsync, CanReconnect);
@@ -49,6 +53,10 @@ public sealed partial class TerminalTabViewModel : ObservableObject, IDisposable
     public ITerminalSession Session { get; }
 
     public DeviceEnvironment Environment { get; }
+
+    public bool BackspaceSendsControlH { get; }
+
+    public bool BackspaceSendsDelete { get; }
 
     public bool IsProduction => Environment == DeviceEnvironment.Production;
 
@@ -119,6 +127,7 @@ public sealed partial class TerminalTabViewModel : ObservableObject, IDisposable
             {
                 OnPropertyChanged(nameof(StatusText));
                 OnPropertyChanged(nameof(StatusGlyph));
+                OnPropertyChanged(nameof(IsDisconnected));
                 DisconnectCommand.NotifyCanExecuteChanged();
                 ReconnectCommand.NotifyCanExecuteChanged();
             }
@@ -177,6 +186,9 @@ public sealed partial class TerminalTabViewModel : ObservableObject, IDisposable
         SessionState.Disposed => "Closed",
         _ => State.ToString(),
     };
+
+    public bool IsDisconnected => State is
+        SessionState.Disconnected or SessionState.Faulted or SessionState.Disposed;
 
     public string StatusGlyph => State switch
     {

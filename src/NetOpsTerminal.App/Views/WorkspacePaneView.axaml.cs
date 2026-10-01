@@ -32,6 +32,24 @@ public sealed partial class WorkspacePaneView : UserControl
         }
     }
 
+    private void CancelConnection_OnClick(object? sender, RoutedEventArgs e)
+    {
+        if (sender is Control { DataContext: TerminalPaneViewModel pane })
+            MainViewModel?.CancelPaneConnection(pane);
+    }
+
+    private async void RetryConnection_OnClick(object? sender, RoutedEventArgs e)
+    {
+        if (sender is not Control { DataContext: TerminalPaneViewModel pane }
+            || MainViewModel is not { } viewModel)
+            return;
+
+        if (pane.Launch?.Kind == NetOpsTerminal.Application.Workspaces.WorkspaceLaunchKind.SavedDevice)
+            await viewModel.RetrySavedPaneAsync(pane);
+        else if (this.FindAncestorOfType<MainWindow>() is { } window)
+            await window.RetryQuickConnectAsync(pane);
+    }
+
     private void FindNext_OnClick(object? sender, RoutedEventArgs e)
     {
         if (sender is Control { DataContext: TerminalPaneViewModel { Terminal: { } terminal } })

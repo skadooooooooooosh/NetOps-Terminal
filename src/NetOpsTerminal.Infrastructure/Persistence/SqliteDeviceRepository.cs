@@ -55,11 +55,13 @@ public sealed class SqliteDeviceRepository(SqliteConnectionFactory connectionFac
             INSERT INTO Devices (
                 Id, Name, Description, Hostname, Port, ConnectionType, ProtocolOptions, DeviceType, Vendor, Model,
                 SiteId, GroupId, Environment, CredentialProfileId, UsernameOverride, IsFavorite,
-                Notes, CreatedAtUtc, UpdatedAtUtc, LastConnectedAtUtc)
+                Notes, CreatedAtUtc, UpdatedAtUtc, LastConnectedAtUtc,
+                AccessMode, WebUrl, BrowserPreference, DefaultOpenAction)
             VALUES (
                 @id, @name, @description, @host, @port, @connectionType, @protocolOptions, @deviceType, @vendor, @model,
                 @siteId, @groupId, @environment, @credentialId, @usernameOverride, @favorite,
-                @notes, @created, @updated, @lastConnected)
+                @notes, @created, @updated, @lastConnected,
+                @accessMode, @webUrl, @browserPreference, @defaultOpenAction)
             ON CONFLICT(Id) DO UPDATE SET
                 Name = excluded.Name,
                 Description = excluded.Description,
@@ -77,7 +79,11 @@ public sealed class SqliteDeviceRepository(SqliteConnectionFactory connectionFac
                 UsernameOverride = excluded.UsernameOverride,
                 IsFavorite = excluded.IsFavorite,
                 Notes = excluded.Notes,
-                UpdatedAtUtc = excluded.UpdatedAtUtc;
+                UpdatedAtUtc = excluded.UpdatedAtUtc,
+                AccessMode = excluded.AccessMode,
+                WebUrl = excluded.WebUrl,
+                BrowserPreference = excluded.BrowserPreference,
+                DefaultOpenAction = excluded.DefaultOpenAction;
             """;
         command.Parameters.AddWithValue("@id", device.Id.ToString("D"));
         command.Parameters.AddWithValue("@name", device.Name);
@@ -103,6 +109,12 @@ public sealed class SqliteDeviceRepository(SqliteConnectionFactory connectionFac
             device.LastConnectedAtUtc is { } lastConnected
                 ? SqliteMapping.ToStorage(lastConnected)
                 : DBNull.Value);
+        command.Parameters.AddWithValue("@accessMode", device.AccessMode.ToString());
+        command.Parameters.AddWithValue("@webUrl", (object?)device.WebAccess?.Address ?? DBNull.Value);
+        command.Parameters.AddWithValue("@browserPreference",
+            device.WebAccess?.Browser.ToString() ?? WebBrowserPreference.WindowsDefault.ToString());
+        command.Parameters.AddWithValue("@defaultOpenAction",
+            device.WebAccess?.DefaultAction.ToString() ?? DeviceOpenAction.Terminal.ToString());
         await command.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
     }
 

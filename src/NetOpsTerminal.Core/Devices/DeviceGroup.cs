@@ -2,7 +2,7 @@ namespace NetOpsTerminal.Core.Devices;
 
 public sealed record DeviceGroup
 {
-    public DeviceGroup(Guid id, string name, Guid? siteId)
+    public DeviceGroup(Guid id, string name, Guid? siteId, Guid? parentGroupId = null)
     {
         if (id == Guid.Empty)
         {
@@ -12,6 +12,7 @@ public sealed record DeviceGroup
         Id = id;
         Name = Site.NormalizeName(name, nameof(name));
         SiteId = siteId;
+        ParentGroupId = parentGroupId;
     }
 
     public Guid Id { get; }
@@ -19,4 +20,6 @@ public sealed record DeviceGroup
     public string Name { get; }
 
     public Guid? SiteId { get; }
+
+    public Guid? ParentGroupId { get; }
 }

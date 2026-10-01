@@ -6,14 +6,42 @@
     x:DataType="vm:SshHostKeyPromptViewModel"
     Title="SSH Host Key Verification"
     Width="520"
-    Height="460"
+    Height="510"
     MinWidth="480"
     CanResize="False"
+    CanMinimize="False"
+    CanMaximize="False"
+    Icon="/Assets/NetOpsTerminal.ico"
+    WindowDecorations="None"
+    ExtendClientAreaToDecorationsHint="True"
+    TransparencyLevelHint="Transparent"
+    TransparencyBackgroundFallback="{DynamicResource AppWindowBrush}"
+    CornerRadius="12"
+    Background="Transparent"
     ShowInTaskbar="False"
     WindowStartupLocation="CenterOwner">
-  <Grid RowDefinitions="Auto,*,Auto">
+  <Border Classes="dialog-shell">
+    <Border Classes="dialog-surface">
+      <Grid RowDefinitions="35,Auto,*,Auto">
+        <Border Grid.Row="0" Classes="dialog-titlebar"
+                WindowDecorationProperties.ElementRole="TitleBar">
+          <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="8">
+            <Image Classes="dialog-title-icon" Source="/Assets/NetOpsTerminal.ico" />
+            <TextBlock Grid.Column="1" Classes="dialog-title"
+                       Text="SSH Host Key Verification" />
+            <Button Grid.Column="2" Classes="window-caption close-caption"
+                    Width="24" Height="24" VerticalAlignment="Center"
+                    WindowDecorationProperties.ElementRole="User"
+                    Click="Cancel_OnClick" ToolTip.Tip="Close"
+                    AutomationProperties.Name="Close SSH host key verification">
+              <Path Width="8" Height="8" Stretch="Uniform"
+                    Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"
+                    StrokeThickness="1.25" Data="M3,3 L13,13 M13,3 L3,13" />
+            </Button>
+          </Grid>
+        </Border>
     <Border
-        Grid.Row="0"
+        Grid.Row="1"
         Padding="14,10"
         Background="{DynamicResource AppSurfaceBrush}"
         BorderBrush="{DynamicResource AppBorderBrush}"
@@ -30,7 +58,7 @@
       </StackPanel>
     </Border>
 
-    <ScrollViewer Grid.Row="1">
+    <ScrollViewer Grid.Row="2">
       <StackPanel Margin="14" Spacing="10">
         <TextBlock Text="{Binding Explanation}" TextWrapping="Wrap" />
 
@@ -47,7 +75,8 @@
             <TextBlock Grid.Row="1" Grid.Column="1" FontFamily="Consolas" Text="{Binding Port}" />
             <TextBlock Grid.Row="2" Classes="muted" Text="Algorithm" />
             <TextBlock Grid.Row="2" Grid.Column="1" FontFamily="Consolas" Text="{Binding Algorithm}" />
-            <TextBlock Grid.Row="3" Classes="muted" Text="Presented key" />
+            <TextBlock Grid.Row="3" Classes="muted" IsVisible="{Binding IsUnknown}" Text="Presented key" />
+            <TextBlock Grid.Row="3" Classes="muted" IsVisible="{Binding IsChanged}" Text="New fingerprint" />
             <TextBlock Grid.Row="3" Grid.Column="1" FontFamily="Consolas" Text="{Binding FingerprintSha256}" TextWrapping="Wrap" />
             <TextBlock Grid.Row="4" Classes="muted" IsVisible="{Binding IsChanged}" Text="Previously trusted" />
             <TextBlock Grid.Row="4" Grid.Column="1" FontFamily="Consolas" Foreground="{DynamicResource AppDangerBrush}" IsVisible="{Binding IsChanged}" Text="{Binding TrustedFingerprintSha256}" TextWrapping="Wrap" />
@@ -63,7 +92,7 @@
             IsVisible="{Binding IsChanged}">
           <TextBlock
               Foreground="{DynamicResource AppDangerBrush}"
-              Text="Possible causes include legitimate device replacement, reinstallation, an IP address being reused, or a man-in-the-middle attack. Verify independently before changing the saved key."
+              Text="A changed key may mean the device was reset or another device is using this address. Confirm the new fingerprint with the device or your administrator before continuing."
               TextWrapping="Wrap" />
         </Border>
 
@@ -77,7 +106,7 @@
     </ScrollViewer>
 
     <Border
-        Grid.Row="2"
+        Grid.Row="3"
         Padding="10"
         Background="{DynamicResource AppSurfaceBrush}"
         BorderBrush="{DynamicResource AppBorderBrush}"
@@ -86,7 +115,10 @@
         <Button Classes="toolbar" Click="Cancel_OnClick" Content="Cancel" />
         <Button Classes="toolbar" Click="TrustOnce_OnClick" Content="Trust Once" IsVisible="{Binding IsUnknown}" />
         <Button Classes="accent" Click="TrustAndSave_OnClick" Content="Trust and Save" IsVisible="{Binding IsUnknown}" />
+        <Button Classes="accent" Click="ReplaceAndSave_OnClick" Content="Trust new key and replace" IsVisible="{Binding IsChanged}" />
       </StackPanel>
     </Border>
-  </Grid>
+      </Grid>
+    </Border>
+  </Border>
 </Window>

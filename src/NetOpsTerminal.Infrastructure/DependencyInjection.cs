@@ -22,6 +22,7 @@ public static class DependencyInjection
         ArgumentNullException.ThrowIfNull(services);
 
         services.AddSingleton<IApplicationDataPathProvider, LocalApplicationDataPathProvider>();
+        services.AddSingleton<IDeviceWebAccessService, DeviceWebAccessService>();
         services.AddSingleton<IApplicationSettingsStore, JsonApplicationSettingsStore>();
         services.AddSingleton<IApplicationSettingsService, ApplicationSettingsService>();
         services.AddSingleton<IKnownHostsStore, OpenSshKnownHostsStore>();
@@ -30,6 +31,7 @@ public static class DependencyInjection
         services.AddSingleton<IDeviceRepository, SqliteDeviceRepository>();
         services.AddSingleton<ISiteRepository, SqliteSiteRepository>();
         services.AddSingleton<IDeviceGroupRepository, SqliteDeviceGroupRepository>();
+        services.AddSingleton<IExplorerOrderRepository, SqliteExplorerOrderRepository>();
         services.AddSingleton<ICredentialProfileRepository, SqliteCredentialProfileRepository>();
         services.AddSingleton<IRecentDeviceRepository, SqliteRecentDeviceRepository>();
         services.AddSingleton<IWorkspaceRepository, SqliteWorkspaceRepository>();

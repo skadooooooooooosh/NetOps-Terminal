@@ -1,11 +1,11 @@
-﻿<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs"
+<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs"
      xmlns:ui="http://wixtoolset.org/schemas/v4/wxs/ui">
   <Package
       Name="NetOps Terminal"
       Manufacturer="skadooooooooooosh"
       Version="$(var.InstallerVersion)"
       Language="1033"
-      ProductCode="855FD10B-B134-4877-8237-FE684F529A40"
+      ProductCode="8F3F600B-B428-4832-B5D1-85FE100FEF02"
       UpgradeCode="3536CB34-CDD4-435C-B72E-8E7E1EEB259E"
       Scope="perMachine">
     <MajorUpgrade DowngradeErrorMessage="A newer version of NetOps Terminal is already installed." />

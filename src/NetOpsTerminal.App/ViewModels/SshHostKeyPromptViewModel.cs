@@ -21,7 +21,7 @@ public sealed class SshHostKeyPromptViewModel
             ? "SSH HOST KEY CHANGED"
             : "Host authenticity is not established";
         Explanation = isChanged
-            ? "The key presented by this host differs from the saved key. The connection has been blocked."
+            ? "This device presented a different SSH host key. The connection is blocked until you verify the new fingerprint."
             : "Verify this SHA256 fingerprint through a trusted channel before continuing.";
     }
 
