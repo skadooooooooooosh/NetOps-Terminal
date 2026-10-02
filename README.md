@@ -17,6 +17,8 @@
 <p align="center">
   <a href="https://github.com/skadooooooooooosh/NetOps-Terminal/releases/tag/v1.1.0"><strong>Download v1.1.0</strong></a>
   &nbsp;·&nbsp;
+  <a href="docs/user-guide/NETOPS_TERMINAL_USER_GUIDE.md">User guide</a>
+  &nbsp;·&nbsp;
   <a href="CHANGELOG.md">What's new</a>
   &nbsp;·&nbsp;
   <a href="SECURITY.md">Security</a>
@@ -83,6 +85,7 @@ The release files are written to the ignored `artifacts\release` directory.
 
 ## Project notes
 
+- [User guide (Markdown)](docs/user-guide/NETOPS_TERMINAL_USER_GUIDE.md) and [printable PDF](docs/user-guide/NETOPS_TERMINAL_USER_GUIDE.pdf) — installation, illustrated workflows, shortcuts, and troubleshooting
 - [Changelog](CHANGELOG.md) — changes by version
 - [Release guide](docs/RELEASE_V1_1.md) — installation, upgrade, and package details
 - [Security](SECURITY.md) — credentials, host keys, local data, and vulnerability reporting
