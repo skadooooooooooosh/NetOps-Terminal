@@ -6,6 +6,8 @@ using NetOpsTerminal.Core.Credentials;
 using NetOpsTerminal.Core.Devices;
 using NetOpsTerminal.Infrastructure.Persistence;
 using NetOpsTerminal.Infrastructure.Platform;
+using DocumentFormat.OpenXml.Packaging;
+using DocumentFormat.OpenXml.Spreadsheet;
 
 namespace NetOpsTerminal.Infrastructure.Tests;
 
@@ -190,6 +192,134 @@ public sealed class SqliteDevicePersistenceTests
         await catalog.DeleteEmptyFolderAsync(child.Id, CancellationToken.None);
         Assert.DoesNotContain(await groups.GetAllAsync(CancellationToken.None),
             item => item.Id == child.Id);
+    }
+
+    [Theory]
+    [InlineData(DeviceImportConflictPolicy.Update, DeviceTransferFormat.Csv)]
+    [InlineData(DeviceImportConflictPolicy.KeepBoth, DeviceTransferFormat.Csv)]
+    [InlineData(DeviceImportConflictPolicy.Update, DeviceTransferFormat.Excel)]
+    [InlineData(DeviceImportConflictPolicy.KeepBoth, DeviceTransferFormat.Excel)]
+    public async Task GuiOnlySpreadsheetImportKeepsWebAccessWithoutTerminalCredential(
+        DeviceImportConflictPolicy policy, DeviceTransferFormat format)
+    {
+        using var storage = new TemporaryStorage();
+        var factory = new SqliteConnectionFactory(storage);
+        using var initializer = new SqliteDatabaseInitializer(
+            factory, NullLogger<SqliteDatabaseInitializer>.Instance);
+        var devices = new SqliteDeviceRepository(factory);
+        using var catalog = new DeviceCatalogService(
+            initializer, devices, new SqliteSiteRepository(factory),
+            new SqliteDeviceGroupRepository(factory), new SqliteExplorerOrderRepository(factory),
+            new SqliteCredentialProfileRepository(factory), new SqliteRecentDeviceRepository(factory),
+            NullLogger<DeviceCatalogService>.Instance);
+        await catalog.SaveAsync(new DeviceEditRequest(
+            null, "GUI switch", string.Empty, "192.0.2.81", 22, DeviceType.Switch,
+            string.Empty, string.Empty, string.Empty, string.Empty, DeviceEnvironment.Unknown,
+            null, null, false, string.Empty)
+        {
+            AccessMode = DeviceAccessMode.WebOnly,
+            WebAccess = new DeviceWebAccessSettings("https://192.0.2.81/",
+                WebBrowserPreference.WindowsDefault, DeviceOpenAction.Web),
+        }, CancellationToken.None);
+        const string csv = "Name,Host,Port,Device Type,Protocol,Telnet Acknowledged,Access Mode,Web Address,Browser Preference,Default Open Action\r\n"
+            + "GUI switch,192.0.2.81,,Switch,,,WebOnly,https://192.0.2.81/,GoogleChrome,Web\r\n";
+        var transfer = new DeviceTransferService(catalog);
+        using var stream = new MemoryStream();
+        if (format == DeviceTransferFormat.Excel)
+        {
+            await PopulateTemplateRowAsync(transfer, stream,
+                ("A", "GUI switch"), ("B", "192.0.2.81"), ("D", "Switch"),
+                ("G", "WebOnly"), ("H", "https://192.0.2.81/"),
+                ("I", "GoogleChrome"), ("J", "Web"));
+        }
+        else
+        {
+            byte[] bytes = System.Text.Encoding.UTF8.GetBytes(csv);
+            await stream.WriteAsync(bytes);
+            stream.Position = 0;
+        }
+        string json = await transfer.ConvertToJsonAsync(
+            stream, format, CancellationToken.None);
+        DeviceImportPreview preview = await transfer.ReviewImportAsync(json, CancellationToken.None);
+        DeviceImportResult result = await transfer.ImportAsync(
+            json, policy, null, CancellationToken.None);
+
+        Assert.Equal(1, preview.ConflictCount);
+        Assert.Equal(0, preview.CredentialRequiredCount);
+        Assert.Equal(policy == DeviceImportConflictPolicy.Update ? 1 : 0, result.UpdatedCount);
+        IReadOnlyList<DeviceProfile> saved = await devices.GetAllAsync(CancellationToken.None);
+        Assert.Equal(policy == DeviceImportConflictPolicy.Update ? 1 : 2, saved.Count);
+        Assert.Contains(saved, device => device.AccessMode == DeviceAccessMode.WebOnly
+            && device.WebAccess?.Browser == WebBrowserPreference.GoogleChrome
+            && device.CredentialProfileId is null);
+    }
+
+    [Fact]
+    public async Task CliSwitchImportsFromGeneratedExcelTemplateWithBlankOptionalCells()
+    {
+        using var storage = new TemporaryStorage();
+        var factory = new SqliteConnectionFactory(storage);
+        using var initializer = new SqliteDatabaseInitializer(
+            factory, NullLogger<SqliteDatabaseInitializer>.Instance);
+        var devices = new SqliteDeviceRepository(factory);
+        var credentials = new SqliteCredentialProfileRepository(factory);
+        using var catalog = new DeviceCatalogService(
+            initializer, devices, new SqliteSiteRepository(factory),
+            new SqliteDeviceGroupRepository(factory), new SqliteExplorerOrderRepository(factory),
+            credentials, new SqliteRecentDeviceRepository(factory),
+            NullLogger<DeviceCatalogService>.Instance);
+        await catalog.InitializeAsync(CancellationToken.None);
+        DateTimeOffset now = DateTimeOffset.UtcNow;
+        var credential = new CredentialProfile(
+            Guid.NewGuid(), "Test credential", "operator", "test-reference", now, now);
+        await credentials.SaveAsync(credential, CancellationToken.None);
+        var transfer = new DeviceTransferService(catalog);
+        using var stream = new MemoryStream();
+        await PopulateTemplateRowAsync(transfer, stream,
+            ("A", "CLI switch"), ("B", "192.0.2.22"),
+            ("D", "Switch"), ("E", "SSH"));
+
+        string json = await transfer.ConvertToJsonAsync(
+            stream, DeviceTransferFormat.Excel, CancellationToken.None);
+        DeviceImportPreview preview = await transfer.ReviewImportAsync(json, CancellationToken.None);
+        DeviceImportResult result = await transfer.ImportAsync(
+            json, DeviceImportConflictPolicy.Update, credential.Id, CancellationToken.None);
+
+        Assert.Equal(1, preview.CredentialRequiredCount);
+        Assert.Equal(1, result.ImportedCount);
+        DeviceProfile saved = Assert.Single(await devices.GetAllAsync(CancellationToken.None));
+        Assert.Equal("CLI switch", saved.Name);
+        Assert.Equal(credential.Id, saved.CredentialProfileId);
+        Assert.Equal(DeviceAccessMode.TerminalOnly, saved.AccessMode);
+    }
+
+    private static async Task PopulateTemplateRowAsync(
+        DeviceTransferService transfer, MemoryStream stream,
+        params (string Column, string Value)[] cells)
+    {
+        await transfer.WriteExcelTemplateAsync(stream, CancellationToken.None);
+        stream.Position = 0;
+        using (SpreadsheetDocument workbook = SpreadsheetDocument.Open(stream, true))
+        {
+            WorkbookPart part = Assert.IsType<WorkbookPart>(workbook.WorkbookPart);
+            Sheet sheet = Assert.Single(Assert.IsType<Workbook>(part.Workbook).Sheets!.Elements<Sheet>(),
+                item => item.Name == "Devices");
+            WorksheetPart worksheet = Assert.IsType<WorksheetPart>(part.GetPartById(sheet.Id!));
+            var row = new Row { RowIndex = 2U };
+            foreach ((string column, string value) in cells)
+            {
+                row.Append(new Cell
+                {
+                    CellReference = $"{column}2",
+                    DataType = CellValues.InlineString,
+                    InlineString = new InlineString(new Text(value)),
+                });
+            }
+            Worksheet xml = Assert.IsType<Worksheet>(worksheet.Worksheet);
+            xml.GetFirstChild<SheetData>()!.Append(row);
+            xml.Save();
+        }
+        stream.Position = 0;
     }
 
     [Fact]

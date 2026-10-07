@@ -102,6 +102,30 @@ public sealed class DeviceTransferServiceTests
             using var stream = new MemoryStream();
             await source.WriteExcelExportAsync(new DeviceExportOptions(), stream, CancellationToken.None);
             stream.Position = 0;
+            using (SpreadsheetDocument workbook = SpreadsheetDocument.Open(stream, false))
+            {
+                WorkbookPart part = Assert.IsType<WorkbookPart>(workbook.WorkbookPart);
+                Sheet sheet = Assert.Single(
+                    Assert.IsType<Workbook>(part.Workbook).Sheets!.Elements<Sheet>(),
+                    x => x.Name == "Devices");
+                Worksheet worksheet = Assert.IsType<Worksheet>(
+                    Assert.IsType<WorksheetPart>(part.GetPartById(sheet.Id!)).Worksheet);
+                Row[] rows = worksheet.GetFirstChild<SheetData>()!.Elements<Row>().ToArray();
+                Row webRow = rows[1];
+                foreach (string column in new[]
+                    { "B", "C", "D", "L", "M", "N", "R", "S", "T", "U", "V", "W", "X", "Y", "Z" })
+                {
+                    Assert.Equal(string.Empty, GetCellText(webRow, $"{column}2"));
+                }
+                Assert.Equal("WebOnly", GetCellText(webRow, "AA2"));
+                Assert.Equal("https://gui.test/manage", GetCellText(webRow, "AB2"));
+                Assert.Equal("Web", GetCellText(webRow, "AD2"));
+                Row dualRow = rows[2];
+                Assert.Equal("both.test", GetCellText(dualRow, "B3"));
+                Assert.Equal("23", GetCellText(dualRow, "C3"));
+                Assert.Equal("Telnet", GetCellText(dualRow, "D3"));
+            }
+            stream.Position = 0;
             json = await source.ConvertToJsonAsync(stream, DeviceTransferFormat.Excel, CancellationToken.None);
         }
         else
@@ -127,6 +151,9 @@ public sealed class DeviceTransferServiceTests
         Assert.Equal(ConnectionType.Telnet, dual.ConnectionType);
         Assert.Equal("https://both.test/", dual.WebAccess?.Address);
     }
+    private static string GetCellText(Row row, string reference)
+        => Assert.Single(row.Elements<Cell>(), cell => cell.CellReference == reference).InnerText;
+
     [Fact]
     public async Task ImportSkipsDeviceWhenCredentialCannotBeMapped()
     {

@@ -540,6 +540,7 @@ public sealed partial class MainWindow : ThemedWindow, IDisposable
     private async Task ImportDevicesAsync()
     {
         if (_deviceTransferService is null || DataContext is not MainWindowViewModel viewModel) return;
+        string stage = "reading the file";
         try
         {
             IReadOnlyList<IStorageFile> files = await StorageProvider.OpenFilePickerAsync(new FilePickerOpenOptions
@@ -559,19 +560,23 @@ public sealed partial class MainWindow : ThemedWindow, IDisposable
                 _ => DeviceTransferFormat.Json,
             };
             string json = await _deviceTransferService.ConvertToJsonAsync(stream, format, CancellationToken.None);
+            stage = "reviewing devices";
             DeviceImportPreview preview = await _deviceTransferService.ReviewImportAsync(json, CancellationToken.None);
             var dialog = new DeviceImportReviewWindow(preview, viewModel.DeviceExplorer.Credentials);
             DeviceImportDialogResult? choice = await dialog.ShowDialog<DeviceImportDialogResult?>(this);
             if (choice is null) return;
+            stage = "saving devices";
             DeviceImportResult result = await _deviceTransferService.ImportAsync(
                 json, choice.ConflictPolicy, choice.FallbackCredentialId, CancellationToken.None);
+            stage = "refreshing Device Explorer";
             await viewModel.DeviceExplorer.RefreshAsync();
+            stage = "showing the result";
             await ShowTransferResultAsync("Import complete",
                 $"{result.ImportedCount} added, {result.UpdatedCount} updated, {result.SkippedCount} skipped, {result.CredentialRequiredCount} require credentials.");
         }
         catch (Exception exception)
         {
-            await new ConnectionErrorWindow("Devices could not be imported.", $"{exception.GetType().Name}: {exception.Message}", "Device import failed").ShowDialog(this);
+            await new ConnectionErrorWindow($"Device import failed while {stage}.", $"{exception.GetType().Name}: {exception.Message}", "Device import failed").ShowDialog(this);
         }
     }
 

@@ -2,6 +2,7 @@
 
 ## [1.1.0] - 2026-10-01
 
+- Refreshed the 1.1.0 packages on 2026-10-07: Excel import accepts blank optional template cells, GUI-only Excel exports leave terminal columns blank, and import errors identify the failing step.
 - Added saved-device CLI only, GUI only, and CLI + GUI modes, with browser choice, an explicit web action, and an optional manual web-port check.
 - Added site folders, manual Device Explorer ordering, multi-device moves and deletion, and drag ordering for terminal tabs.
 - Gave each connection attempt a visible tab, aligned connection status indicators, and added PowerShell and Command Prompt shortcuts.

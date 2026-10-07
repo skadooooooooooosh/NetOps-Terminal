@@ -49,6 +49,8 @@ Saved devices can open a **CLI session**, an **external web interface**, or **bo
 
 The installer includes the .NET runtime. It defaults to `C:\Program Files\NetOps Terminal`, asks for administrator approval, and offers Desktop and Start menu shortcuts. The [portable ZIP](https://github.com/skadooooooooooosh/NetOps-Terminal/releases/download/v1.1.0/NetOpsTerminal-1.1.0-win-x64.zip) is available on the same release page. The packages are unsigned, so Windows may show a publisher warning. GitHub sign-in and repository access are required while this repository is private.
 
+> **Already installed 1.1.0?** The 2026-10-07 refreshed MSI keeps the same version and installer identity. Uninstall the earlier 1.1.0 MSI before installing this copy; your per-user device data remains. Download its new checksum too.
+
 > **Upgrading from 1.0.0?** Back up `%LOCALAPPDATA%\NetOpsTerminal` for each Windows account before installing 1.1.0. The saved-device database migration is forward-only; 1.0.0 cannot read the upgraded database. Saved passwords are held separately in Windows Credential Manager. See the [1.1.0 release guide](docs/RELEASE_V1_1.md) for upgrade details.
 
 ## Connections and safety

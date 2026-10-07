@@ -83,7 +83,7 @@ public sealed partial class DeviceTransferService
 
     private static string Field(IReadOnlyList<string> values, IReadOnlyDictionary<string, int> columns, string name)
         => columns.TryGetValue(NormalizeHeader(name), out int index) && index < values.Count
-            ? values[index].Trim()
+            ? values[index]?.Trim() ?? string.Empty
             : string.Empty;
 
     private static Item CreateSpreadsheetItem(

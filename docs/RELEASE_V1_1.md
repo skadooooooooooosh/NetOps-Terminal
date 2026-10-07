@@ -6,6 +6,8 @@ Download `NetOpsTerminal-1.1.0-win-x64.msi` and its `.sha256` file from the v1.1
 
 The v1.1.0 MSI uses the same all-users UpgradeCode and a new ProductCode, allowing Windows Installer to upgrade the published v1.0.0 all-users MSI. If you installed an older per-user MSI candidate, uninstall that candidate first; Windows Installer cannot upgrade between per-user and per-machine contexts.
 
+The 2026-10-07 package refresh keeps version 1.1.0 and the same MSI product identity. If an earlier 1.1.0 MSI is already installed, uninstall it before installing the refreshed MSI; Windows Installer may otherwise open maintenance mode instead of replacing the app files. Your per-user device data is retained by uninstall. Verify the new checksum after downloading because the files under the existing release tag have changed.
+
 ## Protect existing data
 
 Before upgrading, back up each user's `%LOCALAPPDATA%\NetOpsTerminal` folder to an access-controlled location. Saved passwords remain in that user's Windows Credential Manager and are not in the folder backup. The v1.1.0 app migrates the database to schema 6. That migration is forward-only; the v1.0.0 app cannot read the upgraded database.

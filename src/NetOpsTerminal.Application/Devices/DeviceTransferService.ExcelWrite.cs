@@ -1,6 +1,7 @@
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
+using NetOpsTerminal.Core.Devices;
 
 namespace NetOpsTerminal.Application.Devices;
 
@@ -101,18 +102,23 @@ public sealed partial class DeviceTransferService
         {
             uint rowIndex = checked((uint)(index + 2));
             Item item = items[index];
+            bool hasTerminal = item.AccessMode != DeviceAccessMode.WebOnly;
+            string TerminalValue(string value) => hasTerminal ? value : string.Empty;
             string[] values =
             [
-                item.Name, item.Host, item.Port.ToString(System.Globalization.CultureInfo.InvariantCulture),
-                item.ConnectionType.ToString(), item.DeviceType.ToString(), item.Description,
+                item.Name, TerminalValue(item.Host),
+                TerminalValue(item.Port.ToString(System.Globalization.CultureInfo.InvariantCulture)),
+                TerminalValue(item.ConnectionType.ToString()), item.DeviceType.ToString(), item.Description,
                 item.Vendor, item.Model, item.SiteName, item.GroupName, item.Environment.ToString(),
-                item.CredentialName, item.CredentialUsername, item.UsernameOverride ?? string.Empty,
+                TerminalValue(item.CredentialName), TerminalValue(item.CredentialUsername),
+                TerminalValue(item.UsernameOverride ?? string.Empty),
                 item.IsFavorite ? "Yes" : "No", item.IsRecent ? "Yes" : "No", item.Notes,
-                item.TerminalType, item.Encoding,
-                item.ConnectTimeoutSeconds.ToString(System.Globalization.CultureInfo.InvariantCulture),
-                item.SerialDataBits.ToString(System.Globalization.CultureInfo.InvariantCulture),
-                item.SerialParity, item.SerialStopBits, item.SerialFlowControl, item.RawLineEnding,
-                item.TelnetAcknowledged ? "Yes" : "No",
+                TerminalValue(item.TerminalType), TerminalValue(item.Encoding),
+                TerminalValue(item.ConnectTimeoutSeconds.ToString(System.Globalization.CultureInfo.InvariantCulture)),
+                TerminalValue(item.SerialDataBits.ToString(System.Globalization.CultureInfo.InvariantCulture)),
+                TerminalValue(item.SerialParity), TerminalValue(item.SerialStopBits),
+                TerminalValue(item.SerialFlowControl), TerminalValue(item.RawLineEnding),
+                TerminalValue(item.TelnetAcknowledged ? "Yes" : "No"),
                 item.AccessMode.ToString(), item.WebAddress,
                 item.BrowserPreference.ToString(), item.DefaultOpenAction.ToString(),
             ];
@@ -160,6 +166,7 @@ public sealed partial class DeviceTransferService
         data.Append(RowOf(6, 0, "Do not add formulas. Save as .xlsx before importing."));
         data.Append(RowOf(7, 0, "Access Mode: TerminalOnly, WebOnly, or TerminalAndWeb. Browser Preference: WindowsDefault, MicrosoftEdge, or GoogleChrome."));
         data.Append(RowOf(8, 0, "Default Open Action: Terminal or Web. For WebOnly, use Web or leave this cell blank."));
+        data.Append(RowOf(9, 0, "GUI-only rows leave Host, Port, Protocol, and terminal settings blank. Web Address is the browser destination."));
         part.Worksheet = new Worksheet(
             new Columns(new Column { Min = 1, Max = 1, Width = 120, CustomWidth = true }),
             data);
