@@ -309,12 +309,15 @@ public sealed partial class DeviceExplorerViewModel : ObservableObject
             Nodes.Clear();
             foreach (DeviceExplorerNodeViewModel site in orderedSites)
                 Nodes.Add(site);
-            Nodes.Add(new DeviceExplorerNodeViewModel(
-                "Unassigned", $"{CountDevices(unassigned)} devices", string.Empty,
-                children: unassigned, isSite: true)
+            if (unassigned.Length > 0)
             {
-                IsExpanded = WasExpanded(DeviceExplorerNodeKind.Site, null),
-            });
+                Nodes.Add(new DeviceExplorerNodeViewModel(
+                    "Unassigned", $"{CountDevices(unassigned)} devices", string.Empty,
+                    children: unassigned, isSite: true)
+                {
+                    IsExpanded = WasExpanded(DeviceExplorerNodeKind.Site, null),
+                });
+            }
         }
 
         SelectedNode = FindDeviceNode(Nodes, selectedId);

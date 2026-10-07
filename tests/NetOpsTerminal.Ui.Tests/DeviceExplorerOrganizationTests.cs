@@ -54,9 +54,29 @@ public sealed class DeviceExplorerOrganizationTests
             explorer.Nodes, node => node.SiteId is not null);
         explorer.SelectedNode = site;
         Assert.True(explorer.CanCreateFolder);
-        explorer.SelectedNode = Assert.Single(
-            explorer.Nodes, node => node.SiteId is null);
+        Assert.DoesNotContain(explorer.Nodes, node => node.SiteId is null);
+        explorer.SelectedNode = null;
         Assert.False(explorer.CanCreateFolder);
+    }
+
+    [Fact]
+    public async Task UnassignedAppearsOnlyWhenItContainsDevices()
+    {
+        var catalog = new OrganizationCatalog();
+        var explorer = new DeviceExplorerViewModel(catalog);
+        await explorer.InitializeAsync(CancellationToken.None);
+
+        Assert.DoesNotContain(explorer.Nodes, node => node.SiteId is null);
+
+        catalog.Devices.Add(OrganizationCatalog.CreateDevice("Loose switch", "192.0.2.20", null, null));
+        await explorer.RefreshAsync();
+        DeviceExplorerNodeViewModel unassigned = Assert.Single(
+            explorer.Nodes, node => node.SiteId is null);
+        Assert.Single(unassigned.Children, node => node.Device?.Name == "Loose switch");
+
+        catalog.Devices.RemoveAll(device => device.SiteId is null);
+        await explorer.RefreshAsync();
+        Assert.DoesNotContain(explorer.Nodes, node => node.SiteId is null);
     }
 
     [Fact]
@@ -160,8 +180,7 @@ public sealed class DeviceExplorerOrganizationTests
         await explorer.InitializeAsync(CancellationToken.None);
         DeviceExplorerNodeViewModel site = Assert.Single(
             explorer.Nodes, node => node.SiteId == catalog.Site.Id);
-        DeviceExplorerNodeViewModel unassigned = Assert.Single(
-            explorer.Nodes, node => node.SiteId is null);
+        Assert.DoesNotContain(explorer.Nodes, node => node.SiteId is null);
         DeviceExplorerNodeViewModel root = Assert.Single(
             site.Children, node => node.FolderId == catalog.Root.Id);
         DeviceExplorerNodeViewModel other = Assert.Single(
@@ -169,17 +188,14 @@ public sealed class DeviceExplorerOrganizationTests
         site.IsExpanded = true;
         root.IsExpanded = true;
         other.IsExpanded = false;
-        unassigned.IsExpanded = true;
-
         await explorer.RefreshAsync();
         site = Assert.Single(explorer.Nodes, node => node.SiteId == catalog.Site.Id);
-        unassigned = Assert.Single(explorer.Nodes, node => node.SiteId is null);
         root = Assert.Single(site.Children, node => node.FolderId == catalog.Root.Id);
         other = Assert.Single(site.Children, node => node.FolderId == catalog.Child.Id);
         Assert.True(site.IsExpanded);
         Assert.True(root.IsExpanded);
         Assert.False(other.IsExpanded);
-        Assert.True(unassigned.IsExpanded);
+        Assert.DoesNotContain(explorer.Nodes, node => node.SiteId is null);
 
         site.IsExpanded = false;
         await explorer.ShowFavoritesCommand.ExecuteAsync(null);
@@ -188,7 +204,7 @@ public sealed class DeviceExplorerOrganizationTests
         root = Assert.Single(site.Children, node => node.FolderId == catalog.Root.Id);
         Assert.False(site.IsExpanded);
         Assert.True(root.IsExpanded);
-        Assert.True(Assert.Single(explorer.Nodes, node => node.SiteId is null).IsExpanded);
+        Assert.DoesNotContain(explorer.Nodes, node => node.SiteId is null);
     }
 
     [Fact]

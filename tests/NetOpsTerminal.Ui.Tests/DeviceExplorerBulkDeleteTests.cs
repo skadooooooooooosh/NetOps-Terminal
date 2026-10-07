@@ -33,7 +33,7 @@ public sealed class DeviceExplorerBulkDeleteTests
 
         Assert.Equal(3, catalog.Deleted.Distinct().Count());
         Assert.Equal(3, catalog.Deleted.Count);
-        Assert.Empty(Assert.Single(explorer.Nodes).Children);
+        Assert.Empty(explorer.Nodes);
         Assert.False(explorer.HasSelectedDevices);
     }
 
