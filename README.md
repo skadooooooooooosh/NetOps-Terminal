@@ -11,11 +11,11 @@
 </p>
 
 <p align="center">
-  <strong>Windows 10/11 x64</strong> &nbsp;·&nbsp; <strong>Version 1.1.0</strong> &nbsp;·&nbsp; <strong>.NET 10</strong>
+  <strong>Windows 10/11 x64</strong> &nbsp;·&nbsp; <strong>Version 1.1.1</strong> &nbsp;·&nbsp; <strong>.NET 10</strong>
 </p>
 
 <p align="center">
-  <a href="https://github.com/skadooooooooooosh/NetOps-Terminal/releases/tag/v1.1.0"><strong>Download v1.1.0</strong></a>
+  <a href="https://github.com/skadooooooooooosh/NetOps-Terminal/releases/tag/v1.1.1"><strong>Download v1.1.1</strong></a>
   &nbsp;·&nbsp;
   <a href="docs/user-guide/NETOPS_TERMINAL_USER_GUIDE.md">User guide</a>
   &nbsp;·&nbsp;
@@ -43,15 +43,15 @@ Saved devices can open a **CLI session**, an **external web interface**, or **bo
 
 ## Get the app
 
-1. Open the [v1.1.0 release](https://github.com/skadooooooooooosh/NetOps-Terminal/releases/tag/v1.1.0) and expand **Assets**.
-2. Download the [Windows x64 MSI](https://github.com/skadooooooooooosh/NetOps-Terminal/releases/download/v1.1.0/NetOpsTerminal-1.1.0-win-x64.msi) and its [SHA-256 checksum](https://github.com/skadooooooooooosh/NetOps-Terminal/releases/download/v1.1.0/NetOpsTerminal-1.1.0-win-x64.msi.sha256).
+1. Open the [v1.1.1 release](https://github.com/skadooooooooooosh/NetOps-Terminal/releases/tag/v1.1.1) and expand **Assets**.
+2. Download the [Windows x64 MSI](https://github.com/skadooooooooooosh/NetOps-Terminal/releases/download/v1.1.1/NetOpsTerminal-1.1.1-win-x64.msi) and its [SHA-256 checksum](https://github.com/skadooooooooooosh/NetOps-Terminal/releases/download/v1.1.1/NetOpsTerminal-1.1.1-win-x64.msi.sha256).
 3. Check the hash, close NetOps Terminal if it is running, then run the installer.
 
-The installer includes the .NET runtime. It defaults to `C:\Program Files\NetOps Terminal`, asks for administrator approval, and offers Desktop and Start menu shortcuts. The [portable ZIP](https://github.com/skadooooooooooosh/NetOps-Terminal/releases/download/v1.1.0/NetOpsTerminal-1.1.0-win-x64.zip) is available on the same release page. The packages are unsigned, so Windows may show a publisher warning. GitHub sign-in and repository access are required while this repository is private.
+The installer includes the .NET runtime. It defaults to `C:\Program Files\NetOps Terminal`, asks for administrator approval, and offers Desktop and Start menu shortcuts. The [portable ZIP](https://github.com/skadooooooooooosh/NetOps-Terminal/releases/download/v1.1.1/NetOpsTerminal-1.1.1-win-x64.zip) is available on the same release page. The packages are unsigned, so Windows may show a publisher warning. GitHub sign-in and repository access are required while this repository is private.
 
-> **Already installed 1.1.0?** The 2026-10-07 refreshed MSI keeps the same version and installer identity. Uninstall the earlier 1.1.0 MSI before installing this copy; your per-user device data remains. Download its new checksum too.
+> **Upgrading from 1.1.0?** Close the app, then run the 1.1.1 MSI. It upgrades the 1.1.0 all-users installation. Back up user data before upgrading.
 
-> **Upgrading from 1.0.0?** Back up `%LOCALAPPDATA%\NetOpsTerminal` for each Windows account before installing 1.1.0. The saved-device database migration is forward-only; 1.0.0 cannot read the upgraded database. Saved passwords are held separately in Windows Credential Manager. See the [1.1.0 release guide](docs/RELEASE_V1_1.md) for upgrade details.
+> **Upgrading from 1.0.0?** Back up `%LOCALAPPDATA%\NetOpsTerminal` for each Windows account before installing 1.1.1. The saved-device database migration is forward-only; 1.0.0 cannot read the upgraded database. Saved passwords are held separately in Windows Credential Manager. See the [1.1.1 release guide](docs/RELEASE_V1_1_1.md) for upgrade details.
 
 ## Connections and safety
 
@@ -89,8 +89,8 @@ The release files are written to the ignored `artifacts\release` directory.
 
 - [User guide (Markdown)](docs/user-guide/NETOPS_TERMINAL_USER_GUIDE.md) and [printable PDF](docs/user-guide/NETOPS_TERMINAL_USER_GUIDE.pdf) — installation, illustrated workflows, shortcuts, and troubleshooting
 - [Changelog](CHANGELOG.md) — changes by version
-- [Release guide](docs/RELEASE_V1_1.md) — installation, upgrade, and package details
+- [Release guide](docs/RELEASE_V1_1_1.md) — installation, upgrade, and package details
 - [Security](SECURITY.md) — credentials, host keys, local data, and vulnerability reporting
 - [Third-party notices](THIRD_PARTY_NOTICES.md) — bundled dependency notices
 
-SSH private-key and SSH-agent authentication are not part of version 1.1.0.
+SSH private-key and SSH-agent authentication are not part of version 1.1.1.

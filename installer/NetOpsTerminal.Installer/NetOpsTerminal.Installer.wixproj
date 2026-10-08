@@ -4,7 +4,7 @@
     <!-- The native e_sqlite3.dll is language-neutral but has a version resource. -->
     <SuppressSpecificWarnings>1101</SuppressSpecificWarnings>
     <Platform>x64</Platform>
-    <InstallerVersion Condition="'$(InstallerVersion)' == ''">1.1.0</InstallerVersion>
+    <InstallerVersion Condition="'$(InstallerVersion)' == ''">1.1.1</InstallerVersion>
     <OutputName>NetOpsTerminal-$(InstallerVersion)-win-x64</OutputName>
     <DefineConstants>$(DefineConstants);InstallerVersion=$(InstallerVersion);PublishRoot=$(PublishRoot)</DefineConstants>
   </PropertyGroup>

@@ -1,7 +1,7 @@
 [CmdletBinding()]
 param(
     [ValidatePattern('^\d+\.\d+\.\d+(-[0-9A-Za-z.-]+)?$')]
-    [string]$Version = '1.1.0',
+    [string]$Version = '1.1.1',
 
     [switch]$SkipTests
 )
@@ -82,6 +82,8 @@ try {
         'docs\RELEASE_V1.md'
     } elseif ($Version -eq '1.1.0') {
         'docs\RELEASE_V1_1.md'
+    } elseif ($Version -eq '1.1.1') {
+        'docs\RELEASE_V1_1_1.md'
     } else {
         'docs\RELEASE_CANDIDATE.md'
     }

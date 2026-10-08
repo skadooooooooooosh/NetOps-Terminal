@@ -430,6 +430,7 @@
                   ItemsSource="{Binding DeviceExplorer.Nodes}"
                   SelectedItem="{Binding DeviceExplorer.SelectedNode}"
                   SelectionMode="Multiple"
+                  ScrollViewer.HorizontalScrollBarVisibility="Disabled"
                   SelectionChanged="DeviceTree_OnSelectionChanged"
                   DoubleTapped="DeviceTree_OnDoubleTapped"
                   KeyDown="DeviceTree_OnKeyDown">
@@ -444,6 +445,8 @@
                               IsEnabled="{Binding DeviceExplorer.CanOrganize}" />
                     <MenuItem Header="New Organization folder" Click="CreateFolder_OnClick"
                               IsEnabled="{Binding DeviceExplorer.CanCreateFolder}" />
+                    <MenuItem Header="{Binding DeviceExplorer.RenameSelectedLabel}" Click="RenameExplorerNode_OnClick"
+                              IsEnabled="{Binding DeviceExplorer.CanRenameSelected}" />
                     <MenuItem Header="Sort alphabetically" Click="SortExplorerAlphabetically_OnClick"
                               IsEnabled="{Binding DeviceExplorer.CanSortSelectedAlphabetically}" />
                     <Separator />
@@ -459,9 +462,9 @@
                 <TreeView.ItemTemplate>
                   <TreeDataTemplate x:DataType="vm:DeviceExplorerNodeViewModel"
                                     ItemsSource="{Binding Children}">
-                    <Grid Margin="2,2" ColumnDefinitions="Auto,*,Auto"
+                    <Grid Margin="2,3,2,6" ColumnDefinitions="Auto,*" RowDefinitions="Auto,Auto"
                           Background="Transparent">
-                      <Grid Width="16" Height="16" VerticalAlignment="Center">
+                      <Grid Grid.RowSpan="2" Width="16" Height="16" VerticalAlignment="Center">
                         <PathIcon IsVisible="{Binding IsGroup}"
                                   Data="{StaticResource IconFolder}" />
                         <Path IsVisible="{Binding IsSwitch}" Data="{StaticResource IconDeviceSwitch}"
@@ -486,42 +489,49 @@
                               Stroke="{DynamicResource AppAccentBrush}" StrokeThickness="1.6"
                               StrokeLineCap="Round" StrokeJoin="Round" Stretch="Uniform" />
                       </Grid>
-                      <StackPanel Grid.Column="1" Margin="7,0,5,0">
-                        <TextBlock FontSize="11" FontWeight="SemiBold" Text="{Binding Label}" />
-                        <TextBlock Classes="muted" FontSize="9" Text="{Binding Details}" />
-                      </StackPanel>
-                      <StackPanel Grid.Column="2" VerticalAlignment="Center">
-                        <Border Classes="badge lab" IsVisible="{Binding IsWebOnly}">
-                          <TextBlock FontSize="8" Foreground="{DynamicResource AppLabBrush}" Text="WEB" />
-                        </Border>
-                        <Border Classes="badge lab" IsVisible="{Binding IsTerminalAndWeb}">
-                          <TextBlock FontSize="8" Foreground="{DynamicResource AppLabBrush}" Text="CLI+WEB" />
-                        </Border>
-                        <Border Classes="badge production" IsVisible="{Binding IsProduction}">
-                          <TextBlock FontSize="8" Foreground="{DynamicResource AppProductionBrush}" Text="PROD" />
-                        </Border>
-                        <Border Classes="badge test"
-                                IsVisible="{Binding IsTest}">
-                          <TextBlock FontSize="8" Foreground="{DynamicResource AppTestBrush}" Text="TEST" />
-                        </Border>
-                        <Border Classes="badge lab"
-                                IsVisible="{Binding IsLab}">
-                          <TextBlock FontSize="8" Foreground="{DynamicResource AppLabBrush}" Text="LAB" />
-                        </Border>
-                        <Border Classes="badge development"
-                                IsVisible="{Binding IsDevelopment}">
-                          <TextBlock FontSize="8" Foreground="{DynamicResource AppLabBrush}" Text="DEV" />
-                        </Border>
-                      </StackPanel>
-                      <Border Grid.ColumnSpan="3" Height="2"
+                      <Grid Grid.Column="1" Margin="7,0,2,0"
+                            ColumnDefinitions="*,Auto" ColumnSpacing="6">
+                        <TextBlock FontSize="11" FontWeight="SemiBold"
+                                   Text="{Binding Label}" TextTrimming="CharacterEllipsis"
+                                   ToolTip.Tip="{Binding Label}" />
+                        <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="3"
+                                    VerticalAlignment="Center">
+                          <Border Classes="badge lab" IsVisible="{Binding IsTerminalOnly}">
+                            <TextBlock FontSize="8" Foreground="{DynamicResource AppLabBrush}" Text="CLI" />
+                          </Border>
+                          <Border Classes="badge lab" IsVisible="{Binding IsWebOnly}">
+                            <TextBlock FontSize="8" Foreground="{DynamicResource AppLabBrush}" Text="GUI" />
+                          </Border>
+                          <Border Classes="badge lab" IsVisible="{Binding IsTerminalAndWeb}">
+                            <TextBlock FontSize="8" Foreground="{DynamicResource AppLabBrush}" Text="CLI+GUI" />
+                          </Border>
+                          <Border Classes="badge production" IsVisible="{Binding IsProduction}">
+                            <TextBlock FontSize="8" Foreground="{DynamicResource AppProductionBrush}" Text="PROD" />
+                          </Border>
+                          <Border Classes="badge test" IsVisible="{Binding IsTest}">
+                            <TextBlock FontSize="8" Foreground="{DynamicResource AppTestBrush}" Text="TEST" />
+                          </Border>
+                          <Border Classes="badge lab" IsVisible="{Binding IsLab}">
+                            <TextBlock FontSize="8" Foreground="{DynamicResource AppLabBrush}" Text="LAB" />
+                          </Border>
+                          <Border Classes="badge development" IsVisible="{Binding IsDevelopment}">
+                            <TextBlock FontSize="8" Foreground="{DynamicResource AppLabBrush}" Text="DEV" />
+                          </Border>
+                        </StackPanel>
+                      </Grid>
+                      <TextBlock Grid.Row="1" Grid.Column="1" Margin="7,0,2,0"
+                                 Classes="muted" FontSize="9" Text="{Binding Details}"
+                                 TextTrimming="CharacterEllipsis"
+                                 ToolTip.Tip="{Binding Details}" />
+                      <Border Grid.RowSpan="2" Grid.ColumnSpan="2" Height="2"
                               HorizontalAlignment="Stretch" VerticalAlignment="Top"
                               Background="{DynamicResource AppAccentBrush}"
                               IsHitTestVisible="False" IsVisible="{Binding IsDropBefore}" />
-                      <Border Grid.ColumnSpan="3" Height="2"
+                      <Border Grid.RowSpan="2" Grid.ColumnSpan="2" Height="2"
                               HorizontalAlignment="Stretch" VerticalAlignment="Bottom"
                               Background="{DynamicResource AppAccentBrush}"
                               IsHitTestVisible="False" IsVisible="{Binding IsDropAfter}" />
-                      <Border Grid.ColumnSpan="3" BorderThickness="1" CornerRadius="4"
+                      <Border Grid.RowSpan="2" Grid.ColumnSpan="2" BorderThickness="1" CornerRadius="4"
                               BorderBrush="{DynamicResource AppAccentBrush}"
                               IsHitTestVisible="False" IsVisible="{Binding IsDropInto}" />
                     </Grid>

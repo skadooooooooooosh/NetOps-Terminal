@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.1.1] - 2026-10-08
+
+- Removed the Environment selector from the saved-device editor while preserving existing metadata.
+- Added Rename to Site and Organization folder context menus; device assignments and manual order stay intact.
+- Improved Device Explorer sizing, spacing, tooltips, and CLI, GUI, and CLI+GUI badges.
+
 ## [1.1.0] - 2026-10-01
 
 - Refreshed the 1.1.0 packages on 2026-10-07: Excel import accepts blank optional template cells, GUI-only Excel exports leave terminal columns blank, and import errors identify the failing step.

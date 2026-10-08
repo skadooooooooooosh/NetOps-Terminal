@@ -205,6 +205,21 @@ public sealed partial class DeviceCatalogService(
         return await siteRepository.GetOrCreateAsync(normalized, cancellationToken).ConfigureAwait(false);
     }
 
+    public async Task RenameSiteAsync(Guid id, string name, CancellationToken cancellationToken)
+    {
+        await InitializeAsync(cancellationToken).ConfigureAwait(false);
+        string normalized = new Site(id, name).Name;
+        IReadOnlyList<Site> sites = await siteRepository.GetAllAsync(cancellationToken).ConfigureAwait(false);
+        Site existing = sites.FirstOrDefault(site => site.Id == id)
+            ?? throw new ArgumentException("The selected site no longer exists.", nameof(id));
+        if (existing.Name == normalized)
+            return;
+        if (sites.Any(site => site.Id != id
+            && string.Equals(site.Name, normalized, StringComparison.OrdinalIgnoreCase)))
+            throw new ArgumentException("A site with that name already exists.", nameof(name));
+        await siteRepository.RenameAsync(id, normalized, cancellationToken).ConfigureAwait(false);
+    }
+
     public async Task DeleteEmptySiteAsync(Guid id, CancellationToken cancellationToken)
     {
         await InitializeAsync(cancellationToken).ConfigureAwait(false);
@@ -237,6 +252,25 @@ public sealed partial class DeviceCatalogService(
             throw new ArgumentException("A folder with that name already exists here.", nameof(name));
         return await groupRepository.GetOrCreateAsync(
             normalized, siteId, cancellationToken).ConfigureAwait(false);
+    }
+
+    public async Task RenameFolderAsync(Guid id, string name, CancellationToken cancellationToken)
+    {
+        await InitializeAsync(cancellationToken).ConfigureAwait(false);
+        string normalized = new DeviceGroup(id, name, null).Name;
+        if (normalized.Contains('/'))
+            throw new ArgumentException("Folder names cannot contain a slash.", nameof(name));
+        IReadOnlyList<DeviceGroup> groups = await groupRepository
+            .GetAllAsync(cancellationToken).ConfigureAwait(false);
+        DeviceGroup existing = groups.FirstOrDefault(group => group.Id == id)
+            ?? throw new ArgumentException("The selected folder no longer exists.", nameof(id));
+        if (existing.Name == normalized)
+            return;
+        if (groups.Any(group => group.Id != id && group.SiteId == existing.SiteId
+            && group.ParentGroupId == existing.ParentGroupId
+            && string.Equals(group.Name, normalized, StringComparison.OrdinalIgnoreCase)))
+            throw new ArgumentException("A folder with that name already exists here.", nameof(name));
+        await groupRepository.RenameAsync(id, normalized, cancellationToken).ConfigureAwait(false);
     }
 
     public async Task MoveDeviceAsync(

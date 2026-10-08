@@ -510,6 +510,13 @@ public sealed class Phase4ApplicationServicesTests
             _sites.Add(site);
             return Task.FromResult(site);
         }
+        public Task RenameAsync(Guid id, string name, CancellationToken cancellationToken)
+        {
+            int index = _sites.FindIndex(site => site.Id == id);
+            _sites[index] = new Site(id, name);
+            return Task.CompletedTask;
+        }
+
         public Task DeleteEmptyAsync(Guid id, CancellationToken cancellationToken)
             => throw new NotSupportedException();
 
@@ -554,6 +561,14 @@ public sealed class Phase4ApplicationServicesTests
             _groups.Add(group);
             return Task.FromResult(group);
         }
+        public Task RenameAsync(Guid id, string name, CancellationToken cancellationToken)
+        {
+            int index = _groups.FindIndex(group => group.Id == id);
+            DeviceGroup group = _groups[index];
+            _groups[index] = new DeviceGroup(id, name, group.SiteId, group.ParentGroupId);
+            return Task.CompletedTask;
+        }
+
         public Task DeleteEmptyAsync(Guid id, CancellationToken cancellationToken)
             => throw new NotSupportedException();
 

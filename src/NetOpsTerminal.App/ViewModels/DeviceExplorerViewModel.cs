@@ -44,6 +44,8 @@ public sealed partial class DeviceExplorerViewModel : ObservableObject
             {
                 OnPropertyChanged(nameof(SelectedDevice));
                 OnPropertyChanged(nameof(CanCreateFolder));
+                OnPropertyChanged(nameof(CanRenameSelected));
+                OnPropertyChanged(nameof(RenameSelectedLabel));
                 OnPropertyChanged(nameof(CanSortSelectedAlphabetically));
                 OnPropertyChanged(nameof(HasSelectedDevice));
                 OnPropertyChanged(nameof(HasSelectedDevices));
@@ -126,6 +128,13 @@ public sealed partial class DeviceExplorerViewModel : ObservableObject
 
     public bool CanCreateFolder => CanOrganize && SelectedNode?.SiteId is not null;
 
+    public bool CanRenameSelected => CanOrganize && SelectedNode is { } node
+        && (node.Kind == DeviceExplorerNodeKind.Folder
+            || node.Kind == DeviceExplorerNodeKind.Site && node.SiteId is not null);
+
+    public string RenameSelectedLabel => SelectedNode?.Kind == DeviceExplorerNodeKind.Site
+        ? "Rename site" : "Rename Organization folder";
+
     public bool CanSortSelectedAlphabetically => CanOrganize
         && SelectedNode is { Kind: DeviceExplorerNodeKind.Site or DeviceExplorerNodeKind.Folder }
         && SelectedNode.Children.Count > 1;
@@ -173,6 +182,7 @@ public sealed partial class DeviceExplorerViewModel : ObservableObject
             _searchText = searchText;
             OnPropertyChanged(nameof(CanOrganize));
             OnPropertyChanged(nameof(CanCreateFolder));
+            OnPropertyChanged(nameof(CanRenameSelected));
             OnPropertyChanged(nameof(CanSortSelectedAlphabetically));
         }
 
@@ -273,6 +283,7 @@ public sealed partial class DeviceExplorerViewModel : ObservableObject
         OnPropertyChanged(nameof(IsAllSelected));
         OnPropertyChanged(nameof(CanOrganize));
         OnPropertyChanged(nameof(CanCreateFolder));
+        OnPropertyChanged(nameof(CanRenameSelected));
         OnPropertyChanged(nameof(CanSortSelectedAlphabetically));
         OnPropertyChanged(nameof(IsFavoritesSelected));
         OnPropertyChanged(nameof(IsRecentSelected));
@@ -400,6 +411,20 @@ public sealed partial class DeviceExplorerViewModel : ObservableObject
         Guid? siteId = parent?.SiteId;
         await _catalogService.CreateFolderAsync(name, siteId, null, cancellationToken);
         await RefreshAsync(null, cancellationToken);
+    }
+
+    public async Task RenameSelectedNodeAsync(
+        string name, CancellationToken cancellationToken = default)
+    {
+        if (!CanRenameSelected || SelectedNode is not { } node)
+            throw new InvalidOperationException("Select a saved site or Organization folder.");
+        Guid id = node.OrderId!.Value;
+        if (node.Kind == DeviceExplorerNodeKind.Site)
+            await _catalogService.RenameSiteAsync(id, name, cancellationToken);
+        else
+            await _catalogService.RenameFolderAsync(id, name, cancellationToken);
+        await RefreshAsync(null, cancellationToken);
+        SelectedNode = FindNodeByOrderId(Nodes, id);
     }
 
     public async Task DeleteEmptyNodeAsync(

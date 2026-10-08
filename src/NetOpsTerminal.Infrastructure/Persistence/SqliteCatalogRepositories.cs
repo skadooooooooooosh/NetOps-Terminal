@@ -43,6 +43,18 @@ public sealed class SqliteSiteRepository(SqliteConnectionFactory connectionFacto
 
         return new Site(Guid.Parse(reader.GetString(0)), reader.GetString(1));
     }
+
+    public async Task RenameAsync(Guid id, string name, CancellationToken cancellationToken)
+    {
+        await using SqliteConnection connection = await connectionFactory.OpenAsync(cancellationToken).ConfigureAwait(false);
+        await using SqliteCommand command = connection.CreateCommand();
+        command.CommandText = "UPDATE Sites SET Name = @name WHERE Id = @id;";
+        command.Parameters.AddWithValue("@id", id.ToString("D"));
+        command.Parameters.AddWithValue("@name", name);
+        if (await command.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false) != 1)
+            throw new InvalidOperationException("The site no longer exists.");
+    }
+
     public async Task DeleteEmptyAsync(Guid id, CancellationToken cancellationToken)
     {
         await using SqliteConnection connection = await connectionFactory.OpenAsync(cancellationToken).ConfigureAwait(false);
@@ -125,6 +137,18 @@ public sealed class SqliteDeviceGroupRepository(SqliteConnectionFactory connecti
             SqliteMapping.ReadNullableGuid(reader, 2),
             SqliteMapping.ReadNullableGuid(reader, 3));
     }
+
+    public async Task RenameAsync(Guid id, string name, CancellationToken cancellationToken)
+    {
+        await using SqliteConnection connection = await connectionFactory.OpenAsync(cancellationToken).ConfigureAwait(false);
+        await using SqliteCommand command = connection.CreateCommand();
+        command.CommandText = "UPDATE DeviceGroups SET Name = @name WHERE Id = @id;";
+        command.Parameters.AddWithValue("@id", id.ToString("D"));
+        command.Parameters.AddWithValue("@name", name);
+        if (await command.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false) != 1)
+            throw new InvalidOperationException("The folder no longer exists.");
+    }
+
     public async Task DeleteEmptyAsync(Guid id, CancellationToken cancellationToken)
     {
         await using SqliteConnection connection = await connectionFactory.OpenAsync(cancellationToken).ConfigureAwait(false);

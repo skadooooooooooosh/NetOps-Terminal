@@ -167,12 +167,23 @@ public sealed class SqliteDevicePersistenceTests
         Assert.Equal(root.Id, saved.GroupId);
         await catalog.MoveDeviceAsync(saved.Id, site.Id, sibling.Id, CancellationToken.None);
         await catalog.SaveExplorerOrderAsync([sibling.Id, root.Id], CancellationToken.None);
+        Site otherSite = await catalog.CreateSiteAsync("Backup", CancellationToken.None);
+        await Assert.ThrowsAsync<ArgumentException>(() =>
+            catalog.RenameSiteAsync(site.Id, otherSite.Name, CancellationToken.None));
+        await Assert.ThrowsAsync<ArgumentException>(() =>
+            catalog.RenameFolderAsync(sibling.Id, root.Name, CancellationToken.None));
+        await Assert.ThrowsAsync<ArgumentException>(() =>
+            catalog.RenameFolderAsync(sibling.Id, "Bad / Name", CancellationToken.None));
+        await catalog.RenameSiteAsync(site.Id, "Branch", CancellationToken.None);
+        await catalog.RenameFolderAsync(sibling.Id, "Access", CancellationToken.None);
 
         DeviceCatalogSnapshot snapshot = await catalog.LoadAsync(
             null, DeviceCatalogFilter.All, CancellationToken.None);
         DeviceProfile moved = Assert.Single(snapshot.Devices);
         Assert.Equal(site.Id, moved.SiteId);
         Assert.Equal(sibling.Id, moved.GroupId);
+        Assert.Equal("Branch", Assert.Single(snapshot.Sites, item => item.Id == site.Id).Name);
+        Assert.Equal("Access", Assert.Single(snapshot.Groups, item => item.Id == sibling.Id).Name);
         Assert.Equal("kept", moved.Description);
         Assert.True(moved.IsFavorite);
         Assert.Equal(credential.Id, moved.CredentialProfileId);

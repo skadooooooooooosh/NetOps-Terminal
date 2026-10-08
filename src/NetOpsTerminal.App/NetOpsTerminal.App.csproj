@@ -8,7 +8,7 @@
     <Product>NetOps Terminal</Product>
     <Description>Offline-first terminal workspace for network engineers.</Description>
     <Authors>NetOps Terminal</Authors>
-    <VersionPrefix>1.1.0</VersionPrefix>
+    <VersionPrefix>1.1.1</VersionPrefix>
     <AvaloniaUseCompiledBindingsByDefault>true</AvaloniaUseCompiledBindingsByDefault>
     <RuntimeIdentifiers>win-x64</RuntimeIdentifiers>
     <PublishTrimmed>false</PublishTrimmed>

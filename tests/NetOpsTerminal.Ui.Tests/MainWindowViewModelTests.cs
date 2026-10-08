@@ -847,6 +847,12 @@ public sealed class MainWindowViewModelTests
             return Task.CompletedTask;
         }
 
+        public Task RenameSiteAsync(Guid id, string name, CancellationToken cancellationToken)
+            => throw new NotSupportedException();
+
+        public Task RenameFolderAsync(Guid id, string name, CancellationToken cancellationToken)
+            => throw new NotSupportedException();
+
         public Task DeleteEmptySiteAsync(Guid id, CancellationToken cancellationToken)
             => throw new NotSupportedException();
 

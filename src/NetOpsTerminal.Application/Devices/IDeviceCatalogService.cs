@@ -15,12 +15,16 @@ public interface IDeviceCatalogService
 
     Task<Site> CreateSiteAsync(string name, CancellationToken cancellationToken);
 
+    Task RenameSiteAsync(Guid id, string name, CancellationToken cancellationToken);
+
     Task DeleteEmptySiteAsync(Guid id, CancellationToken cancellationToken);
 
     Task DeleteEmptyFolderAsync(Guid id, CancellationToken cancellationToken);
 
     Task<DeviceGroup> CreateFolderAsync(
         string name, Guid? siteId, Guid? parentGroupId, CancellationToken cancellationToken);
+
+    Task RenameFolderAsync(Guid id, string name, CancellationToken cancellationToken);
 
     Task MoveDeviceAsync(
         Guid deviceId, Guid? siteId, Guid? groupId, CancellationToken cancellationToken);

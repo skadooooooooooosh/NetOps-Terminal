@@ -285,6 +285,12 @@ public sealed class DeviceExplorerOrganizationTests
         public Task SaveAsync(DeviceEditRequest request, CancellationToken cancellationToken)
             => throw new NotSupportedException();
 
+        public Task RenameSiteAsync(Guid id, string name, CancellationToken cancellationToken)
+            => throw new NotSupportedException();
+
+        public Task RenameFolderAsync(Guid id, string name, CancellationToken cancellationToken)
+            => throw new NotSupportedException();
+
         public Task DeleteEmptySiteAsync(Guid id, CancellationToken cancellationToken)
             => throw new NotSupportedException();
 

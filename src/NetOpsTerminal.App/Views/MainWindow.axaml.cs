@@ -942,6 +942,30 @@ public sealed partial class MainWindow : ThemedWindow, IDisposable
         }
     }
 
+    private async void RenameExplorerNode_OnClick(object? sender, RoutedEventArgs e)
+    {
+        if (DataContext is not MainWindowViewModel viewModel
+            || !viewModel.DeviceExplorer.CanRenameSelected
+            || viewModel.DeviceExplorer.SelectedNode is not { } node)
+            return;
+        bool isSite = node.Kind == DeviceExplorerNodeKind.Site;
+        string location = viewModel.DeviceExplorer.GetFolderLocation(node);
+        string? name = await new ExplorerNameWindow(isSite, location, node.Label)
+            .ShowDialog<string?>(this);
+        if (name is null || name == node.Label)
+            return;
+        try
+        {
+            await viewModel.DeviceExplorer.RenameSelectedNodeAsync(name);
+        }
+        catch (Exception exception)
+        {
+            await new ConnectionErrorWindow(
+                isSite ? "The site could not be renamed." : "The folder could not be renamed.",
+                exception.Message).ShowDialog(this);
+        }
+    }
+
     private async void SortExplorerAlphabetically_OnClick(object? sender, RoutedEventArgs e)
     {
         if (DataContext is not MainWindowViewModel viewModel

@@ -5,7 +5,7 @@
       Manufacturer="skadooooooooooosh"
       Version="$(var.InstallerVersion)"
       Language="1033"
-      ProductCode="8F3F600B-B428-4832-B5D1-85FE100FEF02"
+      ProductCode="0D7313E0-95AB-47F5-BF75-5D625B17D780"
       UpgradeCode="3536CB34-CDD4-435C-B72E-8E7E1EEB259E"
       Scope="perMachine">
     <MajorUpgrade DowngradeErrorMessage="A newer version of NetOps Terminal is already installed." />

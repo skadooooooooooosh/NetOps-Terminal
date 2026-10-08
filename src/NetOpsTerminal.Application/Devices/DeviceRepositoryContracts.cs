@@ -22,6 +22,8 @@ public interface ISiteRepository
 
     Task<Site> GetOrCreateAsync(string name, CancellationToken cancellationToken);
 
+    Task RenameAsync(Guid id, string name, CancellationToken cancellationToken);
+
     Task DeleteEmptyAsync(Guid id, CancellationToken cancellationToken);
 }
 
@@ -39,6 +41,8 @@ public interface IDeviceGroupRepository
         Guid? siteId,
         Guid parentGroupId,
         CancellationToken cancellationToken);
+
+    Task RenameAsync(Guid id, string name, CancellationToken cancellationToken);
 
     Task DeleteEmptyAsync(Guid id, CancellationToken cancellationToken);
 }

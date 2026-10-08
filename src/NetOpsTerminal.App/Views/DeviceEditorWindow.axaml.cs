@@ -27,6 +27,7 @@ public sealed partial class DeviceEditorWindow : ThemedWindow
     private IDeviceWebAccessService? _webAccessService;
     private string _vendor = string.Empty;
     private string _model = string.Empty;
+    private DeviceEnvironment _environment = DeviceEnvironment.Unknown;
 
     public DeviceEditorWindow() : this(null)
     {
@@ -38,8 +39,6 @@ public sealed partial class DeviceEditorWindow : ThemedWindow
         InitializeComponent();
         DeviceTypeComboBox.ItemsSource = SelectableDeviceTypes;
         DeviceTypeComboBox.SelectedItem = DeviceType.Switch;
-        EnvironmentComboBox.ItemsSource = Enum.GetValues<DeviceEnvironment>();
-        EnvironmentComboBox.SelectedItem = DeviceEnvironment.Unknown;
         TerminalTextEncoding[] encodings = Enum.GetValues<TerminalTextEncoding>();
         TelnetEncodingComboBox.ItemsSource = encodings;
         SerialEncodingComboBox.ItemsSource = encodings;
@@ -132,7 +131,7 @@ public sealed partial class DeviceEditorWindow : ThemedWindow
         _model = existing.Model;
         SiteTextBox.Text = existing.SiteName;
         GroupTextBox.Text = existing.GroupName;
-        EnvironmentComboBox.SelectedItem = existing.Environment;
+        _environment = existing.Environment;
         CredentialComboBox.SelectedItem = credentials.FirstOrDefault(
             credential => credential.Id == existing.CredentialProfileId);
         UsernameOverrideTextBox.Text = existing.UsernameOverride;
@@ -334,8 +333,7 @@ public sealed partial class DeviceEditorWindow : ThemedWindow
                 _model,
                 SiteTextBox.Text ?? string.Empty,
                 GroupTextBox.Text ?? string.Empty,
-                EnvironmentComboBox.SelectedItem is DeviceEnvironment environment
-                    ? environment : DeviceEnvironment.Unknown,
+                _environment,
                 credentialId,
                 type == ConnectionType.Ssh ? UsernameOverrideTextBox.Text : null,
                 FavoriteCheckBox.IsChecked == true,

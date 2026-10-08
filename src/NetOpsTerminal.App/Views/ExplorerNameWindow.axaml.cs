@@ -10,16 +10,22 @@ public sealed partial class ExplorerNameWindow : ThemedWindow
     {
     }
 
-    public ExplorerNameWindow(bool isSite, string location)
+    public ExplorerNameWindow(bool isSite, string location, string? existingName = null)
     {
         _isSite = isSite;
         InitializeComponent();
-        HeadingText.Text = isSite ? "Create site" : "Create folder";
+        bool isRename = existingName is not null;
+        HeadingText.Text = isRename
+            ? isSite ? "Rename site" : "Rename Organization folder"
+            : isSite ? "Create site" : "Create folder";
         NameLabel.Text = isSite ? "Site name" : "Folder name";
-        CreateButton.Content = isSite ? "Create site" : "Create folder";
+        CreateButton.Content = isRename
+            ? "Save name"
+            : isSite ? "Create site" : "Create folder";
         LocationText.Text = isSite
-            ? "Add a site to Device Explorer."
+            ? isRename ? "Rename this site in Device Explorer." : "Add a site to Device Explorer."
             : $"Location: {location}";
+        NameTextBox.Text = existingName;
     }
 
     private void Cancel_OnClick(object? sender, RoutedEventArgs e) => Close(null);

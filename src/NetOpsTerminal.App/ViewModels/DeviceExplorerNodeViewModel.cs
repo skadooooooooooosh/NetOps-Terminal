@@ -84,6 +84,8 @@ public sealed class DeviceExplorerNodeViewModel : ObservableObject
 
     public bool IsDevice => Device is not null;
 
+    public bool IsTerminalOnly => Device?.AccessMode == DeviceAccessMode.TerminalOnly;
+
     public bool IsWebOnly => Device?.AccessMode == DeviceAccessMode.WebOnly;
 
     public bool IsTerminalAndWeb => Device?.AccessMode == DeviceAccessMode.TerminalAndWeb;

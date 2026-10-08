@@ -85,6 +85,12 @@ public sealed class DeviceExplorerBulkDeleteTests
         public Task SaveAsync(DeviceEditRequest request, CancellationToken cancellationToken)
             => Task.CompletedTask;
 
+        public Task RenameSiteAsync(Guid id, string name, CancellationToken cancellationToken)
+            => throw new NotSupportedException();
+
+        public Task RenameFolderAsync(Guid id, string name, CancellationToken cancellationToken)
+            => throw new NotSupportedException();
+
         public Task DeleteEmptySiteAsync(Guid id, CancellationToken cancellationToken)
             => throw new NotSupportedException();
 
