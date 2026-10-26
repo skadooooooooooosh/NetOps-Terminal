@@ -119,7 +119,7 @@ public sealed class GraphiteUiTests
     [Theory]
     [InlineData(1366, 768)]
     [InlineData(1920, 1080)]
-    public Task UnpinnedExplorerOverlaysWorkspaceAndPinnedExplorerStaysOpen(int width, int height) => OnUiThread(async () =>
+    public Task ExplorerOpeningReservesSpaceAndPinnedExplorerStaysOpen(int width, int height) => OnUiThread(async () =>
     {
         using var vm = MainWindowViewModelTests.CreateVisualTestViewModel();
         await vm.InitializeAsync();
@@ -145,12 +145,17 @@ public sealed class GraphiteUiTests
             await vm.ToggleSidebarCommand.ExecuteAsync(null);
             window.UpdateLayout();
             Assert.True(window.FindControl<Grid>("DeviceExplorerOverlay")!.IsVisible);
-            Assert.Equal(originalBounds, workspace.Bounds);
+            double openedWidth = window.FindControl<Grid>("DeviceExplorerOverlay")!.Bounds.Width;
+            Assert.Equal(originalBounds.X + openedWidth, workspace.Bounds.X);
+            Assert.Equal(originalBounds.Width - openedWidth, workspace.Bounds.Width);
+            Assert.Equal(originalBounds.Height, workspace.Bounds.Height);
 
             var point = new Point(width - 30, 100);
             window.MouseDown(point, MouseButton.Left);
             window.MouseUp(point, MouseButton.Left);
             Assert.True(vm.IsSidebarCollapsed);
+            window.UpdateLayout();
+            Assert.Equal(originalBounds, workspace.Bounds);
 
             await vm.ToggleSidebarCommand.ExecuteAsync(null);
             vm.ToggleDeviceExplorerPinCommand.Execute(null);
@@ -171,7 +176,7 @@ public sealed class GraphiteUiTests
     [InlineData(1080, 640)]
     [InlineData(1366, 768)]
     [InlineData(1920, 1080)]
-    public Task PinnedExplorerReservesSpaceAndTracksResizeAndVisibility(int width, int height) => OnUiThread(async () =>
+    public Task ExplorerReservesSpaceAndTracksResizeAndVisibility(int width, int height) => OnUiThread(async () =>
     {
         using var vm = MainWindowViewModelTests.CreateVisualTestViewModel();
         await vm.InitializeAsync();
@@ -196,22 +201,25 @@ public sealed class GraphiteUiTests
             Rect originalBounds = workspace.Bounds;
             await vm.ToggleSidebarCommand.ExecuteAsync(null);
             window.UpdateLayout();
-            Assert.Equal(originalBounds, workspace.Bounds);
+            double openedWidth = window.FindControl<Grid>("DeviceExplorerOverlay")!.Bounds.Width;
+            Assert.Equal(originalBounds.X + openedWidth, workspace.Bounds.X);
+            Assert.Equal(originalBounds.Width - openedWidth, workspace.Bounds.Width);
+            Assert.Equal(originalBounds.Height, workspace.Bounds.Height);
 
             vm.ToggleDeviceExplorerPinCommand.Execute(null);
-            AssertPinnedFits();
+            AssertExplorerFits();
             Render(window, $"pinned-explorer-layout-{width}x{height}");
             double firstWidth = workspace.Bounds.Width;
 
             vm.PreviewSidebarWidth(480);
-            AssertPinnedFits();
+            AssertExplorerFits();
             Assert.True(workspace.Bounds.Width < firstWidth);
             window.Width = 1080;
             window.Height = 640;
-            AssertPinnedFits();
+            AssertExplorerFits();
             window.Width = 1920;
             window.Height = 1080;
-            AssertPinnedFits();
+            AssertExplorerFits();
 
             vm.CloseDeviceExplorer();
             window.UpdateLayout();
@@ -220,19 +228,24 @@ public sealed class GraphiteUiTests
             Assert.Equal(shell.Bounds.Width, workspace.Bounds.Right);
 
             await vm.ToggleSidebarCommand.ExecuteAsync(null);
-            AssertPinnedFits();
+            AssertExplorerFits();
             vm.ToggleDeviceExplorerPinCommand.Execute(null);
             window.Width = width;
             window.Height = height;
             window.UpdateLayout();
-            Assert.True(explorer.IsVisible);
+            Assert.False(explorer.IsVisible);
             Assert.Equal(52, workspace.Bounds.X);
             Assert.Equal(shell.Bounds.Width, workspace.Bounds.Right);
+            await vm.ToggleSidebarCommand.ExecuteAsync(null);
+            window.UpdateLayout();
+            AssertExplorerFits();
+            vm.PreviewSidebarWidth(360);
+            AssertExplorerFits();
             Render(window, $"unpinned-explorer-layout-{width}x{height}");
         }
         finally { window.Close(); }
 
-        void AssertPinnedFits()
+        void AssertExplorerFits()
         {
             window.UpdateLayout();
             Dispatcher.UIThread.RunJobs();

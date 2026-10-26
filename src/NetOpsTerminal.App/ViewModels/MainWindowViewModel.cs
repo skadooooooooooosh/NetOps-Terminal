@@ -757,6 +757,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
     private void ToggleDeviceExplorerPin()
     {
         IsDeviceExplorerPinned = !IsDeviceExplorerPinned;
+        CloseDeviceExplorerUnlessPinned();
     }
 
     private void ShowSettings()

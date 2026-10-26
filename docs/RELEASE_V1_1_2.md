@@ -4,7 +4,7 @@
 
 The refreshed downloads retain version **1.1.2** and include:
 
-- Pinned Device Explorer reserves its width so terminal tabs, content and footer fit beside it; unpinned Explorer remains a temporary overlay.
+- Device Explorer reserves its width whenever open, pinned or unpinned, so terminal tabs, content and footer fit beside it. Unpinning hides it immediately; reopening preserves folder expansion and selection.
 - Terminal copies omit trailing ASCII space padding while retaining indentation, internal spacing, tabs, Unicode and line breaks. Incoming pasted text is not trimmed.
 - The paste preview opens at its first line and left edge.
 - Confirm Terminal Paste defaults to 820 x 600 DIPs, remains resizable and fits to the display working area.
@@ -29,7 +29,7 @@ The release uses the normal NetOpsTerminal user profile. The earlier local UI de
 - A permanent graphite/charcoal palette with consistent controls, focus states and readable text contrast.
 - Tabler outline icons on the unchanged 52 DIP activity rail, aligned header branding and a balanced welcome screen.
 - Clearer terminal tab controls, compact status text, a 24 DIP footer, consistent dialogs, Help and Settings.
-- The existing Device Explorer design and controls are retained. Its outer host overlays the terminal when unpinned and reserves sidebar width when pinned.
+- The existing Device Explorer design and controls are retained. Its outer host reserves sidebar width whenever Explorer is visible. Pinning controls whether it stays open, while hiding restores full terminal width.
 
 The selected application icon, connection engines, terminal renderer, keyboard input, credential handling, SSH host-key verification and saved-device metadata are preserved. The copy-only selection adapter is isolated in the terminal integration layer.
 

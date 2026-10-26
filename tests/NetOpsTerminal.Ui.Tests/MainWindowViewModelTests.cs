@@ -74,12 +74,41 @@ public sealed class MainWindowViewModelTests
         Assert.True(viewModel.IsDeviceExplorerPinned);
 
         viewModel.ToggleDeviceExplorerPinCommand.Execute(null);
-        viewModel.CloseDeviceExplorerUnlessPinned();
 
         Assert.True(viewModel.IsSidebarCollapsed);
         Assert.False(viewModel.IsDeviceExplorerPinned);
     }
 
+    [Fact]
+    public async Task UnpinImmediatelyHidesExplorerAndReopenPreservesTreeState()
+    {
+        DeviceProfile device = CreateSavedTelnetDevice();
+        var settings = new RecordingSettingsService(new ApplicationSettings());
+        using var viewModel = CreateViewModel(settings,
+            catalogService: new EmptyDeviceCatalogService(device));
+        await viewModel.InitializeAsync();
+        await viewModel.ToggleSidebarCommand.ExecuteAsync(null);
+        var folder = Assert.Single(viewModel.DeviceExplorer.Nodes);
+        folder.IsExpanded = true;
+        var selected = Assert.Single(folder.Children);
+        viewModel.DeviceExplorer.SelectedNode = selected;
+
+        viewModel.ToggleDeviceExplorerPinCommand.Execute(null);
+        Assert.True(viewModel.IsSidebarExpanded);
+        viewModel.ToggleDeviceExplorerPinCommand.Execute(null);
+
+        Assert.True(viewModel.IsSidebarCollapsed);
+        Assert.False(viewModel.IsDeviceExplorerPinned);
+        Assert.True(folder.IsExpanded);
+        Assert.Same(selected, viewModel.DeviceExplorer.SelectedNode);
+        Assert.Null(settings.Saved);
+
+        await viewModel.ToggleSidebarCommand.ExecuteAsync(null);
+        Assert.True(viewModel.IsSidebarExpanded);
+        Assert.False(viewModel.IsDeviceExplorerPinned);
+        Assert.True(folder.IsExpanded);
+        Assert.Same(selected, viewModel.DeviceExplorer.SelectedNode);
+    }
     [Theory]
     [InlineData(false)]
     [InlineData(true)]

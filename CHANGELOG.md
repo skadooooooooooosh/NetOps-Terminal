@@ -2,6 +2,12 @@
 
 ## [Unreleased]
 
+## [1.1.2 Explorer refresh] - 2026-10-26
+
+- Fit the terminal beside Device Explorer whenever it is open, including when unpinned; hiding it restores terminal width.
+
+- Hide Device Explorer immediately when unpinning it, preserving folder expansion and selection when reopened.
+
 ## [1.1.2 package refresh] - 2026-10-26
 
 - Enlarged the default terminal paste confirmation preview and fit the dialog to the display working area while retaining resizing and confirmation safeguards.
