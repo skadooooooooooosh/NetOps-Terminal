@@ -762,6 +762,9 @@ public sealed class MainWindowViewModelTests
         Assert.False(viewModel.SelectedTerminal.IsInputLocked);
     }
 
+    internal static MainWindowViewModel CreateVisualTestViewModel() =>
+        CreateViewModel(new RecordingSettingsService(new ApplicationSettings { IsSidebarCollapsed = true }));
+
     private static MainWindowViewModel CreateViewModel(
         IApplicationSettingsService settingsService,
         ISessionManager? sessionManager = null,

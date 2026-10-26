@@ -1,4 +1,4 @@
-﻿<UserControl
+<UserControl
     x:Class="NetOpsTerminal.App.Views.SettingsView"
     xmlns="https://github.com/avaloniaui"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
@@ -33,7 +33,7 @@
     </Border>
 
     <ScrollViewer Grid.Row="1" Margin="24,20">
-      <StackPanel Width="840" HorizontalAlignment="Center" Spacing="14">
+      <StackPanel MaxWidth="840" HorizontalAlignment="Stretch" Spacing="14">
         <StackPanel Spacing="4" Margin="0,0,0,6">
           <TextBlock FontSize="21" FontWeight="SemiBold" Text="Application settings" />
           <TextBlock Classes="muted" FontSize="12"

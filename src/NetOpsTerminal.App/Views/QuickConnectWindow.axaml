@@ -53,7 +53,7 @@
           <TextBlock FontWeight="SemiBold" Text="Protocol" />
         </StackPanel>
         <ComboBox
-            x:Name="ProtocolComboBox"
+            x:Name="ProtocolComboBox" AutomationProperties.AutomationId="QuickConnect.Protocol" AutomationProperties.Name="Connection protocol"
             Grid.Column="1"
             HorizontalAlignment="Stretch"
             SelectedIndex="0">
@@ -70,19 +70,19 @@
       <Grid>
         <StackPanel x:Name="SshPanel" Spacing="7">
           <TextBlock Text="Hostname / IP" />
-          <TextBox x:Name="SshHostTextBox" MaxLength="253" PlaceholderText="server.example.com" />
+          <TextBox x:Name="SshHostTextBox" AutomationProperties.AutomationId="QuickConnect.SshHost" AutomationProperties.Name="SSH hostname or IP" MaxLength="253" PlaceholderText="server.example.com" />
           <Grid ColumnDefinitions="150,*" ColumnSpacing="12">
             <StackPanel Spacing="6">
               <TextBlock Text="Port" />
-              <TextBox x:Name="SshPortTextBox" Text="22" IsReadOnly="True" />
+              <TextBox x:Name="SshPortTextBox" AutomationProperties.AutomationId="QuickConnect.SshPort" AutomationProperties.Name="SSH port" Text="22" IsReadOnly="True" />
             </StackPanel>
             <StackPanel Grid.Column="1" Spacing="6">
               <TextBlock Text="Username" />
-              <TextBox x:Name="SshUsernameTextBox" MaxLength="255" PlaceholderText="operator" />
+              <TextBox x:Name="SshUsernameTextBox" AutomationProperties.AutomationId="QuickConnect.SshUsername" AutomationProperties.Name="SSH username" MaxLength="255" PlaceholderText="operator" />
             </StackPanel>
           </Grid>
           <TextBlock Text="Password" />
-          <TextBox x:Name="SshPasswordTextBox" PasswordChar="*" />
+          <TextBox x:Name="SshPasswordTextBox" AutomationProperties.AutomationId="QuickConnect.SshPassword" AutomationProperties.Name="SSH password" PasswordChar="*" />
           <StackPanel Spacing="8">
             <StackPanel Spacing="8">
               <TextBlock Text="Connect timeout" />
@@ -115,7 +115,7 @@
                   Text="Telnet does not encrypt credentials, commands, or terminal output. Use it only on an authorized trusted network."
                   TextWrapping="Wrap" />
               <CheckBox
-                  x:Name="TelnetAcknowledgementCheckBox"
+                  x:Name="TelnetAcknowledgementCheckBox" AutomationProperties.AutomationId="QuickConnect.TelnetAcknowledgement" AutomationProperties.Name="Acknowledge plaintext Telnet connection"
                   Content="I understand this Telnet session is plaintext"
                   Foreground="{DynamicResource AppTextBrush}" />
             </StackPanel>
@@ -123,7 +123,7 @@
           <Grid ColumnDefinitions="*,150" ColumnSpacing="12">
             <StackPanel Spacing="5">
               <TextBlock Text="Hostname / IP" />
-              <TextBox x:Name="TelnetHostTextBox" MaxLength="253"
+              <TextBox x:Name="TelnetHostTextBox" AutomationProperties.AutomationId="QuickConnect.TelnetHost" AutomationProperties.Name="Telnet hostname or IP" MaxLength="253"
                        PlaceholderText="legacy-device.example.com" />
             </StackPanel>
             <StackPanel Grid.Column="1" Spacing="5">
@@ -165,7 +165,7 @@
           <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
             <StackPanel Spacing="6">
               <TextBlock Text="Detected COM port" />
-              <ComboBox x:Name="SerialPortComboBox" HorizontalAlignment="Stretch" />
+              <ComboBox x:Name="SerialPortComboBox" AutomationProperties.AutomationId="QuickConnect.SerialPort" AutomationProperties.Name="Serial COM port" HorizontalAlignment="Stretch" />
             </StackPanel>
             <Button
                 Grid.Column="1"
@@ -230,12 +230,12 @@
           <Grid ColumnDefinitions="*,150" ColumnSpacing="12">
             <StackPanel Spacing="5">
               <TextBlock Text="Hostname / IP" />
-              <TextBox x:Name="RawHostTextBox" MaxLength="253"
+              <TextBox x:Name="RawHostTextBox" AutomationProperties.AutomationId="QuickConnect.RawHost" AutomationProperties.Name="Raw TCP hostname or IP" MaxLength="253"
                        PlaceholderText="endpoint.example.com" />
             </StackPanel>
             <StackPanel Grid.Column="1" Spacing="5">
               <TextBlock Text="Port" />
-              <TextBox x:Name="RawPortTextBox" PlaceholderText="Example: 2001" />
+              <TextBox x:Name="RawPortTextBox" AutomationProperties.AutomationId="QuickConnect.RawPort" AutomationProperties.Name="Raw TCP port" PlaceholderText="Example: 2001" />
             </StackPanel>
           </Grid>
           <StackPanel Spacing="8">
@@ -270,7 +270,7 @@
       </Grid>
       <StackPanel Spacing="5">
         <TextBlock FontWeight="SemiBold" Text="Backspace key" />
-        <ComboBox x:Name="BackspaceKeyComboBox" SelectedIndex="0" HorizontalAlignment="Stretch">
+        <ComboBox x:Name="BackspaceKeyComboBox" AutomationProperties.AutomationId="QuickConnect.Backspace" AutomationProperties.Name="Backspace compatibility" SelectedIndex="0" HorizontalAlignment="Stretch">
           <ComboBoxItem Content="Standard" />
           <ComboBoxItem Content="Compatibility: BS (Ctrl+H)" />
           <ComboBoxItem Content="Compatibility: DEL" />
@@ -297,8 +297,8 @@
               TextWrapping="Wrap" />
         </StackPanel>
         <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8">
-          <Button Classes="toolbar" Click="Close_OnClick" Content="Cancel" />
-          <Button Classes="accent" Click="Connect_OnClick" Content="Connect" IsDefault="True" />
+          <Button Classes="toolbar" Click="Close_OnClick" Content="Cancel" AutomationProperties.AutomationId="QuickConnect.Cancel" />
+          <Button Classes="accent" Click="Connect_OnClick" Content="Connect" AutomationProperties.AutomationId="QuickConnect.Connect" IsDefault="True" />
         </StackPanel>
       </Grid>
     </Border>

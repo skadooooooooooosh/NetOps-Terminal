@@ -12,7 +12,7 @@
       <Setter Property="BorderThickness" Value="1" />
     </Style>
     <Style Selector="Border.workspace-pane.active">
-      <Setter Property="BorderBrush" Value="{DynamicResource AppAccentBrush}" />
+      <Setter Property="BorderBrush" Value="{DynamicResource AppPaneFocusBrush}" />
       <Setter Property="BorderThickness" Value="1" />
     </Style>
   </UserControl.Styles>
@@ -67,29 +67,29 @@
                        Fill="{DynamicResource AppDisconnectedBrush}"
                        IsVisible="{Binding StatusIsIdle}" />
               <TextBlock Grid.Column="1" Margin="5,0,0,0" VerticalAlignment="Center"
-                         FontFamily="Cascadia Mono, Consolas" FontSize="10"
+                         FontFamily="Cascadia Mono, Consolas" FontSize="11"
                          Foreground="{DynamicResource AppMutedTextBrush}"
                          Text="{Binding Terminal.StatusText}" />
               <TextBlock Grid.Column="1" Margin="5,0,0,0" VerticalAlignment="Center"
-                         FontFamily="Cascadia Mono, Consolas" FontSize="10"
+                         FontFamily="Cascadia Mono, Consolas" FontSize="11"
                          Foreground="{DynamicResource AppWarningBrush}"
                          IsVisible="{Binding IsConnecting}" Text="Connecting" />
               <TextBlock Grid.Column="1" Margin="5,0,0,0" VerticalAlignment="Center"
-                         FontFamily="Cascadia Mono, Consolas" FontSize="10"
+                         FontFamily="Cascadia Mono, Consolas" FontSize="11"
                          Foreground="{DynamicResource AppDangerBrush}"
                          IsVisible="{Binding HasConnectionError}" Text="Connection failed" />
               <TextBlock Grid.Column="2" Margin="8,0,0,0" VerticalAlignment="Center"
-                         FontFamily="Cascadia Mono, Consolas" FontSize="10"
+                         FontFamily="Cascadia Mono, Consolas" FontSize="11"
                          Foreground="{DynamicResource AppTerminalTextBrush}"
                          Text="{Binding Terminal.ShellLabel}" />
               <TextBlock Grid.Column="4" Margin="8,0" VerticalAlignment="Center"
-                         FontSize="9" Foreground="{DynamicResource AppConnectedBrush}"
+                         FontSize="10" Foreground="{DynamicResource AppConnectedBrush}"
                          IsVisible="{Binding ShowLogging}" Text="● LOGGING" />
               <TextBlock Grid.Column="5" Margin="8,0" VerticalAlignment="Center"
-                         FontSize="9" FontWeight="Bold" Foreground="{DynamicResource AppWarningBrush}"
+                         FontSize="10" FontWeight="Bold" Foreground="{DynamicResource AppWarningBrush}"
                          IsVisible="{Binding ShowInputLocked}" Text="INPUT LOCKED" />
               <TextBlock Grid.Column="6" Margin="8,0" VerticalAlignment="Center"
-                         FontSize="9" FontWeight="Bold" Foreground="{DynamicResource AppProductionBrush}"
+                         FontSize="10" FontWeight="Bold" Foreground="{DynamicResource AppProductionBrush}"
                          IsVisible="{Binding ShowProductionBanner}" Text="PROD" />
             </Grid>
           </Border>
@@ -145,13 +145,13 @@
             <Border Height="26" Padding="10,0" Background="{DynamicResource AppProductionSurfaceBrush}"
                     BorderBrush="{DynamicResource AppProductionBrush}" BorderThickness="0,1,0,0"
                     IsVisible="{Binding ShowProductionBanner}">
-              <TextBlock VerticalAlignment="Center" FontSize="10" Foreground="{DynamicResource AppProductionBrush}"
+              <TextBlock VerticalAlignment="Center" FontSize="11" Foreground="{DynamicResource AppProductionBrush}"
                          Text="⚠  PRODUCTION SESSION — VERIFY COMMANDS BEFORE SENDING" />
             </Border>
             <Border Height="26" Padding="10,0" Background="{DynamicResource AppWarningSurfaceBrush}"
                     BorderBrush="{DynamicResource AppWarningBrush}" BorderThickness="0,1,0,0"
                     IsVisible="{Binding ShowInputLocked}">
-              <TextBlock VerticalAlignment="Center" FontSize="10" Foreground="{DynamicResource AppWarningBrush}"
+              <TextBlock VerticalAlignment="Center" FontSize="11" Foreground="{DynamicResource AppWarningBrush}"
                          Text="INPUT LOCKED — Alt+L to unlock" />
             </Border>
           </StackPanel>

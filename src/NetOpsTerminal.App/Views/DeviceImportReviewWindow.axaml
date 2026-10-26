@@ -72,7 +72,7 @@
                                  Text="{Binding EndpointLabel}" />
                     </StackPanel>
                     <TextBlock Grid.Column="1" VerticalAlignment="Center"
-                               FontSize="9" Foreground="#ff6678"
+                               FontSize="9" Foreground="{DynamicResource AppDangerBrush}"
                                IsVisible="{Binding !HasCredentialMatch}"
                                Text="Credential required" />
                   </Grid>

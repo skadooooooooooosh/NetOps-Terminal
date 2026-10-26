@@ -25,7 +25,7 @@ The terminal renderer and SSH, Telnet, Serial, and Raw TCP providers are explici
 
 - Project: <https://lucide.dev/icons/>
 - License: ISC, <https://github.com/lucide-icons/lucide/blob/main/LICENSE>
-- Use in NetOps Terminal: ten Lucide outline SVG geometries adapted to Avalonia vector paths for the Device Explorer rail. Compact device-category icon concepts also use the catalog as a visual reference. No Lucide package or external image is loaded at runtime.
+- Use in NetOps Terminal: legacy outline geometries retained in IconResources.axaml. Compact device-category icon concepts also use the catalog as a visual reference. No Lucide package or external image is loaded at runtime.
 
 ## System.IO.Ports
 
@@ -58,3 +58,32 @@ Avalonia, CommunityToolkit.Mvvm, Microsoft.Extensions packages, xUnit, coverlet,
 - Project: <https://wixtoolset.org/>
 - License: Microsoft Reciprocal License (MS-RL), <https://github.com/wixtoolset/wix/blob/main/LICENSE.TXT>
 - Use in NetOps Terminal: Windows Installer wizard dialogs, including the agreement and install-directory picker. The application does not load this extension at runtime.
+
+## Tabler Icons
+
+- Project: https://github.com/tabler/tabler-icons
+- License: MIT; copyright Paweł Kuna.
+- Use: primary outline family for the compact activity rail, Help, welcome prompt, and tab close icon. The expanded Explorer uses its existing icons.
+- Source revision and original SVGs: src/NetOpsTerminal.App/Assets/Icons/Tabler/SOURCE.md.
+
+MIT License
+
+Copyright (c) 2020-2026 Paweł Kuna
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.

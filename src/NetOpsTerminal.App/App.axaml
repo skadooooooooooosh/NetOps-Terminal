@@ -6,51 +6,20 @@
   <Application.Resources>
     <ResourceDictionary>
       <ResourceDictionary.MergedDictionaries>
+        <ResourceInclude Source="avares://NetOpsTerminal/Themes/Graphite.axaml" />
         <ResourceInclude Source="avares://NetOpsTerminal/Themes/IconResources.axaml" />
+        <ResourceInclude Source="avares://NetOpsTerminal/Themes/ShellIconResources.axaml" />
       </ResourceDictionary.MergedDictionaries>
-      <SolidColorBrush x:Key="AppWindowBrush" Color="#07101A" />
-      <SolidColorBrush x:Key="AppSurfaceBrush" Color="#0D1625" />
-      <SolidColorBrush x:Key="AppElevatedSurfaceBrush" Color="#111D2D" />
-      <SolidColorBrush x:Key="AppSidebarBrush" Color="#0E1826" />
-      <SolidColorBrush x:Key="AppSecondarySurfaceBrush" Color="#0A1421" />
-      <SolidColorBrush x:Key="AppInputBrush" Color="#07101C" />
-      <SolidColorBrush x:Key="AppHoverBrush" Color="#16253A" />
-      <SolidColorBrush x:Key="AppSelectedBrush" Color="#173656" />
-      <SolidColorBrush x:Key="AppBorderBrush" Color="#213247" />
-      <SolidColorBrush x:Key="AppDialogOutlineBrush" Color="#4A759B" />
-      <SolidColorBrush x:Key="AppFocusBrush" Color="#4EA1FF" />
-      <SolidColorBrush x:Key="AppTextBrush" Color="#DCE6F2" />
-      <SolidColorBrush x:Key="AppMutedTextBrush" Color="#8292A8" />
-      <SolidColorBrush x:Key="AppShortcutBrush" Color="#84B7E8" />
-      <SolidColorBrush x:Key="AppDisabledTextBrush" Color="#536277" />
-      <SolidColorBrush x:Key="AppAccentBrush" Color="#3B91F7" />
-      <SolidColorBrush x:Key="AppAccentHoverBrush" Color="#62A8FA" />
-      <SolidColorBrush x:Key="AppConnectedBrush" Color="#35C789" />
-      <SolidColorBrush x:Key="AppConnectingBrush" Color="#E5AF38" />
-      <SolidColorBrush x:Key="AppDisconnectedBrush" Color="#8C9AAD" />
-      <SolidColorBrush x:Key="AppWarningBrush" Color="#E5AF38" />
-      <SolidColorBrush x:Key="AppDangerBrush" Color="#F1737B" />
-      <SolidColorBrush x:Key="AppSuccessBrush" Color="#35C789" />
-      <SolidColorBrush x:Key="AppProductionBrush" Color="#FF6B72" />
-      <SolidColorBrush x:Key="AppTestBrush" Color="#E8B449" />
-      <SolidColorBrush x:Key="AppLabBrush" Color="#6AA8FF" />
-      <SolidColorBrush x:Key="AppProductionSurfaceBrush" Color="#32181D" />
-      <SolidColorBrush x:Key="AppWarningSurfaceBrush" Color="#2F2815" />
-      <SolidColorBrush x:Key="AppTerminalBrush" Color="#020817" />
-      <SolidColorBrush x:Key="AppTerminalTextBrush" Color="#D8E2ED" />
-      <SolidColorBrush x:Key="AppTerminalMutedBrush" Color="#8998A9" />
-      <SolidColorBrush x:Key="AppPrimaryButtonBackgroundBrush" Color="#3B91F7" />
-      <SolidColorBrush x:Key="AppPrimaryButtonForegroundBrush" Color="#FFFFFF" />
-      <SolidColorBrush x:Key="AppSecondaryButtonBackgroundBrush" Color="#0D1625" />
-      <SolidColorBrush x:Key="AppSecondaryButtonForegroundBrush" Color="#E8EEF6" />
-      <SolidColorBrush x:Key="AppSecondaryButtonBorderBrush" Color="#2A3D54" />
-      <SolidColorBrush x:Key="AppDisabledBackgroundBrush" Color="#0A1421" />
-      <SolidColorBrush x:Key="AppDisabledForegroundBrush" Color="#536277" />
-      <SolidColorBrush x:Key="AppDisabledBorderBrush" Color="#213247" />
     </ResourceDictionary>
   </Application.Resources>
   <Application.Styles>
-    <FluentTheme />
+    <FluentTheme>
+      <FluentTheme.Palettes>
+        <ColorPaletteResources x:Key="Dark"
+                               Accent="{StaticResource AppAccentColor}"
+                               RegionColor="{StaticResource AppWindowColor}" />
+      </FluentTheme.Palettes>
+    </FluentTheme>
     <StyleInclude Source="avares://NetOpsTerminal/Themes/Controls.axaml" />
   </Application.Styles>
 </Application>

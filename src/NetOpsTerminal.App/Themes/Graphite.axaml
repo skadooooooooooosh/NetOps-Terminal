@@ -1,0 +1,113 @@
+<ResourceDictionary xmlns="https://github.com/avaloniaui"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+  <!-- Permanent graphite theme. All application semantic colors live here. -->
+  <Color x:Key="AppWindowColor">#111316</Color>
+  <SolidColorBrush x:Key="AppWindowBrush" Color="{StaticResource AppWindowColor}" />
+  <Color x:Key="AppSurfaceColor">#1B1F24</Color>
+  <SolidColorBrush x:Key="AppSurfaceBrush" Color="{StaticResource AppSurfaceColor}" />
+  <Color x:Key="AppElevatedSurfaceColor">#20252B</Color>
+  <SolidColorBrush x:Key="AppElevatedSurfaceBrush" Color="{StaticResource AppElevatedSurfaceColor}" />
+  <Color x:Key="AppSidebarColor">#15181D</Color>
+  <SolidColorBrush x:Key="AppSidebarBrush" Color="{StaticResource AppSidebarColor}" />
+  <Color x:Key="AppSecondarySurfaceColor">#20252B</Color>
+  <SolidColorBrush x:Key="AppSecondarySurfaceBrush" Color="{StaticResource AppSecondarySurfaceColor}" />
+  <Color x:Key="AppInputColor">#111316</Color>
+  <SolidColorBrush x:Key="AppInputBrush" Color="{StaticResource AppInputColor}" />
+  <Color x:Key="AppHoverColor">#292F37</Color>
+  <SolidColorBrush x:Key="AppHoverBrush" Color="{StaticResource AppHoverColor}" />
+  <Color x:Key="AppSelectedColor">#253448</Color>
+  <SolidColorBrush x:Key="AppSelectedBrush" Color="{StaticResource AppSelectedColor}" />
+  <Color x:Key="AppBorderColor">#2B3139</Color>
+  <SolidColorBrush x:Key="AppBorderBrush" Color="{StaticResource AppBorderColor}" />
+  <Color x:Key="AppDialogOutlineColor">#3B434F</Color>
+  <SolidColorBrush x:Key="AppDialogOutlineBrush" Color="{StaticResource AppDialogOutlineColor}" />
+  <Color x:Key="AppFocusColor">#60A5FA</Color>
+  <SolidColorBrush x:Key="AppFocusBrush" Color="{StaticResource AppFocusColor}" />
+  <Color x:Key="AppTextColor">#E5E7EB</Color>
+  <SolidColorBrush x:Key="AppTextBrush" Color="{StaticResource AppTextColor}" />
+  <Color x:Key="AppMutedTextColor">#A3ABB8</Color>
+  <SolidColorBrush x:Key="AppMutedTextBrush" Color="{StaticResource AppMutedTextColor}" />
+  <Color x:Key="AppShortcutColor">#ABC9F6</Color>
+  <SolidColorBrush x:Key="AppShortcutBrush" Color="{StaticResource AppShortcutColor}" />
+  <Color x:Key="AppDisabledTextColor">#6B7280</Color>
+  <SolidColorBrush x:Key="AppDisabledTextBrush" Color="{StaticResource AppDisabledTextColor}" />
+  <Color x:Key="AppAccentColor">#60A5FA</Color>
+  <SolidColorBrush x:Key="AppAccentBrush" Color="{StaticResource AppAccentColor}" />
+  <Color x:Key="AppAccentHoverColor">#80B6FC</Color>
+  <SolidColorBrush x:Key="AppAccentHoverBrush" Color="{StaticResource AppAccentHoverColor}" />
+  <Color x:Key="AppConnectedColor">#34D399</Color>
+  <SolidColorBrush x:Key="AppConnectedBrush" Color="{StaticResource AppConnectedColor}" />
+  <Color x:Key="AppConnectingColor">#FBBF24</Color>
+  <SolidColorBrush x:Key="AppConnectingBrush" Color="{StaticResource AppConnectingColor}" />
+  <Color x:Key="AppDisconnectedColor">#6B7280</Color>
+  <SolidColorBrush x:Key="AppDisconnectedBrush" Color="{StaticResource AppDisconnectedColor}" />
+  <Color x:Key="AppWarningColor">#FBBF24</Color>
+  <SolidColorBrush x:Key="AppWarningBrush" Color="{StaticResource AppWarningColor}" />
+  <Color x:Key="AppDangerColor">#F87171</Color>
+  <SolidColorBrush x:Key="AppDangerBrush" Color="{StaticResource AppDangerColor}" />
+  <Color x:Key="AppSuccessColor">#34D399</Color>
+  <SolidColorBrush x:Key="AppSuccessBrush" Color="{StaticResource AppSuccessColor}" />
+  <Color x:Key="AppProductionColor">#F87171</Color>
+  <SolidColorBrush x:Key="AppProductionBrush" Color="{StaticResource AppProductionColor}" />
+  <Color x:Key="AppTestColor">#FBBF24</Color>
+  <SolidColorBrush x:Key="AppTestBrush" Color="{StaticResource AppTestColor}" />
+  <Color x:Key="AppLabColor">#93C5FD</Color>
+  <SolidColorBrush x:Key="AppLabBrush" Color="{StaticResource AppLabColor}" />
+  <Color x:Key="AppProductionSurfaceColor">#2E1D21</Color>
+  <SolidColorBrush x:Key="AppProductionSurfaceBrush" Color="{StaticResource AppProductionSurfaceColor}" />
+  <Color x:Key="AppWarningSurfaceColor">#2B2519</Color>
+  <SolidColorBrush x:Key="AppWarningSurfaceBrush" Color="{StaticResource AppWarningSurfaceColor}" />
+  <Color x:Key="AppTerminalColor">#0D0F12</Color>
+  <SolidColorBrush x:Key="AppTerminalBrush" Color="{StaticResource AppTerminalColor}" />
+  <Color x:Key="AppTerminalTextColor">#E5E7EB</Color>
+  <SolidColorBrush x:Key="AppTerminalTextBrush" Color="{StaticResource AppTerminalTextColor}" />
+  <Color x:Key="AppTerminalMutedColor">#A3ABB8</Color>
+  <SolidColorBrush x:Key="AppTerminalMutedBrush" Color="{StaticResource AppTerminalMutedColor}" />
+  <Color x:Key="AppPrimaryButtonBackgroundColor">#60A5FA</Color>
+  <SolidColorBrush x:Key="AppPrimaryButtonBackgroundBrush" Color="{StaticResource AppPrimaryButtonBackgroundColor}" />
+  <Color x:Key="AppPrimaryButtonForegroundColor">#111316</Color>
+  <SolidColorBrush x:Key="AppPrimaryButtonForegroundBrush" Color="{StaticResource AppPrimaryButtonForegroundColor}" />
+  <Color x:Key="AppSecondaryButtonBackgroundColor">#1B1F24</Color>
+  <SolidColorBrush x:Key="AppSecondaryButtonBackgroundBrush" Color="{StaticResource AppSecondaryButtonBackgroundColor}" />
+  <Color x:Key="AppSecondaryButtonForegroundColor">#E5E7EB</Color>
+  <SolidColorBrush x:Key="AppSecondaryButtonForegroundBrush" Color="{StaticResource AppSecondaryButtonForegroundColor}" />
+  <Color x:Key="AppSecondaryButtonBorderColor">#3B434F</Color>
+  <SolidColorBrush x:Key="AppSecondaryButtonBorderBrush" Color="{StaticResource AppSecondaryButtonBorderColor}" />
+  <Color x:Key="AppDisabledBackgroundColor">#181B20</Color>
+  <SolidColorBrush x:Key="AppDisabledBackgroundBrush" Color="{StaticResource AppDisabledBackgroundColor}" />
+  <Color x:Key="AppDisabledForegroundColor">#6B7280</Color>
+  <SolidColorBrush x:Key="AppDisabledForegroundBrush" Color="{StaticResource AppDisabledForegroundColor}" />
+  <Color x:Key="AppDisabledBorderColor">#2B3139</Color>
+  <SolidColorBrush x:Key="AppDisabledBorderBrush" Color="{StaticResource AppDisabledBorderColor}" />
+  <Color x:Key="AppDestructiveButtonBackgroundColor">#712E35</Color>
+  <SolidColorBrush x:Key="AppDestructiveButtonBackgroundBrush" Color="{StaticResource AppDestructiveButtonBackgroundColor}" />
+  <Color x:Key="AppDestructiveButtonHoverColor">#883D44</Color>
+  <SolidColorBrush x:Key="AppDestructiveButtonHoverBrush" Color="{StaticResource AppDestructiveButtonHoverColor}" />
+  <Color x:Key="AppDestructiveButtonForegroundColor">#FFF1F2</Color>
+  <SolidColorBrush x:Key="AppDestructiveButtonForegroundBrush" Color="{StaticResource AppDestructiveButtonForegroundColor}" />
+  <Color x:Key="AppPaneFocusColor">#527399</Color>
+  <SolidColorBrush x:Key="AppPaneFocusBrush" Color="{StaticResource AppPaneFocusColor}" />
+
+  <!-- Fluent template aliases use the same semantic palette in every state. -->
+  <SolidColorBrush x:Key="AccentButtonBackground" Color="{StaticResource AppPrimaryButtonBackgroundColor}" />
+  <SolidColorBrush x:Key="AccentButtonBackgroundPointerOver" Color="{StaticResource AppAccentHoverColor}" />
+  <SolidColorBrush x:Key="AccentButtonBackgroundPressed" Color="{StaticResource AppAccentHoverColor}" />
+  <SolidColorBrush x:Key="AccentButtonBackgroundDisabled" Color="{StaticResource AppDisabledBackgroundColor}" />
+  <SolidColorBrush x:Key="AccentButtonForeground" Color="{StaticResource AppPrimaryButtonForegroundColor}" />
+  <SolidColorBrush x:Key="AccentButtonForegroundPointerOver" Color="{StaticResource AppPrimaryButtonForegroundColor}" />
+  <SolidColorBrush x:Key="AccentButtonForegroundPressed" Color="{StaticResource AppPrimaryButtonForegroundColor}" />
+  <SolidColorBrush x:Key="AccentButtonForegroundDisabled" Color="{StaticResource AppDisabledForegroundColor}" />
+  <SolidColorBrush x:Key="AccentButtonBorderBrush" Color="{StaticResource AppPrimaryButtonBackgroundColor}" />
+  <SolidColorBrush x:Key="AccentButtonBorderBrushPointerOver" Color="{StaticResource AppAccentHoverColor}" />
+  <SolidColorBrush x:Key="AccentButtonBorderBrushPressed" Color="{StaticResource AppAccentHoverColor}" />
+  <SolidColorBrush x:Key="AccentButtonBorderBrushDisabled" Color="{StaticResource AppDisabledBorderColor}" />
+  <SolidColorBrush x:Key="ButtonBackgroundPointerOver" Color="{StaticResource AppHoverColor}" />
+  <SolidColorBrush x:Key="ButtonBackgroundPressed" Color="{StaticResource AppSelectedColor}" />
+  <SolidColorBrush x:Key="ButtonBackgroundDisabled" Color="{StaticResource AppDisabledBackgroundColor}" />
+  <SolidColorBrush x:Key="ButtonForegroundPointerOver" Color="{StaticResource AppTextColor}" />
+  <SolidColorBrush x:Key="ButtonForegroundPressed" Color="{StaticResource AppTextColor}" />
+  <SolidColorBrush x:Key="ButtonForegroundDisabled" Color="{StaticResource AppDisabledForegroundColor}" />
+  <SolidColorBrush x:Key="ButtonBorderBrushPointerOver" Color="{StaticResource AppSecondaryButtonBorderColor}" />
+  <SolidColorBrush x:Key="ButtonBorderBrushPressed" Color="{StaticResource AppSecondaryButtonBorderColor}" />
+  <SolidColorBrush x:Key="ButtonBorderBrushDisabled" Color="{StaticResource AppDisabledBorderColor}" />
+</ResourceDictionary>

@@ -31,10 +31,10 @@
           <ColumnDefinition Width="*" />
           <ColumnDefinition Width="Auto" />
         </Grid.ColumnDefinitions>
-        <Grid Grid.Column="0" VerticalAlignment="Center" ColumnDefinitions="32,*">
-          <Image Width="26" Height="26" VerticalAlignment="Center"
+        <Grid Grid.Column="0" VerticalAlignment="Center" ColumnDefinitions="20,*">
+          <Image Width="20" Height="20" VerticalAlignment="Center"
                  Source="/Assets/NetOpsTerminal.ico" />
-          <TextBlock Grid.Column="1" Margin="10,0,0,0" VerticalAlignment="Center"
+          <TextBlock Grid.Column="1" Margin="8,0,0,0" VerticalAlignment="Center"
                      FontSize="13" FontWeight="SemiBold" LetterSpacing="0.2"
                      Text="NetOps Terminal" />
         </Grid>
@@ -43,19 +43,23 @@
                     Orientation="Horizontal" Spacing="2">
           <Button x:Name="KeyboardShortcutsButton" Classes="compact-icon"
                   WindowDecorationProperties.ElementRole="User"
-                  ToolTip.Tip="Keyboard shortcuts (Ctrl+/)">
-            <Grid Width="16" Height="16">
-              <Ellipse Stroke="{DynamicResource AppMutedTextBrush}" StrokeThickness="1.25" />
-              <TextBlock HorizontalAlignment="Center" VerticalAlignment="Center"
-                         Margin="0,-1,0,0" FontSize="10" FontWeight="SemiBold" Text="?" />
-            </Grid>
+                  ToolTip.Tip="Help and keyboard shortcuts (Ctrl+/)"
+                  AutomationProperties.AutomationId="Shell.Help"
+                  AutomationProperties.Name="Help and keyboard shortcuts">
+            <Viewbox Width="18" Height="18">
+              <Canvas Width="24" Height="24">
+                <Path Classes="shell-glyph" Data="{StaticResource ShellHelp}"
+                      Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" />
+              </Canvas>
+            </Viewbox>
             <Button.Flyout>
               <Flyout Placement="Bottom" FlyoutPresenterClasses="shortcut-flyout">
                 <Border Width="420" Padding="16"
                         Background="{DynamicResource AppElevatedSurfaceBrush}"
                         BorderBrush="{DynamicResource AppSecondaryButtonBorderBrush}"
                         BorderThickness="1" CornerRadius="6">
-                  <StackPanel Spacing="4">
+                  <ScrollViewer MaxHeight="600" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                  <StackPanel Spacing="2">
                     <TextBlock FontSize="15" FontWeight="SemiBold" Text="Help &amp; Shortcuts" />
                     <TextBlock Margin="0,-2,0,5" Classes="muted" FontSize="10"
                                Text="Keyboard shortcuts to help you work faster." />
@@ -176,6 +180,7 @@
                       </Border>
                     </Grid>
                   </StackPanel>
+                  </ScrollViewer>
                 </Border>
               </Flyout>
             </Button.Flyout>
@@ -189,23 +194,23 @@
           </Grid>
           <Border Width="1" Height="22" Margin="0,0,7,0" VerticalAlignment="Center"
                   Background="{DynamicResource AppBorderBrush}" />
-          <Button Classes="window-caption" Width="24" Height="24" WindowDecorationProperties.ElementRole="User"
+          <Button Classes="window-caption" Width="32" Height="28" WindowDecorationProperties.ElementRole="User"
                   Click="MinimizeWindow_OnClick"
                   ToolTip.Tip="Minimize" AutomationProperties.Name="Minimize window">
-            <Border Width="8" Height="1.25" CornerRadius="1"
+            <Border Width="10" Height="1.25" CornerRadius="1"
                     Background="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" />
           </Button>
-          <Button Classes="window-caption" Width="24" Height="24" WindowDecorationProperties.ElementRole="User"
+          <Button Classes="window-caption" Width="32" Height="28" WindowDecorationProperties.ElementRole="User"
                   Click="ToggleMaximizeWindow_OnClick"
                   ToolTip.Tip="Maximize or restore" AutomationProperties.Name="Maximize or restore window">
-            <Path Width="8" Height="8" Stretch="Uniform"
+            <Path Width="10" Height="10" Stretch="Uniform"
                   Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"
                   StrokeThickness="1.25" Data="M3,3 H13 V13 H3 Z" />
           </Button>
-          <Button Classes="window-caption close-caption" Width="24" Height="24" WindowDecorationProperties.ElementRole="User"
+          <Button Classes="window-caption close-caption" Width="32" Height="28" WindowDecorationProperties.ElementRole="User"
                   Click="CloseWindow_OnClick"
                   ToolTip.Tip="Close" AutomationProperties.Name="Close window">
-            <Path Width="8" Height="8" Stretch="Uniform"
+            <Path Width="10" Height="10" Stretch="Uniform"
                   Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"
                   StrokeThickness="1.25" Data="M3,3 L13,13 M13,3 L3,13" />
           </Button>
@@ -213,106 +218,116 @@
       </Grid>
     </Border>
 
-    <Grid Grid.Row="1" ColumnDefinitions="52,Auto,*">
-      <Border Grid.Column="0"
+    <Grid x:Name="ShellLayout" Grid.Row="1" ColumnDefinitions="52,*">
+      <Border x:Name="ActivityRail" Grid.Column="0"
+              AutomationProperties.AutomationId="Shell.ActivityRail"
               Background="{DynamicResource AppSidebarBrush}"
               BorderBrush="{DynamicResource AppBorderBrush}"
               BorderThickness="0,0,1,0">
         <Grid RowDefinitions="Auto,*,Auto">
           <StackPanel Grid.Row="0" Margin="8,8,8,0" Spacing="6">
             <Button Classes="rail-icon" Classes.selected="{Binding IsSidebarExpanded}"
-                    Command="{Binding ToggleSidebarCommand}" ToolTip.Tip="Device Explorer">
-              <Viewbox Width="19" Height="19" Stretch="Uniform">
+                    Command="{Binding ToggleSidebarCommand}" ToolTip.Tip="Device Explorer"
+                    AutomationProperties.AutomationId="Rail.DeviceExplorer" AutomationProperties.Name="Device Explorer">
+              <Viewbox Width="18" Height="18" Stretch="Uniform">
                 <Canvas Width="24" Height="24">
                   <Path Classes="rail-glyph" Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"
-                        Data="{StaticResource IconRailExplorer}" />
+                        Data="{StaticResource ShellExplorer}" />
                 </Canvas>
               </Viewbox>
             </Button>
-            <Button Classes="rail-icon" Click="QuickConnect_OnClick" ToolTip.Tip="Quick Connect (Ctrl+N)">
-              <Viewbox Width="19" Height="19" Stretch="Uniform">
+            <Button Classes="rail-icon" Click="QuickConnect_OnClick" ToolTip.Tip="Quick Connect (Ctrl+N)"
+                    AutomationProperties.AutomationId="Rail.QuickConnect" AutomationProperties.Name="Quick Connect (Ctrl+N)">
+              <Viewbox Width="18" Height="18" Stretch="Uniform">
                 <Canvas Width="24" Height="24">
                   <Path Classes="rail-glyph" Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"
-                        Data="{StaticResource IconRailConnect}" />
+                        Data="{StaticResource ShellConnect}" />
                 </Canvas>
               </Viewbox>
             </Button>
             <Button Classes="rail-icon" Command="{Binding NewPowerShellCommand}"
                     ToolTip.Tip="Open PowerShell (Alt+P)"
-                    AutomationProperties.Name="Open PowerShell">
-              <Viewbox Width="19" Height="19" Stretch="Uniform">
+                    AutomationProperties.Name="Open PowerShell" AutomationProperties.AutomationId="Rail.PowerShell">
+              <Viewbox Width="18" Height="18" Stretch="Uniform">
                 <Canvas Width="24" Height="24">
                   <Path Classes="rail-glyph" Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"
-                        Data="{StaticResource IconRailPowerShell}" />
+                        Data="{StaticResource ShellPowerShell}" />
                 </Canvas>
               </Viewbox>
             </Button>
             <Button Classes="rail-icon" Command="{Binding NewCommandPromptCommand}"
                     ToolTip.Tip="Open Command Prompt (Alt+C)"
-                    AutomationProperties.Name="Open Command Prompt">
-              <Viewbox Width="19" Height="19" Stretch="Uniform">
+                    AutomationProperties.Name="Open Command Prompt" AutomationProperties.AutomationId="Rail.CommandPrompt">
+              <Viewbox Width="18" Height="18" Stretch="Uniform">
                 <Canvas Width="24" Height="24">
                   <Path Classes="rail-glyph" Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"
-                        Data="{StaticResource IconRailCommandPrompt}" />
+                        Data="{StaticResource ShellCommandPrompt}" />
                 </Canvas>
               </Viewbox>
             </Button>
-            <Button Classes="rail-icon" Click="AddDevice_OnClick" ToolTip.Tip="Add saved device">
-              <Viewbox Width="19" Height="19" Stretch="Uniform">
+            <Button Classes="rail-icon" Click="AddDevice_OnClick" ToolTip.Tip="Add saved device"
+                    AutomationProperties.AutomationId="Rail.AddDevice" AutomationProperties.Name="Add saved device">
+              <Viewbox Width="18" Height="18" Stretch="Uniform">
                 <Canvas Width="24" Height="24">
                   <Path Classes="rail-glyph" Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"
-                        Data="{StaticResource IconRailAdd}" />
+                        Data="{StaticResource ShellAdd}" />
                 </Canvas>
               </Viewbox>
             </Button>
-            <Button Classes="rail-icon" Click="RefreshDevices_OnClick" ToolTip.Tip="Refresh">
-              <Viewbox Width="19" Height="19" Stretch="Uniform">
+            <Button Classes="rail-icon" Click="RefreshDevices_OnClick" ToolTip.Tip="Refresh"
+                    AutomationProperties.AutomationId="Rail.Refresh" AutomationProperties.Name="Refresh">
+              <Viewbox Width="18" Height="18" Stretch="Uniform">
                 <Canvas Width="24" Height="24">
                   <Path Classes="rail-glyph" Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"
-                        Data="{StaticResource IconRailRefresh}" />
+                        Data="{StaticResource ShellRefresh}" />
                 </Canvas>
               </Viewbox>
             </Button>
-            <Button Classes="rail-icon" Click="OpenFavorites_OnClick" ToolTip.Tip="Favorites">
-              <Viewbox Width="19" Height="19" Stretch="Uniform">
+            <Button Classes="rail-icon" Click="OpenFavorites_OnClick" ToolTip.Tip="Favorites"
+                    AutomationProperties.AutomationId="Rail.Favorites" AutomationProperties.Name="Favorites">
+              <Viewbox Width="18" Height="18" Stretch="Uniform">
                 <Canvas Width="24" Height="24">
                   <Path Classes="rail-glyph" Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"
-                        Data="{StaticResource IconRailFavorites}" />
+                        Data="{StaticResource ShellFavorites}" />
                 </Canvas>
               </Viewbox>
             </Button>
-            <Button Classes="rail-icon" Click="OpenRecent_OnClick" ToolTip.Tip="Recent Sessions">
-              <Viewbox Width="19" Height="19" Stretch="Uniform">
+            <Button Classes="rail-icon" Click="OpenRecent_OnClick" ToolTip.Tip="Recent Sessions"
+                    AutomationProperties.AutomationId="Rail.Recent" AutomationProperties.Name="Recent Sessions">
+              <Viewbox Width="18" Height="18" Stretch="Uniform">
                 <Canvas Width="24" Height="24">
                   <Path Classes="rail-glyph" Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"
-                        Data="{StaticResource IconRailRecent}" />
+                        Data="{StaticResource ShellRecent}" />
                 </Canvas>
               </Viewbox>
             </Button>
           </StackPanel>
 
           <StackPanel Grid.Row="1" Margin="8,14,8,0" Spacing="6">
-            <Button Classes="rail-icon" Click="Credentials_OnClick" ToolTip.Tip="Credentials">
-              <Viewbox Width="19" Height="19" Stretch="Uniform">
+            <Button Classes="rail-icon" Click="Credentials_OnClick" ToolTip.Tip="Credentials"
+                    AutomationProperties.AutomationId="Rail.Credentials" AutomationProperties.Name="Credentials">
+              <Viewbox Width="18" Height="18" Stretch="Uniform">
                 <Canvas Width="24" Height="24">
                   <Path Classes="rail-glyph" Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"
-                        Data="{StaticResource IconRailCredentials}" />
+                        Data="{StaticResource ShellCredentials}" />
                 </Canvas>
               </Viewbox>
             </Button>
-            <Button Classes="rail-icon" Click="ImportDevices_OnClick" ToolTip.Tip="Import devices">
-              <Viewbox Width="19" Height="19" Stretch="Uniform">
+            <Button Classes="rail-icon" Click="ImportDevices_OnClick" ToolTip.Tip="Import devices"
+                    AutomationProperties.AutomationId="Rail.Import" AutomationProperties.Name="Import devices">
+              <Viewbox Width="18" Height="18" Stretch="Uniform">
                 <Canvas Width="24" Height="24">
                   <Path Classes="rail-glyph" Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"
-                        Data="{StaticResource IconRailImport}" />
+                        Data="{StaticResource ShellImport}" />
                 </Canvas>
               </Viewbox>
             </Button>
-            <Button Classes="rail-icon" Click="ExportDevices_OnClick" ToolTip.Tip="Export devices">
-              <Viewbox Width="19" Height="19" Stretch="Uniform">
+            <Button Classes="rail-icon" Click="ExportDevices_OnClick" ToolTip.Tip="Export devices"
+                    AutomationProperties.AutomationId="Rail.Export" AutomationProperties.Name="Export devices">
+              <Viewbox Width="18" Height="18" Stretch="Uniform">
                 <Canvas Width="24" Height="24">
                   <Path Classes="rail-glyph" Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"
-                        Data="{StaticResource IconRailExport}" />
+                        Data="{StaticResource ShellExport}" />
                 </Canvas>
               </Viewbox>
             </Button>
@@ -320,13 +335,14 @@
 
           <StackPanel Grid.Row="2" Margin="8,0,8,8" Spacing="8">
             <Border Width="34" Height="1" HorizontalAlignment="Center"
-                    Background="{DynamicResource AppMutedTextBrush}" Opacity="0.35" />
+                    Background="{DynamicResource AppBorderBrush}" />
             <Button Classes="rail-icon" Classes.selected="{Binding IsSettingsVisible}"
-                    Command="{Binding ShowSettingsCommand}" ToolTip.Tip="Settings">
-              <Viewbox Width="19" Height="19" Stretch="Uniform">
+                    Command="{Binding ShowSettingsCommand}" ToolTip.Tip="Settings"
+                    AutomationProperties.AutomationId="Rail.Settings" AutomationProperties.Name="Settings">
+              <Viewbox Width="18" Height="18" Stretch="Uniform">
                 <Canvas Width="24" Height="24">
                   <Path Classes="rail-glyph" Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"
-                        Data="{StaticResource IconRailSettings}" />
+                        Data="{StaticResource ShellSettings}" />
                 </Canvas>
               </Viewbox>
             </Button>
@@ -334,7 +350,7 @@
         </Grid>
       </Border>
 
-      <Grid Grid.Column="1" HorizontalAlignment="Left"
+      <Grid x:Name="DeviceExplorerOverlay" Grid.Column="1" ZIndex="10" HorizontalAlignment="Left"
             ColumnDefinitions="Auto,5" IsVisible="{Binding IsSidebarExpanded}">
       <Border
           Grid.Column="0"
@@ -587,7 +603,7 @@
           ToolTip.Tip="Drag to resize the device sidebar" />
       </Grid>
 
-      <Grid Grid.Column="2" PointerPressed="Workspace_OnPointerPressed">
+      <Grid x:Name="WorkspaceHost" Grid.Column="1" PointerPressed="Workspace_OnPointerPressed">
         <Grid IsVisible="{Binding IsWorkspaceVisible}" RowDefinitions="*,24">
           <Border
               Grid.Row="0"
@@ -595,13 +611,14 @@
               Background="{DynamicResource AppTerminalBrush}"
               CornerRadius="0"
               IsVisible="{Binding HasNoTerminalSessions}">
-            <StackPanel Margin="40" VerticalAlignment="Center" Spacing="12">
-              <TextBlock
-                  HorizontalAlignment="Center"
-                  FontFamily="Cascadia Mono, Consolas"
-                  FontSize="28"
-                  Foreground="{DynamicResource AppTerminalTextBrush}"
-                  Text="&gt;_" />
+            <StackPanel x:Name="WelcomeContent" MaxWidth="640" Margin="32,0,32,24"
+                        HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="12">
+              <Viewbox Width="32" Height="32" Margin="0,0,0,4" HorizontalAlignment="Center">
+                <Canvas Width="24" Height="24">
+                  <Path Classes="shell-glyph" Data="{StaticResource ShellPowerShell}"
+                        Stroke="{DynamicResource AppMutedTextBrush}" />
+                </Canvas>
+              </Viewbox>
               <TextBlock
                   HorizontalAlignment="Center"
                   FontSize="18"
@@ -617,16 +634,19 @@
                   TextWrapping="Wrap" />
               <StackPanel HorizontalAlignment="Center" Margin="0,10,0,0" Orientation="Horizontal" Spacing="10">
                 <Button
-                    Classes="accent"
+                    Classes="accent welcome-action"
+                    AutomationProperties.AutomationId="Welcome.QuickConnect"
                     Click="QuickConnect_OnClick"
                     Content="Quick Connect"
                     IsEnabled="{Binding CanStartConnection}" />
                 <Button
-                    Classes="toolbar"
+                    Classes="toolbar welcome-action"
+                    AutomationProperties.AutomationId="Welcome.PowerShell"
                     Command="{Binding NewPowerShellCommand}"
                     Content="Open PowerShell" />
                 <Button
-                    Classes="toolbar"
+                    Classes="toolbar welcome-action"
+                    AutomationProperties.AutomationId="Welcome.CommandPrompt"
                     Command="{Binding NewCommandPromptCommand}"
                     Content="Open Command Prompt" />
               </StackPanel>
@@ -634,7 +654,7 @@
                   HorizontalAlignment="Center"
                   Classes="muted"
                   FontSize="11"
-                  Text="Managed terminal · 10,000-line scrollback · Clipboard safety enabled" />
+                  Text="10,000-line scrollback · Clipboard safety enabled" />
 
               <StackPanel HorizontalAlignment="Center" IsVisible="{Binding IsConnectionBusy}" Spacing="7">
                 <ProgressBar Width="320" IsIndeterminate="True" />
@@ -702,18 +722,22 @@
                       FontSize="11"
                       FontWeight="Medium"
                       MaxWidth="170"
-                      Text="{Binding Title}"
+                      Text="{Binding Title}" ToolTip.Tip="{Binding Title}"
                       TextTrimming="CharacterEllipsis" />
                   <Button
                       Grid.Column="2"
-                      Width="18"
-                      Height="18"
-                      Padding="0"
-                      Background="Transparent"
-                      BorderThickness="0"
+                      Classes="tab-close"
+                      AutomationProperties.AutomationId="Workspace.CloseTab"
+                      AutomationProperties.Name="Close active pane"
                       Click="WorkspaceTabClose_OnClick"
-                      Content="×"
-                      ToolTip.Tip="Close active pane" />
+                      ToolTip.Tip="Close active pane">
+                    <Viewbox Width="12" Height="12">
+                      <Canvas Width="24" Height="24">
+                        <Path Classes="shell-glyph" Data="{StaticResource ShellClose}"
+                              Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" />
+                      </Canvas>
+                    </Viewbox>
+                  </Button>
                   <Border Grid.ColumnSpan="3" Width="2" Height="24"
                           HorizontalAlignment="Left" VerticalAlignment="Center"
                           Background="{DynamicResource AppAccentBrush}"
@@ -734,9 +758,9 @@
             </TabControl.ContentTemplate>
           </TabControl>
 
-          <Border
+          <Border x:Name="StatusBar" AutomationProperties.AutomationId="Shell.StatusBar"
               Grid.Row="1"
-              Padding="8,0"
+              Padding="12,0"
               Background="{DynamicResource AppSurfaceBrush}"
               BorderBrush="{DynamicResource AppBorderBrush}"
               BorderThickness="0,1,0,0">
@@ -748,19 +772,21 @@
                 <Ellipse Fill="{DynamicResource AppDisconnectedBrush}" IsVisible="{Binding IsFooterIdle}" />
               </Grid>
               <TextBlock Grid.Column="1" Margin="6,0" VerticalAlignment="Center"
-                         Classes="muted" FontSize="10" Text="{Binding StatusMessage}" />
+                         Classes="muted" FontSize="11" Text="{Binding StatusMessage}"
+                         TextTrimming="CharacterEllipsis" ToolTip.Tip="{Binding StatusMessage}" />
               <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center"
                           Spacing="7">
-                <TextBlock Classes="muted" FontSize="10"
+                <TextBlock Classes="muted" FontSize="11"
                            IsVisible="{Binding HasSelectedTerminal}"
-                           Text="{Binding FooterConnectionText}" />
-                <TextBlock Classes="muted" FontSize="10"
+                           Text="{Binding FooterConnectionText}" MaxWidth="280"
+                           TextTrimming="CharacterEllipsis" ToolTip.Tip="{Binding FooterConnectionText}" />
+                <TextBlock Classes="muted" FontSize="11"
                            IsVisible="{Binding HasSelectedTerminal}" Text="·" />
-                <TextBlock Classes="muted" FontSize="10"
+                <TextBlock Classes="muted" FontSize="11"
                            IsVisible="{Binding HasSelectedTerminal}"
                            Text="{Binding FooterLoggingText}" />
-                <TextBlock Classes="muted" FontSize="10" Text="·" />
-                <TextBlock Classes="muted" FontSize="10"
+                <TextBlock Classes="muted" FontSize="11" IsVisible="{Binding HasSelectedTerminal}" Text="·" />
+                <TextBlock Classes="muted" FontSize="11"
                            Text="{Binding FooterSessionCountText}" />
               </StackPanel>
             </Grid>

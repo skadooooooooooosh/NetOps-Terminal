@@ -1,5 +1,14 @@
 # Changelog
 
+## [1.1.2] - 2026-10-26
+
+- Refined the dark interface with reusable graphite colors, stronger text contrast, and consistent focus and control states.
+- Unified compact activity-rail icons with licensed Tabler outline vectors while preserving the selected app icon and 52 DIP rail.
+- Improved welcome-screen spacing, header alignment, terminal tab controls, the 24 DIP footer, Help, Settings, and dialog styling.
+- Kept the existing Device Explorer design and controls; its overlay no longer resizes the terminal workspace.
+- Added automated headless UI coverage for layout, overlay behavior, Quick Connect validation, and contrast.
+- Preserved connection protocols, terminal rendering/input, saved data, credentials, and SSH host-key verification.
+
 ## [1.1.1] - 2026-10-08
 
 - Removed the Environment selector from the saved-device editor while preserving existing metadata.

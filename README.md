@@ -11,11 +11,11 @@
 </p>
 
 <p align="center">
-  <strong>Windows 10/11 x64</strong> &nbsp;·&nbsp; <strong>Version 1.1.1</strong> &nbsp;·&nbsp; <strong>.NET 10</strong>
+  <strong>Windows 10/11 x64</strong> &nbsp;·&nbsp; <strong>Version 1.1.2</strong> &nbsp;·&nbsp; <strong>.NET 10</strong>
 </p>
 
 <p align="center">
-  <a href="https://github.com/skadooooooooooosh/NetOps-Terminal/releases/tag/v1.1.1"><strong>Download v1.1.1</strong></a>
+  <a href="https://github.com/skadooooooooooosh/NetOps-Terminal/releases/tag/v1.1.2"><strong>Download v1.1.2</strong></a>
   &nbsp;·&nbsp;
   <a href="docs/user-guide/NETOPS_TERMINAL_USER_GUIDE.md">User guide</a>
   &nbsp;·&nbsp;
@@ -40,18 +40,19 @@ Saved devices can open a **CLI session**, an **external web interface**, or **bo
 - Keep multiple connection attempts visible in separate tabs and drag tabs into the order you want.
 - Import devices from Excel, JSON, or CSV; export device metadata to Excel or JSON. Exports leave out passwords and trusted host keys.
 - Use Quick Connect for a one-off session or save a device for later.
+- Work in a consistent graphite interface with compact sidebar icons, clear status colors, and matching dialogs. Device Explorer opens over the workspace without resizing the terminal.
 
 ## Get the app
 
-1. Open the [v1.1.1 release](https://github.com/skadooooooooooosh/NetOps-Terminal/releases/tag/v1.1.1) and expand **Assets**.
-2. Download the [Windows x64 MSI](https://github.com/skadooooooooooosh/NetOps-Terminal/releases/download/v1.1.1/NetOpsTerminal-1.1.1-win-x64.msi) and its [SHA-256 checksum](https://github.com/skadooooooooooosh/NetOps-Terminal/releases/download/v1.1.1/NetOpsTerminal-1.1.1-win-x64.msi.sha256).
+1. Open the [v1.1.2 release](https://github.com/skadooooooooooosh/NetOps-Terminal/releases/tag/v1.1.2) and expand **Assets**.
+2. Download the [Windows x64 MSI](https://github.com/skadooooooooooosh/NetOps-Terminal/releases/download/v1.1.2/NetOpsTerminal-1.1.2-win-x64.msi) and its [SHA-256 checksum](https://github.com/skadooooooooooosh/NetOps-Terminal/releases/download/v1.1.2/NetOpsTerminal-1.1.2-win-x64.msi.sha256).
 3. Check the hash, close NetOps Terminal if it is running, then run the installer.
 
-The installer includes the .NET runtime. It defaults to `C:\Program Files\NetOps Terminal`, asks for administrator approval, and offers Desktop and Start menu shortcuts. The [portable ZIP](https://github.com/skadooooooooooosh/NetOps-Terminal/releases/download/v1.1.1/NetOpsTerminal-1.1.1-win-x64.zip) is available on the same release page. The packages are unsigned, so Windows may show a publisher warning. GitHub sign-in and repository access are required while this repository is private.
+The installer includes the .NET runtime. It defaults to `C:\Program Files\NetOps Terminal`, asks for administrator approval, and offers Desktop and Start menu shortcuts. The [portable ZIP](https://github.com/skadooooooooooosh/NetOps-Terminal/releases/download/v1.1.2/NetOpsTerminal-1.1.2-win-x64.zip) is available on the same release page. The packages are unsigned, so Windows may show a publisher warning. GitHub sign-in and repository access are required while this repository is private.
 
-> **Upgrading from 1.1.0?** Close the app, then run the 1.1.1 MSI. It upgrades the 1.1.0 all-users installation. Back up user data before upgrading.
+> **Upgrading from 1.1.0 or 1.1.1?** Close the app, then run the 1.1.2 MSI. It upgrades the 1.1.0 and 1.1.1 all-users installations. Back up user data before upgrading.
 
-> **Upgrading from 1.0.0?** Back up `%LOCALAPPDATA%\NetOpsTerminal` for each Windows account before installing 1.1.1. The saved-device database migration is forward-only; 1.0.0 cannot read the upgraded database. Saved passwords are held separately in Windows Credential Manager. See the [1.1.1 release guide](docs/RELEASE_V1_1_1.md) for upgrade details.
+> **Upgrading from 1.0.0?** Back up `%LOCALAPPDATA%\NetOpsTerminal` for each Windows account before installing 1.1.2. The saved-device database migration is forward-only; 1.0.0 cannot read the upgraded database. Saved passwords are held separately in Windows Credential Manager. See the [1.1.2 release guide](docs/RELEASE_V1_1_2.md) for upgrade details.
 
 ## Connections and safety
 
@@ -89,8 +90,8 @@ The release files are written to the ignored `artifacts\release` directory.
 
 - [User guide (Markdown)](docs/user-guide/NETOPS_TERMINAL_USER_GUIDE.md) and [printable PDF](docs/user-guide/NETOPS_TERMINAL_USER_GUIDE.pdf) — installation, illustrated workflows, shortcuts, and troubleshooting
 - [Changelog](CHANGELOG.md) — changes by version
-- [Release guide](docs/RELEASE_V1_1_1.md) — installation, upgrade, and package details
+- [Release guide](docs/RELEASE_V1_1_2.md) — installation, upgrade, and package details
 - [Security](SECURITY.md) — credentials, host keys, local data, and vulnerability reporting
 - [Third-party notices](THIRD_PARTY_NOTICES.md) — bundled dependency notices
 
-SSH private-key and SSH-agent authentication are not part of version 1.1.1.
+SSH private-key and SSH-agent authentication are not part of version 1.1.2.

@@ -1,12 +1,11 @@
 using System.Runtime.InteropServices;
+using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Media;
 
 namespace NetOpsTerminal.App.Views;
 
-/// <summary>
-/// Applies the application's dark caption and rounded native corners to every
-/// top-level window on Windows. Other platforms keep their native window chrome.
-/// </summary>
+/// <summary>Uses the shared application palette for native Windows captions.</summary>
 public class ThemedWindow : Window
 {
     private const int DwmwaUseImmersiveDarkMode = 20;
@@ -17,11 +16,6 @@ public class ThemedWindow : Window
     private const int DwmwaTextColor = 36;
     private const int DwmwcpRound = 2;
 
-    // COLORREF uses 0x00BBGGRR ordering. These match App.axaml semantic colors.
-    private const int CaptionColor = 0x0025160D; // #0D1625
-    private const int BorderColor = 0x00473221; // #213247
-    private const int TextColor = 0x00F2E6DC; // #DCE6F2
-
     public ThemedWindow()
     {
         Opened += OnOpened;
@@ -29,41 +23,38 @@ public class ThemedWindow : Window
 
     private void OnOpened(object? sender, EventArgs eventArgs)
     {
-        _ = sender;
-        _ = eventArgs;
         Opened -= OnOpened;
-
         IntPtr? platformHandle = TryGetPlatformHandle()?.Handle;
         if (!OperatingSystem.IsWindows() || platformHandle is not { } handle || handle == IntPtr.Zero)
-        {
             return;
-        }
 
         int enabled = 1;
         if (SetWindowAttribute(handle, DwmwaUseImmersiveDarkMode, ref enabled) < 0)
-        {
             _ = SetWindowAttribute(handle, DwmwaUseImmersiveDarkModeLegacy, ref enabled);
-        }
 
-        int captionColor = CaptionColor;
-        int borderColor = BorderColor;
-        int textColor = TextColor;
+        ApplyResourceColor(handle, DwmwaCaptionColor, "AppSurfaceBrush");
+        ApplyResourceColor(handle, DwmwaBorderColor, "AppBorderBrush");
+        ApplyResourceColor(handle, DwmwaTextColor, "AppTextBrush");
         int cornerPreference = DwmwcpRound;
-        _ = SetWindowAttribute(handle, DwmwaCaptionColor, ref captionColor);
-        _ = SetWindowAttribute(handle, DwmwaBorderColor, ref borderColor);
-        _ = SetWindowAttribute(handle, DwmwaTextColor, ref textColor);
         _ = SetWindowAttribute(handle, DwmwaWindowCornerPreference, ref cornerPreference);
     }
 
-    private static int SetWindowAttribute(IntPtr handle, int attribute, ref int value)
+    private void ApplyResourceColor(IntPtr handle, int attribute, string key)
     {
-        return DwmSetWindowAttribute(handle, attribute, ref value, Marshal.SizeOf<int>());
+        if (Avalonia.Application.Current?.TryGetResource(key, ActualThemeVariant, out object? value) == true
+            && value is ISolidColorBrush brush)
+        {
+            // Windows COLORREF is 0x00BBGGRR.
+            Color color = brush.Color;
+            int colorRef = color.R | color.G << 8 | color.B << 16;
+            _ = SetWindowAttribute(handle, attribute, ref colorRef);
+        }
     }
+
+    private static int SetWindowAttribute(IntPtr handle, int attribute, ref int value) =>
+        DwmSetWindowAttribute(handle, attribute, ref value, Marshal.SizeOf<int>());
 
     [DllImport("dwmapi.dll", ExactSpelling = true)]
     private static extern int DwmSetWindowAttribute(
-        IntPtr hwnd,
-        int attribute,
-        ref int attributeValue,
-        int attributeSize);
+        IntPtr hwnd, int attribute, ref int attributeValue, int attributeSize);
 }
