@@ -10,7 +10,7 @@ Saved-device exports exclude passwords, private keys, secret references, and tru
 
 Unknown SSH host keys require an explicit trust choice. Changed or revoked keys are blocked; they are never accepted or overwritten automatically. Telnet and Raw TCP do not provide encryption or peer authentication and should be used only on authorized trusted networks. Serial uses a local COM port.
 
-Terminal output is untrusted. Input Lock blocks keyboard, paste, and programmatic sends to the locked session while preserving output and copy. Multiline or control-sequence paste requires review and confirmation. Production indicators use text as well as color, and restored Production sessions never reconnect automatically. Copying selected terminal text places it on the Windows clipboard; the app does not clear Windows clipboard history.
+Terminal output is untrusted. Input Lock blocks keyboard, paste, and programmatic sends to the locked session while preserving output and copy. Multiline or control-sequence paste requires review and confirmation. Production indicators use text as well as color, and restored Production sessions never reconnect automatically. Copying selected terminal text places it on the Windows clipboard; the app does not clear Windows clipboard history. Terminal copies remove ASCII spaces at line ends while preserving indentation, internal spacing, tabs, Unicode and line-ending characters. Incoming clipboard paste content is not normalized. Copying an all-space selection writes empty text; this does not clear Windows clipboard history.
 
 ## Release package
 

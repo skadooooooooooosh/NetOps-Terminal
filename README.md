@@ -26,6 +26,9 @@
 
 ---
 
+## Refreshed 1.1.2 downloads
+
+The 2026-10-26 package refresh includes responsive pinned Explorer layout, cleaner terminal copies, and a larger paste preview. If an earlier **1.1.2 MSI** is installed, back up your data and uninstall it before installing the refreshed MSI; the same-version installer retains its product identity. See the [release guide](docs/RELEASE_V1_1_2.md#package-refresh---2026-10-26).
 ## At a glance
 
 | Connect | Organize | Work |
@@ -40,7 +43,8 @@ Saved devices can open a **CLI session**, an **external web interface**, or **bo
 - Keep multiple connection attempts visible in separate tabs and drag tabs into the order you want.
 - Import devices from Excel, JSON, or CSV; export device metadata to Excel or JSON. Exports leave out passwords and trusted host keys.
 - Use Quick Connect for a one-off session or save a device for later.
-- Work in a consistent graphite interface with compact sidebar icons, clear status colors, and matching dialogs. Device Explorer opens over the workspace without resizing the terminal.
+- Copy terminal text without trailing space padding; indentation and line breaks stay intact. The paste review opens at the beginning of the text.
+- Work in a consistent graphite interface with compact sidebar icons, clear status colors, and matching dialogs. Unpinned Device Explorer overlays the workspace; pinning it docks the sidebar and fits the terminal beside it.
 
 ## Get the app
 

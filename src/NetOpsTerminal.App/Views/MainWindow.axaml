@@ -218,7 +218,16 @@
       </Grid>
     </Border>
 
-    <Grid x:Name="ShellLayout" Grid.Row="1" ColumnDefinitions="52,*">
+    <Grid x:Name="ShellLayout" Grid.Row="1" ColumnDefinitions="52,Auto,*">
+      <Grid.Styles>
+        <!-- Pinning docks the Explorer; the temporary view overlays the workspace. -->
+        <Style Selector="Grid#DeviceExplorerOverlay">
+          <Setter Property="Grid.ColumnSpan" Value="2" />
+        </Style>
+        <Style Selector="Grid#DeviceExplorerOverlay.pinned">
+          <Setter Property="Grid.ColumnSpan" Value="1" />
+        </Style>
+      </Grid.Styles>
       <Border x:Name="ActivityRail" Grid.Column="0"
               AutomationProperties.AutomationId="Shell.ActivityRail"
               Background="{DynamicResource AppSidebarBrush}"
@@ -351,6 +360,7 @@
       </Border>
 
       <Grid x:Name="DeviceExplorerOverlay" Grid.Column="1" ZIndex="10" HorizontalAlignment="Left"
+            Classes.pinned="{Binding IsDeviceExplorerPinned}"
             ColumnDefinitions="Auto,5" IsVisible="{Binding IsSidebarExpanded}">
       <Border
           Grid.Column="0"
@@ -603,7 +613,7 @@
           ToolTip.Tip="Drag to resize the device sidebar" />
       </Grid>
 
-      <Grid x:Name="WorkspaceHost" Grid.Column="1" PointerPressed="Workspace_OnPointerPressed">
+      <Grid x:Name="WorkspaceHost" Grid.Column="2" PointerPressed="Workspace_OnPointerPressed">
         <Grid IsVisible="{Binding IsWorkspaceVisible}" RowDefinitions="*,24">
           <Border
               Grid.Row="0"

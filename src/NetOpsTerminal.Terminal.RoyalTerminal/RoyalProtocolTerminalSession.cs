@@ -364,7 +364,7 @@ internal sealed partial class RoyalProtocolTerminalSession : ITerminalSession, I
         var control = TerminalControlConfiguration.Apply(new TerminalControl(
             new TerminalSessionService(),
             new DefaultTerminalInputAdapter(),
-            new DefaultTerminalSelectionService(),
+            new CleanTerminalSelectionService(),
             new DefaultTerminalScrollService(),
             new DefaultVtProcessorFactory(),
             new DefaultPtyFactory(),

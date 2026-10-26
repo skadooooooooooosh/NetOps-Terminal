@@ -1,5 +1,17 @@
 # NetOps Terminal 1.1.2 for Windows x64
 
+## Package refresh - 2026-10-26
+
+The refreshed downloads retain version **1.1.2** and include:
+
+- Pinned Device Explorer reserves its width so terminal tabs, content and footer fit beside it; unpinned Explorer remains a temporary overlay.
+- Terminal copies omit trailing ASCII space padding while retaining indentation, internal spacing, tabs, Unicode and line breaks. Incoming pasted text is not trimmed.
+- The paste preview opens at its first line and left edge.
+- Confirm Terminal Paste defaults to 820 x 600 DIPs, remains resizable and fits to the display working area.
+
+**Already installed 1.1.2?** Back up your data, close the app, uninstall the earlier 1.1.2 MSI, then install the refreshed MSI. Its ProductVersion and ProductCode are unchanged, so simply opening the new MSI may enter maintenance mode. The installer does not remove the per-user application profile; keep a backup anyway. For the ZIP, extract the complete refreshed package into a new folder. Use the newly supplied SHA-256 checksums.
+
+The existing release tags remain unchanged. The release notes identify the maintenance source commit separately; GitHub's automatic source archives for the original v1.1.2 tag continue to represent the original tagged source.
 ## Install or upgrade
 
 Download [NetOpsTerminal-1.1.2-win-x64.msi](https://github.com/skadooooooooooosh/NetOps-Terminal/releases/download/v1.1.2/NetOpsTerminal-1.1.2-win-x64.msi) and its [.sha256 file](https://github.com/skadooooooooooosh/NetOps-Terminal/releases/download/v1.1.2/NetOpsTerminal-1.1.2-win-x64.msi.sha256) from the [v1.1.2 GitHub Release](https://github.com/skadooooooooooosh/NetOps-Terminal/releases/tag/v1.1.2). Verify the checksum, close NetOps Terminal, and run the MSI. The wizard offers an install folder and optional Desktop and Start menu shortcuts. Administrator approval is required.
@@ -17,9 +29,9 @@ The release uses the normal NetOpsTerminal user profile. The earlier local UI de
 - A permanent graphite/charcoal palette with consistent controls, focus states and readable text contrast.
 - Tabler outline icons on the unchanged 52 DIP activity rail, aligned header branding and a balanced welcome screen.
 - Clearer terminal tab controls, compact status text, a 24 DIP footer, consistent dialogs, Help and Settings.
-- The existing Device Explorer design and controls are retained. Its outer host presents the Explorer as an overlay without shrinking the terminal workspace.
+- The existing Device Explorer design and controls are retained. Its outer host overlays the terminal when unpinned and reserves sidebar width when pinned.
 
-The selected application icon, connection engines, terminal renderer/input, credential handling, SSH host-key verification and saved-device metadata are preserved.
+The selected application icon, connection engines, terminal renderer, keyboard input, credential handling, SSH host-key verification and saved-device metadata are preserved. The copy-only selection adapter is isolated in the terminal integration layer.
 
 ## Portable ZIP
 

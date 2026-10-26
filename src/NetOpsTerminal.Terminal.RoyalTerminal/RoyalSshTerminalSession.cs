@@ -402,7 +402,7 @@ internal sealed partial class RoyalSshTerminalSession : ITerminalSession, IRoyal
         var control = TerminalControlConfiguration.Apply(new TerminalControl(
             new TerminalSessionService(),
             new DefaultTerminalInputAdapter(),
-            new DefaultTerminalSelectionService(),
+            new CleanTerminalSelectionService(),
             new DefaultTerminalScrollService(),
             new DefaultVtProcessorFactory(),
             new DefaultPtyFactory(),

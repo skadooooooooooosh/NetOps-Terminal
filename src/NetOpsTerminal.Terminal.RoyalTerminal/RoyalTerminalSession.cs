@@ -6,6 +6,8 @@ using NetOpsTerminal.Core.Connections;
 using NetOpsTerminal.Core.Sessions;
 using NetOpsTerminal.Terminal.Abstractions;
 using RoyalTerminal.Avalonia.Controls;
+using RoyalTerminal.Avalonia.Services;
+using RoyalTerminal.Terminal.Services;
 using RoyalTerminal.Terminal;
 
 namespace NetOpsTerminal.Terminal.RoyalTerminal;
@@ -45,7 +47,13 @@ internal sealed partial class RoyalTerminalSession : ITerminalSession, IRoyalTer
         _pasteConfirmationService = pasteConfirmationService;
         _logger = logger;
 
-        Control = TerminalControlConfiguration.Apply(new TerminalControl
+        Control = TerminalControlConfiguration.Apply(new TerminalControl(
+            new TerminalSessionService(),
+            new DefaultTerminalInputAdapter(),
+            new CleanTerminalSelectionService(),
+            new DefaultTerminalScrollService(),
+            new DefaultVtProcessorFactory(),
+            new DefaultPtyFactory())
         {
             FontFamilyName = "Consolas",
             TerminalFontSize = TerminalFontSizePolicy.Default,

@@ -119,7 +119,7 @@ public sealed class GraphiteUiTests
     [Theory]
     [InlineData(1366, 768)]
     [InlineData(1920, 1080)]
-    public Task ExplorerOverlayKeepsWorkspaceSizeAndDismissal(int width, int height) => OnUiThread(async () =>
+    public Task UnpinnedExplorerOverlaysWorkspaceAndPinnedExplorerStaysOpen(int width, int height) => OnUiThread(async () =>
     {
         using var vm = MainWindowViewModelTests.CreateVisualTestViewModel();
         await vm.InitializeAsync();
@@ -159,9 +159,95 @@ public sealed class GraphiteUiTests
             window.MouseUp(point, MouseButton.Left);
             Assert.True(vm.IsSidebarExpanded);
             Assert.True(vm.IsDeviceExplorerPinned);
-            Assert.Equal(originalBounds, workspace.Bounds);
+            double reservedWidth = window.FindControl<Grid>("DeviceExplorerOverlay")!.Bounds.Width;
+            Assert.Equal(originalBounds.X + reservedWidth, workspace.Bounds.X);
+            Assert.Equal(originalBounds.Width - reservedWidth, workspace.Bounds.Width);
+            Assert.Equal(originalBounds.Height, workspace.Bounds.Height);
         }
         finally { window.Close(); }
+    });
+
+    [Theory]
+    [InlineData(1080, 640)]
+    [InlineData(1366, 768)]
+    [InlineData(1920, 1080)]
+    public Task PinnedExplorerReservesSpaceAndTracksResizeAndVisibility(int width, int height) => OnUiThread(async () =>
+    {
+        using var vm = MainWindowViewModelTests.CreateVisualTestViewModel();
+        await vm.InitializeAsync();
+        var pane = new TerminalPaneViewModel(Guid.NewGuid());
+        pane.BeginConnection(new WorkspaceLaunchReference
+        {
+            Kind = WorkspaceLaunchKind.TransientConnection,
+            DisplayName = "Layout test - no connection",
+        }, "Simulated terminal pane for layout verification only.");
+        var tab = new WorkspaceTabViewModel(Guid.NewGuid(), pane, pane);
+        vm.WorkspaceTabs.Add(tab);
+        vm.SelectedWorkspace = tab;
+        using var window = new MainWindow { DataContext = vm, Width = width, Height = height };
+        window.Show();
+        var shell = window.FindControl<Grid>("ShellLayout")!;
+        var workspace = window.FindControl<Grid>("WorkspaceHost")!;
+        var explorer = window.FindControl<Grid>("DeviceExplorerOverlay")!;
+        try
+        {
+            window.UpdateLayout();
+            Dispatcher.UIThread.RunJobs();
+            Rect originalBounds = workspace.Bounds;
+            await vm.ToggleSidebarCommand.ExecuteAsync(null);
+            window.UpdateLayout();
+            Assert.Equal(originalBounds, workspace.Bounds);
+
+            vm.ToggleDeviceExplorerPinCommand.Execute(null);
+            AssertPinnedFits();
+            Render(window, $"pinned-explorer-layout-{width}x{height}");
+            double firstWidth = workspace.Bounds.Width;
+
+            vm.PreviewSidebarWidth(480);
+            AssertPinnedFits();
+            Assert.True(workspace.Bounds.Width < firstWidth);
+            window.Width = 1080;
+            window.Height = 640;
+            AssertPinnedFits();
+            window.Width = 1920;
+            window.Height = 1080;
+            AssertPinnedFits();
+
+            vm.CloseDeviceExplorer();
+            window.UpdateLayout();
+            Assert.False(explorer.IsVisible);
+            Assert.Equal(52, workspace.Bounds.X);
+            Assert.Equal(shell.Bounds.Width, workspace.Bounds.Right);
+
+            await vm.ToggleSidebarCommand.ExecuteAsync(null);
+            AssertPinnedFits();
+            vm.ToggleDeviceExplorerPinCommand.Execute(null);
+            window.Width = width;
+            window.Height = height;
+            window.UpdateLayout();
+            Assert.True(explorer.IsVisible);
+            Assert.Equal(52, workspace.Bounds.X);
+            Assert.Equal(shell.Bounds.Width, workspace.Bounds.Right);
+            Render(window, $"unpinned-explorer-layout-{width}x{height}");
+        }
+        finally { window.Close(); }
+
+        void AssertPinnedFits()
+        {
+            window.UpdateLayout();
+            Dispatcher.UIThread.RunJobs();
+            Assert.True(explorer.IsVisible);
+            Assert.Equal(vm.SidebarWidth + 5, explorer.Bounds.Width);
+            Assert.Equal(explorer.Bounds.Right, workspace.Bounds.X);
+            Assert.Equal(shell.Bounds.Width, workspace.Bounds.Right);
+            Assert.True(workspace.Bounds.Width > 0);
+            var paneView = Assert.Single(window.GetVisualDescendants().OfType<WorkspacePaneView>(),
+                view => ReferenceEquals(view.DataContext, pane));
+            Point position = paneView.TranslatePoint(default, shell)!.Value;
+            Assert.True(position.X >= explorer.Bounds.Right);
+            Assert.True(position.X + paneView.Bounds.Width <= shell.Bounds.Width);
+            Assert.True(paneView.Bounds.Width > 0);
+        }
     });
 
     [Fact]

@@ -1,5 +1,16 @@
 # Changelog
 
+## [Unreleased]
+
+## [1.1.2 package refresh] - 2026-10-26
+
+- Enlarged the default terminal paste confirmation preview and fit the dialog to the display working area while retaining resizing and confirmation safeguards.
+
+- Cleaned trailing ASCII space padding from terminal copies while preserving indentation, internal spaces, Unicode and line endings. Incoming paste text and paste confirmation remain unchanged.
+- Reset the paste preview to its first line and left edge when opening.
+
+- Fixed pinned Device Explorer covering the terminal: pinning now reserves sidebar width, and terminal tabs/content/footer follow sidebar and window resizing. The unpinned Explorer remains an overlay.
+
 ## [1.1.2] - 2026-10-26
 
 - Refined the dark interface with reusable graphite colors, stronger text contrast, and consistent focus and control states.

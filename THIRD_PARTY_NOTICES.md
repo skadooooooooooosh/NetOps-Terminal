@@ -15,6 +15,30 @@ dotnet list NetOpsTerminal.sln package --include-transitive
 
 The terminal renderer and SSH, Telnet, Serial, and Raw TCP providers are explicitly active behind the NetOps-owned adapter boundary as of Phase 5.
 
+Copy extraction in CleanTerminalSelectionService is adapted from [DefaultTerminalSelectionService.cs at v0.5.2](https://github.com/royalapplications/RoyalTerminal/blob/v0.5.2/src/RoyalTerminal.Avalonia/Services/DefaultTerminalSelectionService.cs). It retains upstream selection/Unicode behavior and adds line-end space cleanup before clipboard write; paste and selection clearing delegate to the original service.
+
+MIT License
+
+Copyright (c) 2026 Royal Apps
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
 ## Fluent UI System Icons
 
 - Project: <https://github.com/microsoft/fluentui-system-icons>
