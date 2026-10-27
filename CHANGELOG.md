@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+- Organized historical release documents under docs/releases/archive and removed obsolete local build/preview caches; application behavior and published packages are unchanged.
+
 ## [1.1.2 Explorer refresh] - 2026-10-26
 
 - Fit the terminal beside Device Explorer whenever it is open, including when unpinned; hiding it restores terminal width.

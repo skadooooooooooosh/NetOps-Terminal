@@ -79,15 +79,15 @@ try {
     Copy-Item -LiteralPath 'README.md','SECURITY.md','THIRD_PARTY_NOTICES.md' -Destination $documentationRoot
     Copy-Item -LiteralPath 'docs\USER_AGREEMENT.md' -Destination $documentationRoot
     $releaseGuide = if ($Version -eq '1.0.0') {
-        'docs\RELEASE_V1.md'
+        'docs\releases\archive\RELEASE_V1.md'
     } elseif ($Version -eq '1.1.0') {
         'docs\RELEASE_V1_1.md'
     } elseif ($Version -eq '1.1.1') {
-        'docs\RELEASE_V1_1_1.md'
+        'docs\releases\archive\RELEASE_V1_1_1.md'
     } elseif ($Version -eq '1.1.2') {
         'docs\RELEASE_V1_1_2.md'
     } else {
-        'docs\RELEASE_CANDIDATE.md'
+        'docs\releases\archive\RELEASE_CANDIDATE.md'
     }
     Copy-Item -LiteralPath $releaseGuide -Destination $documentationRoot
 

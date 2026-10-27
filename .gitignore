@@ -46,7 +46,6 @@ Thumbs.db
 # Local project history and previews; kept on this workstation
 docs/testing/
 docs/uiux/
-docs/user-guide/
 docs/previews/
 docs/local-notes/
 PROJECT_CONTEXT.md
@@ -56,3 +55,6 @@ QA_PHASE_GATE.md
 
 # Unselected local logo proposals
 src/NetOpsTerminal.App/Assets/BrandCandidates/
+
+# Test runner output
+**/TestResults/

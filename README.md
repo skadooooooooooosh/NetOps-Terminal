@@ -29,6 +29,7 @@
 ## Refreshed 1.1.2 downloads
 
 The 2026-10-26 package refresh includes responsive Explorer layout and immediate hiding when unpinned, cleaner terminal copies, and a larger paste preview. If an earlier **1.1.2 MSI** is installed, back up your data and uninstall it before installing the refreshed MSI; the same-version installer retains its product identity. See the [release guide](docs/RELEASE_V1_1_2.md#package-refresh---2026-10-26).
+
 ## At a glance
 
 | Connect | Organize | Work |
@@ -90,6 +91,18 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\tools\Publish-Msi.ps1
 
 The release files are written to the ignored `artifacts\release` directory.
 
+## Repository layout
+
+| Folder | Contents |
+| --- | --- |
+| src/ | Application source and assets |
+| tests/ | Automated tests |
+| installer/ | Windows MSI project, wizard and artwork |
+| tools/ | Build, packaging and asset-generation scripts |
+| docs/ | User guide, agreement and current release guide |
+| docs/releases/archive/ | Historical release documentation |
+
+Generated builds and distribution files belong in the ignored artifacts/ folder. Local QA records remain in ignored docs/testing/; they are separate from the public user guide. Installer downloads are published through [GitHub Releases](https://github.com/skadooooooooooosh/NetOps-Terminal/releases), rather than committed as build output.
 ## Project notes
 
 - [User guide (Markdown)](docs/user-guide/NETOPS_TERMINAL_USER_GUIDE.md) and [printable PDF](docs/user-guide/NETOPS_TERMINAL_USER_GUIDE.pdf) — installation, illustrated workflows, shortcuts, and troubleshooting
